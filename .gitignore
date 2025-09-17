@@ -1,0 +1,15 @@
+# Ignorar todo dentro de la carpeta de plugins de tmux
+SalchipapaTmux/plugins/*
+
+# Pero mantener este archivo para que Git preserve la carpeta
+!SalchipapaTmux/plugins/.gitkeep
+
+SalchipapaZsh/.oh-my-zsh/*
+!SalchipapaZsh/.oh-my-zsh/.gitkeep
+
+*.Zone.Identifier
+
+
+*.swp
+*.bak
+*.tmp
