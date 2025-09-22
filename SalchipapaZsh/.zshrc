@@ -25,7 +25,6 @@ fi
 
 
 alias cd="z"
-
 #Configuraciones de zshconcd
 
 setopt autocd

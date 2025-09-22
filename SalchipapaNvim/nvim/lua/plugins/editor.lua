@@ -7,12 +7,12 @@ return {
     -- Description: Provides preview functionality for definitions, declarations, implementations, type definitions, and references.
     "rmagatti/goto-preview",
     event = "BufEnter", -- Load the plugin when a buffer is entered
-    config = true, -- Enable default configuration
+    config = true,      -- Enable default configuration
     keys = {
       {
         "gpd",
         "<cmd>lua require('goto-preview').goto_preview_definition()<CR>",
-        noremap = true, -- Do not allow remapping
+        noremap = true,                   -- Do not allow remapping
         desc = "goto preview definition", -- Description for the keybinding
       },
       {
@@ -51,7 +51,7 @@ return {
     -- Plugin: mini.hipatterns
     -- URL: https://github.com/echasnovski/mini.hipatterns
     -- Description: Provides highlighter patterns for various text patterns.
-    "echasnovski/mini.hipatterns",
+    "nvim-mini/mini.hipatterns",
     event = "BufReadPre", -- Load the plugin before reading a buffer
     opts = {
       highlighters = {
@@ -76,7 +76,7 @@ return {
     event = "BufReadPre", -- Load the plugin before reading a buffer
     opts = {
       keymaps = {
-        blame = "<Leader>gb", -- Keybinding to open blame window
+        blame = "<Leader>gb",  -- Keybinding to open blame window
         browse = "<Leader>go", -- Keybinding to open file/folder in git repository
       },
     },
