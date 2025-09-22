@@ -13,3 +13,10 @@ SalchipapaZsh/.oh-my-zsh/*
 *.swp
 *.bak
 *.tmp
+
+# LazyVim/Lazy.nvim y Neovim caché
+nvim/lazy-lock.json
+nvim/.backup/
+nvim/.undo/
+nvim/.swap/
+nvim/.session/
