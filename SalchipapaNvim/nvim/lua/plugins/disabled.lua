@@ -17,7 +17,7 @@ return {
   },
   {
     "CopilotC-Nvim/CopilotChat.nvim",
-    enabled = false,
+    enabled = true,
   },
   {
     "sudo-tee/opencode.nvim",
@@ -25,7 +25,7 @@ return {
   },
   {
     "olimorris/codecompanion.nvim",
-    enabled = false,
+    enabled = true,
   },
   {
     "tris203/precognition.nvim",
@@ -36,6 +36,6 @@ return {
     -- URL: https://github.com/greggh/claude-code.nvim
     -- Description: Neovim integration for Claude Code AI assistant
     "greggh/claude-code.nvim",
-    enabled = true,
+    enabled = false,
   },
 }
