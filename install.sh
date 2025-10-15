@@ -80,7 +80,7 @@ select_option() {
 show_header() {
   clear
   echo -e "${YELLOW}${logo}${RESET}"
-  echo -e "${AQUA}${BOLD}Welcome to Salchipapa.Dots — Gruvbox Edition${RESET}\n"
+  echo -e "${AQUA}${BOLD}Welcome to Salchipapa.Dots — Auto Config!${RESET}\n"
 }
 
 # === Helpers ===
