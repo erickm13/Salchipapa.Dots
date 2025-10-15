@@ -1,5 +1,10 @@
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
+  "logo": {
+    "source": "/home/salchipapa/Salchipapa.Dots/SalchipapaFastfetch/ascii/cat.txt",
+    "type": "file",
+  },
+
   "modules": [
     "break",
 
@@ -14,23 +19,23 @@
     },
     {
       "type": "cpu",
-      "key": "│ ├",
+      "key": "│ ├ ",
       "showPeCoreCount": true,
       "keyColor": "green",
     },
     {
       "type": "gpu",
-      "key": "│ ├󰍛",
+      "key": "│ ├󰍛 ",
       "keyColor": "green",
     },
     {
       "type": "memory",
-      "key": "│ ├󰍛",
+      "key": "│ ├󰍛 ",
       "keyColor": "green",
     },
     {
       "type": "disk",
-      "key": "└ └",
+      "key": "└ └ ",
       "keyColor": "green",
     },
     {
@@ -49,17 +54,17 @@
     },
     {
       "type": "kernel",
-      "key": "│ ├",
+      "key": "│ ├ ",
       "keyColor": "yellow",
     },
     {
       "type": "packages",
-      "key": "│ ├󰏖",
+      "key": "│ ├󰏖 ",
       "keyColor": "yellow",
     },
     {
       "type": "shell",
-      "key": "└ └",
+      "key": "└ └ ",
       "keyColor": "yellow",
     },
     "break",
@@ -70,22 +75,22 @@
     },
     {
       "type": "lm",
-      "key": "│ ├",
+      "key": "│ ├ ",
       "keyColor": "blue",
     },
     {
       "type": "wm",
-      "key": "│ ├",
+      "key": "│ ├ ",
       "keyColor": "blue",
     },
     {
       "type": "wmtheme",
-      "key": "│ ├󰉼",
+      "key": "│ ├󰉼 ",
       "keyColor": "blue",
     },
     {
       "type": "gpu",
-      "key": "└ └󰍛",
+      "key": "└ └󰍛 ",
       "format": "{3}",
       "keyColor": "blue",
     },
