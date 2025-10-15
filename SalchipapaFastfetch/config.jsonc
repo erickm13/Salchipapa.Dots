@@ -3,6 +3,12 @@
   "logo": {
     "source": "/home/salchipapa/Salchipapa.Dots/SalchipapaFastfetch/ascii/cat.txt",
     "type": "file",
+    "width": 8,
+    "height": 8,
+    "padding": {
+      "top": 4,
+      "left": 4, // ← prueba 2–4 según te guste // opcional
+    },
   },
 
   "modules": [
@@ -66,33 +72,6 @@
       "type": "shell",
       "key": "└ └ ",
       "keyColor": "yellow",
-    },
-    "break",
-    {
-      "type": "de",
-      "key": " DE",
-      "keyColor": "blue",
-    },
-    {
-      "type": "lm",
-      "key": "│ ├ ",
-      "keyColor": "blue",
-    },
-    {
-      "type": "wm",
-      "key": "│ ├ ",
-      "keyColor": "blue",
-    },
-    {
-      "type": "wmtheme",
-      "key": "│ ├󰉼 ",
-      "keyColor": "blue",
-    },
-    {
-      "type": "gpu",
-      "key": "└ └󰍛 ",
-      "format": "{3}",
-      "keyColor": "blue",
     },
     {
       "type": "custom",
