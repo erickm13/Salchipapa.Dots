@@ -200,6 +200,6 @@ S A L C H I P A P A   N E O V I M
 ```
 
 Created with ❤️ by **Salchipapa**  
-Inspired by modern Linux-based developer environments.
+Inspired by modern Linux-based developer environments and Gentleman.Dots - by Gentleman-Programming
 
-**License:** MIT
+**References:** <https://github.com/Gentleman-Programming/Gentleman.Dots>
