@@ -102,7 +102,10 @@ source $ZSH/oh-my-zsh.sh
   alias lD="eza -l --no-permissions --sort=date --icons"       # ordenar por fecha
   alias lg="eza -l --no-permissions --git --icons"
   alias lf="eza -l --git --group-directories-first" #muestra info de permisos
-
+  alias gs="git status"
+  alias ga="git add"
+  alias gc="git commit -m"
+  alias gp="git push -u origin main"
 
 export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
 zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
