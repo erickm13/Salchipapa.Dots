@@ -125,7 +125,15 @@ ln -s ~/Salchipapa.Dots/SalchipapaNvim/nvim/ ~/.config/nvim
 nvim --headless "+Lazy! sync" +qa
 ```
 
----
+
+
+##### Install IosevkaTerm NF
+
+```bash
+url: https://www.nerdfonts.com/font-downloads
+```
+
+
 
 ## 🤖 AI Integrations (Optional)
 
