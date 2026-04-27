@@ -1,7 +1,7 @@
 layout {
-    //tab name="nvim" focus=true {
-      //  pane
-   // }
+    tab name="nvim" focus=true {
+        pane
+    }
 
     tab name="shell" {
         pane
@@ -10,8 +10,8 @@ layout {
     default_tab_template {
         pane size=1 borderless=true {
             plugin location="file:~/.config/zellij/plugins/zjstatus.wasm" {
-              format_left   " {session}{tabs}"
-              format_right  "{command_git_branch}"
+              format_left   "{mode} #[fg=#a7c080,bold]{session}{tabs}"
+              format_right  "{command_git_branch} {datetime}"
               format_space  ""
 
               border_enabled  "false"
@@ -38,8 +38,5 @@ layout {
             }
         }
         children
-	pane size=1 borderless=true  {
-          plugin location="zellij:status-bar"
-        }
     }
 }

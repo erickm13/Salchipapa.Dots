@@ -7,12 +7,12 @@ return {
     -- Description: Provides preview functionality for definitions, declarations, implementations, type definitions, and references.
     "rmagatti/goto-preview",
     event = "BufEnter", -- Load the plugin when a buffer is entered
-    config = true,      -- Enable default configuration
+    config = true, -- Enable default configuration
     keys = {
       {
         "gpd",
         "<cmd>lua require('goto-preview').goto_preview_definition()<CR>",
-        noremap = true,                   -- Do not allow remapping
+        noremap = true, -- Do not allow remapping
         desc = "goto preview definition", -- Description for the keybinding
       },
       {
@@ -49,7 +49,7 @@ return {
   },
   {
     -- Plugin: mini.hipatterns
-    -- URL: https://github.com/echasnovski/mini.hipatterns
+    -- URL: https://github.com/nvim-mini/mini.hipatterns
     -- Description: Provides highlighter patterns for various text patterns.
     "nvim-mini/mini.hipatterns",
     event = "BufReadPre", -- Load the plugin before reading a buffer
@@ -58,7 +58,7 @@ return {
         hsl_color = {
           pattern = "hsl%(%d+,? %d+,? %d+%)", -- Pattern to match HSL color values
           group = function(_, match)
-            local utils = require("config.gentleman.utils")
+            local utils = require("config.salchipapa.utils")
             local h, s, l = match:match("hsl%((%d+),? (%d+),? (%d+)%)")
             h, s, l = tonumber(h), tonumber(s), tonumber(l)
             local hex_color = utils.hslToHex(h, s, l)
@@ -76,7 +76,7 @@ return {
     event = "BufReadPre", -- Load the plugin before reading a buffer
     opts = {
       keymaps = {
-        blame = "<Leader>gb",  -- Keybinding to open blame window
+        blame = "<Leader>gb", -- Keybinding to open blame window
         browse = "<Leader>go", -- Keybinding to open file/folder in git repository
       },
     },

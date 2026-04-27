@@ -309,22 +309,7 @@ themes {
         orange "#ffb86c"
         black "#1a1a1a"
         white "#8D909D"
-    }
-
-    gruvbox_dark {
-  	fg      "#EBDBB2"
-  	bg      "#282828"
-  	red     "#CC241D"
-  	green   "#98971A"
-  	yellow  "#D79921"
-  	blue    "#458588"
-  	magenta "#B16286"
-  	cyan    "#689D6A"
-  	orange  "#D65D0E"
-  	black   "#1D2021"
-  	white   "#EBDBB2"
-    }
-    
+    } 
 
     kanagawa_wave {
         fg "#DCD7BA"
@@ -395,9 +380,23 @@ themes {
       black "#000000"     // bl: dark background (almost black)
       white "#C9C7CD"     // na: light text (light gray)
     }
+
+    solarized_osaka {
+      fg "#839395"        // foreground base
+      bg "#001419"        // background deep dark
+      red "#db302d"
+      green "#849900"
+      yellow "#b28500"
+      blue "#268bd3"
+      magenta "#d23681"
+      cyan "#29a298"
+      orange "#c94c16"
+      black "#001014"
+      white "#9eabac"
+    }
 }
 
-theme "gruvbox_dark"
+theme "solarized_osaka"
 
 // Choose the base input mode of zellij.
 // Default: normal
@@ -416,7 +415,7 @@ default_mode "locked"
 // The name of the default layout to load on startup
 // Default: "work_oldWorld"
 // 
-default_layout "work_everforest"
+default_layout "work_solarized_osaka"
  
 // The folder in which Zellij will look for layouts
 // (Requires restart)
@@ -474,6 +473,13 @@ default_layout "work_everforest"
 // the stdin of the program to perform the copy. This can be used with
 // terminal emulators which do not support the OSC 52 ANSI control sequence
 // that will be used by default if this option is not set.
+//
+// NOTE: If copy/paste isn't working, uncomment the line matching your system:
+// - Linux X11: uncomment "xclip" line AND set copy_clipboard "primary"
+// - Linux Wayland: uncomment "wl-copy" line
+// - macOS: uncomment "pbcopy" line
+// See: https://zellij.dev/documentation/faq.html#copy--paste-isnt-working-how-can-i-fix-this
+//
 // Examples:
 //
 // copy_command "xclip -selection clipboard" // x11
@@ -563,3 +569,6 @@ scrollback_editor "nvim"
 // Default: true (if the host terminal supports it)
 // 
 // support_kitty_keyboard_protocol false
+
+// Default shell (configured by Gentleman.Dots)
+default_shell "fish"

@@ -1,0 +1,22 @@
+# name: Solarized Osaka Fish shell theme
+
+fish_color_normal 839395
+fish_color_command 268bd3
+fish_color_keyword d23681
+fish_color_quote 849900
+fish_color_redirection 9eabac
+fish_color_end 29a298
+fish_color_error db302d
+fish_color_param 839395
+fish_color_comment 586e75
+fish_color_selection --background=073642
+fish_color_search_match --background=073642
+fish_color_operator 29a298
+fish_color_escape 849900
+fish_color_autosuggestion 586e75
+
+# Completion Pager Colors
+fish_pager_color_progress 839395
+fish_pager_color_prefix 268bd3
+fish_pager_color_completion 839395
+fish_pager_color_description 586e75

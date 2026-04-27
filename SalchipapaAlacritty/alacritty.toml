@@ -1,66 +1,132 @@
-# Adaptation of WezTerm colors to Alacritty (Dark Theme)
-
-# Gruvbox Dark Hard Theme
-[colors.primary]
-background = "#1D2021"
-foreground = "#ebdbb2"
-
-[colors.cursor]
-text = "#1d2021"
-cursor = "#ebdbb2"
-
-[colors.selection]
-background = "#665c54"
-text = "#ebdbb2"
-
-[colors.normal]
-black = "#1d2021"
-red = "#cc241d"
-green = "#98971a"
-yellow = "#d79921"
-blue = "#458588"
-magenta = "#b16286"
-cyan = "#689d6a"
-white = "#a89984"
-
-[colors.bright]
-black = "#928374"
-red = "#fb4934"
-green = "#b8bb26"
-yellow = "#fabd2f"
-blue = "#83a598"
-magenta = "#d3869b"
-cyan = "#8ec07c"
-white = "#ebdbb2"
+# ╔══════════════════════════════════════════════════════════════════════════════╗
+# ║                         GENTLEMAN DOTS - ALACRITTY                           ║
+# ║                          Optimized for Neovim                                ║
+# ╚══════════════════════════════════════════════════════════════════════════════╝
 
 
-[[colors.indexed_colors]]
-index = 16
-color = "#FFA066" # waveOrange
-
-[[colors.indexed_colors]]
-index = 17
-color = "#2D4F67" # waveBlue1 (using as an additional distinct color)
-
-[cursor]
-style = "Underline"
-unfocused_hollow = true
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                                   FONT                                       │
+# └──────────────────────────────────────────────────────────────────────────────┘
 
 [font]
-size = 17
+size = 14
 
 [font.normal]
 family = "IosevkaTerm NF"
 
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                                  WINDOW                                      │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
 [window]
+opacity = 0.75
+blur = true
 option_as_alt = "Both"
-opacity = 0.85
-decorations = "none"
-dynamic_title = false
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                                  CURSOR                                      │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+[cursor]
+style = "Block"
+blink_interval = 500
+unfocused_hollow = true
+vi_mode_style = "Block"
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                                 TERMINAL                                     │
+# └──────────────────────────────────────────────────────────────────────────────┘
 
 [terminal]
-shell = { program = "C:\\Windows\\System32\\wsl.exe", args = ["--cd", "~"] }
-
+# For best Neovim compatibility, install alacritty terminfo:
+# sudo tic -xe alacritty,alacritty-direct extra/alacritty.info
 
 [env]
 TERM = "xterm-256color"
+
+[hints]
+enabled = []
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                           GENTLEMAN THEME (backup)                           │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# --- Base Colors ---
+# [colors.primary]
+# background = "#06080f"
+# foreground = "#f3f6f9"
+
+# [colors.cursor]
+# cursor = "#e0c15a"
+# text = "#06080f"
+
+# [colors.selection]
+# background = "#263356"
+# text = "#f3f6f9"
+
+# --- Normal Colors ---
+# [colors.normal]
+# black   = "#06080f"
+# red     = "#cb7c94"
+# green   = "#b7cc85"
+# yellow  = "#ffe066"
+# blue    = "#7fb4ca"
+# magenta = "#ff8dd7"
+# cyan    = "#7aa89f"
+# white   = "#f3f6f9"
+
+# --- Bright Colors ---
+# [colors.bright]
+# black   = "#8a8fa3"
+# red     = "#de8fa8"
+# green   = "#d1e8a9"
+# yellow  = "#fff7b1"
+# blue    = "#a3d4d5"
+# magenta = "#ffaeea"
+# cyan    = "#7fb4ca"
+# white   = "#f3f6f9"
+
+
+# ┌──────────────────────────────────────────────────────────────────────────────┐
+# │                         SOLARIZED OSAKA THEME                                │
+# │              (from craftzdog/solarized-osaka.nvim extras/alacritty)          │
+# └──────────────────────────────────────────────────────────────────────────────┘
+
+# --- Base Colors ---
+[colors.primary]
+background = "#001419"
+foreground = "#839395"
+
+[colors.cursor]
+cursor = "#839395"
+text = "#001419"
+
+[colors.selection]
+background = "#1a6397"
+text = "#839395"
+
+# --- Normal Colors ---
+[colors.normal]
+black   = "#001014"
+red     = "#db302d"
+green   = "#849900"
+yellow  = "#b28500"
+blue    = "#268bd3"
+magenta = "#d23681"
+cyan    = "#29a298"
+white   = "#9eabac"
+
+# --- Bright Colors ---
+[colors.bright]
+black   = "#001419"
+red     = "#db302d"
+green   = "#849900"
+yellow  = "#b28500"
+blue    = "#268bd3"
+magenta = "#d23681"
+cyan    = "#29a298"
+white   = "#839395"
