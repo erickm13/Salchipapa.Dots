@@ -35,6 +35,7 @@ return {
         bashls = {},
         asm_lsp = {
           filetypes = { "asm", "vmasm", "s", "S" },
+          mason = false,
         },
         angularls = {
           -- Configuration for Angular Language Server
