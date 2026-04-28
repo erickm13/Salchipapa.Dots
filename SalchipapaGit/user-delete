@@ -1,0 +1,111 @@
+#!/bin/bash
+
+# ── Solarized Osaka (truecolor) ────────────────────────────────────────────────
+RESET="\033[0m"
+BOLD="\033[1m"
+DIM="\033[2m"
+BASE01="\033[38;2;88;110;117m"
+BASE1="\033[38;2;147;161;161m"
+BLUE="\033[38;2;38;139;210m"
+CYAN="\033[38;2;42;161;152m"
+GREEN="\033[38;2;133;153;0m"
+YELLOW="\033[38;2;181;137;0m"
+ORANGE="\033[38;2;203;75;22m"
+RED="\033[38;2;220;50;47m"
+VIOLET="\033[38;2;108;113;196m"
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+header() {
+    echo -e "\n${BLUE}╭──────────────────────────────────────────────────────╮${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BOLD}${BASE1}🗑  user-delete${RESET}                                      ${BLUE}│${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BASE01}Remove a GitHub SSH account and its config${RESET}           ${BLUE}│${RESET}"
+    echo -e "${BLUE}╰──────────────────────────────────────────────────────╯${RESET}\n"
+}
+
+section() { echo -e "\n${VIOLET}── [ $1 ] ──────────────────────────────────────────${RESET}"; }
+ok()      { echo -e "  ${GREEN}✓${RESET}  $1"; }
+err()     { echo -e "  ${RED}✗${RESET}  ${RED}$1${RESET}"; }
+warn()    { echo -e "  ${YELLOW}⚠${RESET}  ${YELLOW}$1${RESET}"; }
+info()    { echo -e "  ${BASE01}ℹ  $1${RESET}"; }
+ask()     { echo -ne "  ${CYAN}›${RESET}  ${BASE1}$1${RESET} "; }
+
+# ── Find keys ──────────────────────────────────────────────────────────────────
+header
+section "Available SSH Keys"
+
+mapfile -t ssh_keys < <(find ~/.ssh -maxdepth 1 -type f -name "*.pub" -printf "%f\n" 2>/dev/null | sed 's/\.pub$//' | sort)
+
+if [ ${#ssh_keys[@]} -eq 0 ]; then
+    err "No SSH keys found in ~/.ssh/"
+    exit 1
+fi
+
+for i in "${!ssh_keys[@]}"; do
+    comment=$(awk '{print $3}' ~/.ssh/"${ssh_keys[$i]}".pub 2>/dev/null)
+    echo -e "  ${CYAN}$((i+1))${RESET}  ${BASE1}${ssh_keys[$i]}${RESET}  ${BASE01}($comment)${RESET}"
+done
+
+echo ""
+while true; do
+    ask "Select key to delete:"; read choice
+    if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#ssh_keys[@]}" ]; then
+        key_name="${ssh_keys[$((choice-1))]}"
+        break
+    fi
+    err "Invalid option."
+done
+
+# ── Confirm ────────────────────────────────────────────────────────────────────
+section "Confirm Deletion"
+
+echo -e "  ${BASE1}This will remove:${RESET}"
+echo -e "  ${BASE01}·${RESET} ~/.ssh/${key_name}  +  .pub"
+[ -f ~/.gitconfig-"$key_name" ] && echo -e "  ${BASE01}·${RESET} ~/.gitconfig-$key_name"
+grep -q "Host gh-$key_name" ~/.ssh/config 2>/dev/null && echo -e "  ${BASE01}·${RESET} SSH config entry  ${CYAN}gh-$key_name${RESET}"
+grep -q "gitconfig-$key_name" ~/.gitconfig 2>/dev/null && echo -e "  ${BASE01}·${RESET} gitconfig includeIf for $key_name"
+
+echo ""
+warn "This action cannot be undone."
+ask "Confirm? (y/N):"; read confirm
+if [[ ! "$confirm" =~ ^[yY]$ ]]; then
+    info "Cancelled."
+    exit 0
+fi
+
+# ── Delete ─────────────────────────────────────────────────────────────────────
+section "Deleting"
+
+# SSH keys
+if [ -f ~/.ssh/"$key_name" ]; then
+    rm ~/.ssh/"$key_name"
+    ok "Removed ~/.ssh/$key_name"
+fi
+if [ -f ~/.ssh/"$key_name".pub ]; then
+    rm ~/.ssh/"$key_name".pub
+    ok "Removed ~/.ssh/$key_name.pub"
+fi
+
+# gitconfig file
+if [ -f ~/.gitconfig-"$key_name" ]; then
+    rm ~/.gitconfig-"$key_name"
+    ok "Removed ~/.gitconfig-$key_name"
+fi
+
+# SSH config block (Host gh-<key> ... blank line)
+if grep -q "Host gh-$key_name" ~/.ssh/config 2>/dev/null; then
+    sed -i "/^# .*$/{ N; /\nHost gh-$key_name/{ N; N; N; d } }" ~/.ssh/config
+    sed -i "/^Host gh-$key_name$/,/^$/d" ~/.ssh/config
+    ok "Removed SSH config entry  gh-$key_name"
+fi
+
+# gitconfig includeIf block
+if grep -q "gitconfig-$key_name" ~/.gitconfig 2>/dev/null; then
+    sed -i "/^\[includeIf.*\]$/{N; /gitconfig-$key_name/d}" ~/.gitconfig
+    sed -i "/    path = ~\/.gitconfig-$key_name/d" ~/.gitconfig
+    ok "Removed includeIf from ~/.gitconfig"
+fi
+
+# ── Summary ────────────────────────────────────────────────────────────────────
+echo -e "\n${GREEN}╭── Done ──────────────────────────────────────────────╮${RESET}"
+echo -e "${GREEN}│${RESET}  ${GREEN}✓${RESET}  ${CYAN}$key_name${RESET} removed successfully"
+echo -e "${GREEN}╰──────────────────────────────────────────────────────╯${RESET}\n"

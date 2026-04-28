@@ -1,0 +1,182 @@
+#!/bin/bash
+
+# ── Solarized Osaka (truecolor) ────────────────────────────────────────────────
+RESET="\033[0m"
+BOLD="\033[1m"
+DIM="\033[2m"
+BASE01="\033[38;2;88;110;117m"
+BASE1="\033[38;2;147;161;161m"
+BLUE="\033[38;2;38;139;210m"
+CYAN="\033[38;2;42;161;152m"
+GREEN="\033[38;2;133;153;0m"
+YELLOW="\033[38;2;181;137;0m"
+ORANGE="\033[38;2;203;75;22m"
+RED="\033[38;2;220;50;47m"
+VIOLET="\033[38;2;108;113;196m"
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+header() {
+    echo -e "\n${BLUE}╭──────────────────────────────────────────────────────╮${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BOLD}${BASE1}➕  add-git-user${RESET}                                     ${BLUE}│${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BASE01}Add an additional GitHub SSH account${RESET}                 ${BLUE}│${RESET}"
+    echo -e "${BLUE}╰──────────────────────────────────────────────────────╯${RESET}\n"
+}
+
+section() {
+    echo -e "\n${VIOLET}── [ $1 ] ──────────────────────────────────────────${RESET}"
+}
+
+ok()   { echo -e "  ${GREEN}✓${RESET}  $1"; }
+err()  { echo -e "  ${RED}✗${RESET}  ${RED}$1${RESET}"; }
+warn() { echo -e "  ${YELLOW}⚠${RESET}  ${YELLOW}$1${RESET}"; }
+info() { echo -e "  ${BASE01}ℹ  $1${RESET}"; }
+ask()  { echo -ne "  ${CYAN}›${RESET}  ${BASE1}$1${RESET} "; }
+
+# ── Preflight ──────────────────────────────────────────────────────────────────
+header
+
+if [ ! -f ~/.gitconfig ]; then
+    err "~/.gitconfig not found. Run setup-git-users first."
+    exit 1
+fi
+
+# ── User info ──────────────────────────────────────────────────────────────────
+section "Account Info"
+
+ask "Username:"; read user_name
+if [ -z "$user_name" ]; then
+    err "Name cannot be empty."
+    exit 1
+fi
+
+while true; do
+    ask "Email:"; read user_email
+    if [ -z "$user_email" ]; then
+        err "Email cannot be empty."
+    elif [[ ! "$user_email" =~ ^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$ ]]; then
+        err "Invalid format. Example: user@domain.com"
+    else
+        break
+    fi
+done
+
+# ── SSH key name ───────────────────────────────────────────────────────────────
+section "SSH Key"
+
+while true; do
+    ask "Key name (used as gh-<name>):"; read key_name
+    if [ -z "$key_name" ]; then
+        err "Name cannot be empty."
+        continue
+    fi
+    key_name="${key_name#gh-}"
+    if [[ ! "$key_name" =~ ^[a-zA-Z0-9_-]+$ ]]; then
+        err "Only letters, numbers, hyphens and underscores allowed."
+        continue
+    fi
+    if [ -f ~/.ssh/"$key_name" ]; then
+        warn "~/.ssh/$key_name already exists."
+        echo -e "  ${BASE01}1) Choose a different name   2) Keep existing key${RESET}"
+        ask "Choice:"; read overwrite_choice
+        [ "$overwrite_choice" = "1" ] && continue
+    fi
+    break
+done
+
+ssh_host="gh-$key_name"
+
+# ── Directory ──────────────────────────────────────────────────────────────────
+section "Directory Mapping"
+
+while true; do
+    ask "Directory for this account (e.g. work):"; read dir_name
+    if [ -z "$dir_name" ]; then
+        err "Directory name cannot be empty."
+        continue
+    fi
+    if [ -d ~/"$dir_name" ]; then
+        warn "~/$dir_name already exists."
+        echo -e "  ${BASE01}1) Choose a different name   2) Use anyway${RESET}"
+        ask "Choice:"; read dir_choice
+        [ "$dir_choice" = "1" ] && continue
+    fi
+    break
+done
+
+# ── Git config ─────────────────────────────────────────────────────────────────
+section "Updating Git Config"
+
+if grep -q "gitdir:~/$dir_name/" ~/.gitconfig; then
+    info "includeIf for ~/$dir_name/ already exists, skipping."
+else
+    if grep -q "\[init\]" ~/.gitconfig; then
+        sed -i "/\[init\]/i [includeIf \"gitdir:~\/$dir_name\/\"]\n    path = ~\/.gitconfig-$key_name\n" ~/.gitconfig
+    else
+        cat >> ~/.gitconfig << EOF
+
+[includeIf "gitdir:~/$dir_name/"]
+    path = ~/.gitconfig-$key_name
+EOF
+    fi
+    ok "includeIf added to ${CYAN}~/.gitconfig${RESET}"
+fi
+
+cat > ~/.gitconfig-"$key_name" << EOF
+[user]
+    name = $user_name
+    email = $user_email
+EOF
+ok "${CYAN}~/.gitconfig-$key_name${RESET} created"
+
+# ── SSH config ─────────────────────────────────────────────────────────────────
+section "Updating SSH Config"
+
+if grep -q "Host $ssh_host" ~/.ssh/config 2>/dev/null; then
+    info "Host $ssh_host already exists in ~/.ssh/config, skipping."
+else
+    cat >> ~/.ssh/config << EOF
+
+# $user_name ($dir_name)
+Host $ssh_host
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/$key_name
+EOF
+    ok "Host ${CYAN}$ssh_host${RESET} added to ~/.ssh/config"
+fi
+
+# ── SSH key generation ─────────────────────────────────────────────────────────
+section "Generating SSH Key"
+
+if [ ! -f ~/.ssh/"$key_name" ]; then
+    echo -e "\n  ${BASE1}Passphrase for ${CYAN}$key_name${RESET}${BASE1} (leave empty for none):${RESET}"
+    while true; do
+        read -s -p "  › Password: " pass1; echo
+        read -s -p "  › Confirm:  " pass2; echo
+        if [ "$pass1" = "$pass2" ]; then
+            ssh-keygen -t ed25519 -f ~/.ssh/"$key_name" -C "$user_email" -N "$pass1" -q
+            ok "Key generated: ${CYAN}~/.ssh/$key_name${RESET}"
+            break
+        else
+            err "Passwords do not match. Try again."
+        fi
+    done
+else
+    info "~/.ssh/$key_name already exists, skipping generation."
+fi
+
+chmod 600 ~/.ssh/"$key_name" 2>/dev/null
+chmod 644 ~/.ssh/"$key_name".pub 2>/dev/null
+chmod 600 ~/.ssh/config
+
+# ── Summary ────────────────────────────────────────────────────────────────────
+echo -e "\n${GREEN}╭── Summary ───────────────────────────────────────────╮${RESET}"
+echo -e "${GREEN}│${RESET}  ${BASE01}User      ${RESET}${CYAN}$user_name${RESET}"
+echo -e "${GREEN}│${RESET}  ${BASE01}Email     ${RESET}${CYAN}$user_email${RESET}"
+echo -e "${GREEN}│${RESET}  ${BASE01}SSH host  ${RESET}${CYAN}$ssh_host${RESET}"
+echo -e "${GREEN}│${RESET}  ${BASE01}Key       ${RESET}${CYAN}~/.ssh/$key_name${RESET}"
+echo -e "${GREEN}│${RESET}  ${BASE01}Directory ${RESET}${CYAN}~/$dir_name/${RESET}"
+echo -e "${GREEN}│${RESET}  ${BASE01}gitconfig ${RESET}${CYAN}~/.gitconfig-$key_name${RESET}"
+echo -e "${GREEN}╰──────────────────────────────────────────────────────╯${RESET}"
+echo -e "\n  ${ORANGE}Add this public key to GitHub Settings → SSH keys:${RESET}\n"
+echo -e "  ${BASE01}$(cat ~/.ssh/"$key_name".pub 2>/dev/null)${RESET}\n"

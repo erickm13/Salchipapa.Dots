@@ -1,0 +1,206 @@
+#!/bin/bash
+
+# ── Solarized Osaka (truecolor) ────────────────────────────────────────────────
+RESET="\033[0m"
+BOLD="\033[1m"
+DIM="\033[2m"
+BASE01="\033[38;2;88;110;117m"      # dim / comments
+BASE1="\033[38;2;147;161;161m"      # bright text
+BLUE="\033[38;2;38;139;210m"
+CYAN="\033[38;2;42;161;152m"
+GREEN="\033[38;2;133;153;0m"
+YELLOW="\033[38;2;181;137;0m"
+ORANGE="\033[38;2;203;75;22m"
+RED="\033[38;2;220;50;47m"
+VIOLET="\033[38;2;108;113;196m"
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+header() {
+    echo -e "\n${BLUE}╭──────────────────────────────────────────────────────╮${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BOLD}${BASE1}⚙  setup-git-users${RESET}                                  ${BLUE}│${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BASE01}Git & SSH environment setup from scratch${RESET}             ${BLUE}│${RESET}"
+    echo -e "${BLUE}╰──────────────────────────────────────────────────────╯${RESET}\n"
+}
+
+section() {
+    echo -e "\n${VIOLET}── [ $1 ] ──────────────────────────────────────────${RESET}"
+}
+
+ok()   { echo -e "  ${GREEN}✓${RESET}  $1"; }
+err()  { echo -e "  ${RED}✗${RESET}  ${RED}$1${RESET}"; }
+warn() { echo -e "  ${YELLOW}⚠${RESET}  ${YELLOW}$1${RESET}"; }
+info() { echo -e "  ${BASE01}ℹ  $1${RESET}"; }
+ask()  { echo -ne "  ${CYAN}›${RESET}  ${BASE1}$1${RESET} "; }
+
+# ── Main ───────────────────────────────────────────────────────────────────────
+header
+mkdir -p ~/.ssh
+
+section "Main Account"
+
+ask "Username for gitconfig:"; read main_user_name
+ask "Email for gitconfig:"; read main_user_email
+ask "SSH key name (e.g. personal):"; read main_key_name
+
+if [ -z "$main_key_name" ]; then
+    err "SSH key name cannot be empty."
+    exit 1
+fi
+
+# ── Extra users ────────────────────────────────────────────────────────────────
+declare -a extra_names extra_emails extra_dirs
+extra_count=0
+
+while true; do
+    section "Additional Accounts"
+    echo -e "  ${BASE1}Add another GitHub account?${RESET}"
+    echo -e "  ${BASE01}1) Yes   2) No${RESET}"
+    ask "Choice:"; read opt
+
+    case $opt in
+        1)
+            ask "Username:"; read extra_name
+            ask "Email:"; read extra_email
+
+            while true; do
+                ask "Directory for this user (e.g. work):"; read dir_name
+                if [ -z "$dir_name" ]; then
+                    err "Directory name cannot be empty."
+                    continue
+                fi
+                if [ -d ~/"$dir_name" ]; then
+                    warn "~/$dir_name already exists."
+                    echo -e "  ${BASE01}1) Choose a different name   2) Use anyway${RESET}"
+                    ask "Choice:"; read dir_opt
+                    [ "$dir_opt" = "1" ] && continue
+                fi
+                break
+            done
+
+            extra_names[$extra_count]="$extra_name"
+            extra_emails[$extra_count]="$extra_email"
+            extra_dirs[$extra_count]="$dir_name"
+            extra_count=$((extra_count + 1))
+            ok "${CYAN}$extra_name${RESET} added"
+            ;;
+        2) break ;;
+        *) err "Invalid option. Enter 1 or 2." ;;
+    esac
+done
+
+# ── Git config ─────────────────────────────────────────────────────────────────
+section "Generating Git Config"
+
+cat > ~/.gitconfig << EOF
+[user]
+	name = $main_user_name
+	email = $main_user_email
+
+EOF
+
+for ((i=0; i<extra_count; i++)); do
+    cat >> ~/.gitconfig << EOF
+[includeIf "gitdir:~/${extra_dirs[$i]}/"]
+    path = ~/.gitconfig-${extra_dirs[$i]}
+
+EOF
+done
+
+cat >> ~/.gitconfig << EOF
+[init]
+	defaultBranch = main
+EOF
+
+ok "${CYAN}~/.gitconfig${RESET} created"
+
+for ((i=0; i<extra_count; i++)); do
+    cat > ~/.gitconfig-${extra_dirs[$i]} << EOF
+[user]
+    name = ${extra_names[$i]}
+    email = ${extra_emails[$i]}
+EOF
+    ok "${CYAN}~/.gitconfig-${extra_dirs[$i]}${RESET} created"
+done
+
+# ── SSH config ─────────────────────────────────────────────────────────────────
+section "Generating SSH Config"
+
+cat > ~/.ssh/config << EOF
+# $main_user_name
+Host gh-$main_key_name
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/$main_key_name
+
+EOF
+
+for ((i=0; i<extra_count; i++)); do
+    cat >> ~/.ssh/config << EOF
+# ${extra_names[$i]} (${extra_dirs[$i]})
+Host gh-${extra_dirs[$i]}
+    HostName github.com
+    User git
+    IdentityFile ~/.ssh/${extra_dirs[$i]}
+
+EOF
+done
+
+ok "${CYAN}~/.ssh/config${RESET} created"
+
+# ── SSH keys ───────────────────────────────────────────────────────────────────
+section "Generating SSH Keys"
+
+generate_key() {
+    local keyfile="$1" email="$2" label="$3"
+    if [ ! -f ~/.ssh/"$keyfile" ]; then
+        echo -e "\n  ${BASE1}Passphrase for ${CYAN}$label${RESET}${BASE1} (leave empty for none):${RESET}"
+        while true; do
+            read -s -p "  › Password: " pass1; echo
+            read -s -p "  › Confirm:  " pass2; echo
+            if [ "$pass1" = "$pass2" ]; then
+                ssh-keygen -t ed25519 -f ~/.ssh/"$keyfile" -C "$email" -N "$pass1" -q
+                ok "Key generated: ${CYAN}~/.ssh/$keyfile${RESET}"
+                break
+            else
+                err "Passwords do not match. Try again."
+            fi
+        done
+    else
+        info "~/.ssh/$keyfile already exists, skipping."
+    fi
+}
+
+generate_key "$main_key_name" "$main_user_email" "$main_user_name"
+
+for ((i=0; i<extra_count; i++)); do
+    generate_key "${extra_dirs[$i]}" "${extra_emails[$i]}" "${extra_names[$i]}"
+done
+
+# ── Permissions ────────────────────────────────────────────────────────────────
+chmod 700 ~/.ssh
+chmod 600 ~/.ssh/config
+[ -f ~/.ssh/"$main_key_name" ]     && chmod 600 ~/.ssh/"$main_key_name"
+[ -f ~/.ssh/"$main_key_name".pub ] && chmod 644 ~/.ssh/"$main_key_name".pub
+for ((i=0; i<extra_count; i++)); do
+    key="${extra_dirs[$i]}"
+    [ -f ~/.ssh/"$key" ]     && chmod 600 ~/.ssh/"$key"
+    [ -f ~/.ssh/"$key".pub ] && chmod 644 ~/.ssh/"$key".pub
+done
+
+# ── Summary ────────────────────────────────────────────────────────────────────
+echo -e "\n${GREEN}╭── Summary ───────────────────────────────────────────╮${RESET}"
+echo -e "${GREEN}│${RESET}  ${BASE1}Main account${RESET}"
+echo -e "${GREEN}│${RESET}    ${BASE01}User  ${RESET}${CYAN}$main_user_name${RESET}"
+echo -e "${GREEN}│${RESET}    ${BASE01}Email ${RESET}${CYAN}$main_user_email${RESET}"
+echo -e "${GREEN}│${RESET}    ${BASE01}Key   ${RESET}${CYAN}~/.ssh/$main_key_name${RESET}  ${BASE01}→  gh-$main_key_name${RESET}"
+for ((i=0; i<extra_count; i++)); do
+    echo -e "${GREEN}│${RESET}"
+    echo -e "${GREEN}│${RESET}  ${BASE1}Additional account${RESET}"
+    echo -e "${GREEN}│${RESET}    ${BASE01}User  ${RESET}${CYAN}${extra_names[$i]}${RESET}"
+    echo -e "${GREEN}│${RESET}    ${BASE01}Email ${RESET}${CYAN}${extra_emails[$i]}${RESET}"
+    echo -e "${GREEN}│${RESET}    ${BASE01}Dir   ${RESET}${CYAN}~/${extra_dirs[$i]}/${RESET}"
+    echo -e "${GREEN}│${RESET}    ${BASE01}Key   ${RESET}${CYAN}~/.ssh/${extra_dirs[$i]}${RESET}  ${BASE01}→  gh-${extra_dirs[$i]}${RESET}"
+done
+echo -e "${GREEN}╰──────────────────────────────────────────────────────╯${RESET}"
+echo -e "\n  ${ORANGE}Next step:${RESET} add your public key(s) to GitHub Settings → SSH keys"
+echo -e "  ${BASE01}cat ~/.ssh/$main_key_name.pub${RESET}\n"

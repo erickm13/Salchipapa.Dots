@@ -1,0 +1,90 @@
+#!/bin/bash
+
+# ── Solarized Osaka (truecolor) ────────────────────────────────────────────────
+RESET="\033[0m"
+BOLD="\033[1m"
+DIM="\033[2m"
+BASE01="\033[38;2;88;110;117m"
+BASE1="\033[38;2;147;161;161m"
+BLUE="\033[38;2;38;139;210m"
+CYAN="\033[38;2;42;161;152m"
+GREEN="\033[38;2;133;153;0m"
+YELLOW="\033[38;2;181;137;0m"
+ORANGE="\033[38;2;203;75;22m"
+RED="\033[38;2;220;50;47m"
+VIOLET="\033[38;2;108;113;196m"
+
+# ── Helpers ────────────────────────────────────────────────────────────────────
+header() {
+    echo -e "\n${BLUE}╭──────────────────────────────────────────────────────╮${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BOLD}${BASE1}🦝  clone-repo${RESET}                                       ${BLUE}│${RESET}"
+    echo -e "${BLUE}│${RESET}  ${BASE01}Clone a repository using a specific SSH identity${RESET}     ${BLUE}│${RESET}"
+    echo -e "${BLUE}╰──────────────────────────────────────────────────────╯${RESET}\n"
+}
+
+section() {
+    echo -e "\n${VIOLET}── [ $1 ] ──────────────────────────────────────────${RESET}"
+}
+
+ok()   { echo -e "  ${GREEN}✓${RESET}  $1"; }
+err()  { echo -e "  ${RED}✗${RESET}  ${RED}$1${RESET}"; }
+ask()  { echo -ne "  ${CYAN}›${RESET}  ${BASE1}$1${RESET} "; }
+
+# ── Find SSH keys ──────────────────────────────────────────────────────────────
+header
+section "Select SSH Key"
+
+mapfile -t ssh_keys < <(find ~/.ssh -maxdepth 1 -type f -name "*.pub" -printf "%f\n" 2>/dev/null | sed 's/\.pub$//' | sort)
+
+if [ ${#ssh_keys[@]} -eq 0 ]; then
+    err "No SSH keys found in ~/.ssh/"
+    exit 1
+fi
+
+for i in "${!ssh_keys[@]}"; do
+    comment=$(awk '{print $3}' ~/.ssh/"${ssh_keys[$i]}".pub 2>/dev/null)
+    echo -e "  ${CYAN}$((i+1))${RESET}  ${BASE1}gh-${ssh_keys[$i]}${RESET}  ${BASE01}($comment)${RESET}"
+done
+
+echo ""
+while true; do
+    ask "Select key:"; read key_choice
+    if [[ "$key_choice" =~ ^[0-9]+$ ]] && [ "$key_choice" -ge 1 ] && [ "$key_choice" -le "${#ssh_keys[@]}" ]; then
+        key_name="${ssh_keys[$((key_choice-1))]}"
+        break
+    fi
+    err "Invalid option."
+done
+
+ssh_host="gh-$key_name"
+
+# ── Repo URL ───────────────────────────────────────────────────────────────────
+section "Repository"
+
+ask "Repo URL (e.g. git@github.com:user/repo.git):"; read repo_url
+
+if [[ ! "$repo_url" =~ ^git@github\.com: ]]; then
+    err "URL must start with git@github.com:"
+    exit 1
+fi
+
+updated_url=$(echo "$repo_url" | sed "s/github.com/$ssh_host/")
+
+# ── Clone ──────────────────────────────────────────────────────────────────────
+section "Cloning"
+
+echo -e "  ${BASE01}Using key   ${RESET}${CYAN}~/.ssh/$key_name${RESET}"
+echo -e "  ${BASE01}Remote URL  ${RESET}${CYAN}$updated_url${RESET}\n"
+
+ssh-add ~/.ssh/"$key_name" 2>/dev/null
+git clone "$updated_url"
+
+if [ $? -eq 0 ]; then
+    echo -e "\n${GREEN}╭── Done ──────────────────────────────────────────────╮${RESET}"
+    echo -e "${GREEN}│${RESET}  ${GREEN}✓${RESET}  Repository cloned successfully"
+    echo -e "${GREEN}│${RESET}  ${BASE01}Key used  ${RESET}${CYAN}gh-$key_name${RESET}"
+    echo -e "${GREEN}╰──────────────────────────────────────────────────────╯${RESET}\n"
+else
+    err "Failed to clone the repository."
+    exit 1
+fi
