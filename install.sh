@@ -355,27 +355,12 @@ accion_install() {
 
   # ── Obsidian vault ─────────────────────────────────────────
   step "Obsidian vault..."
-  if grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; then
-    WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r\n')
-    WIN_VAULT="/mnt/c/Users/$WIN_USER/Documents/obsidian"
-    # Clone git repo to WSL (no chmod issues)
-    if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
-      git clone https://github.com/erickm13/SalchipapaNotes.git "$HOME_DIR/.config/obsidian"
-    else
-      warn "Obsidian vault already exists in WSL — skipping clone."
-    fi
-    # Copy files to Windows for Obsidian app (without .git)
-    mkdir -p "$WIN_VAULT"
-    rsync -a --exclude='.git' "$HOME_DIR/.config/obsidian/" "$WIN_VAULT/"
-    ok "Obsidian vault ready. WSL: ~/.config/obsidian | Windows: $WIN_VAULT"
+  if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
+    git clone https://github.com/erickm13/SalchipapaNotes.git "$HOME_DIR/.config/obsidian"
   else
-    if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
-      git clone https://github.com/erickm13/SalchipapaNotes.git "$HOME_DIR/.config/obsidian"
-    else
-      warn "Obsidian vault already exists — skipping clone."
-    fi
-    ok "Obsidian vault ready at ~/.config/obsidian."
+    warn "Obsidian vault already exists — skipping clone."
   fi
+  ok "Obsidian vault ready at ~/.config/obsidian."
   section_end
 
   # ── Neovim Lazy sync ───────────────────────────────────────
