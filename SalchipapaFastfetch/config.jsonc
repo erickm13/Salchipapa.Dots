@@ -1,48 +1,75 @@
 {
   "$schema": "https://github.com/fastfetch-cli/fastfetch/raw/dev/doc/json_schema.json",
   "logo": {
-    "source": "/home/salchipapa/Salchipapa.Dots/SalchipapaFastfetch/ascii/cat.txt",
+    "source": "./ascii/cat.txt",
     "type": "file",
-    "width": 8,
-    "height": 8,
+    "width": 10,
+    "height": 12,
     "padding": {
       "top": 4,
-      "left": 4, // ← prueba 2–4 según te guste // opcional
+      "left": 6,
+      "right": 3,
     },
   },
-
   "modules": [
     "break",
-
     {
       "type": "custom",
       "format": "\u001b[90m┌──────────────────────Hardware──────────────────────┐",
     },
     {
       "type": "host",
-      "key": " PC",
+      "key": "│   PC",
       "keyColor": "green",
     },
     {
       "type": "cpu",
-      "key": "│ ├ ",
+      "key": "│ ├ 󰻠 CPU",
       "showPeCoreCount": true,
+      "temp": true,
       "keyColor": "green",
     },
     {
       "type": "gpu",
-      "key": "│ ├󰍛 ",
+      "keyIcon": "󰾲",
+      "key": "│ ├ 󰾲 GPU",
+      "driverSpecific": false,
+      "detectionMethod": "pci",
+      "temp": true,
+      "hideType": "integrated",
       "keyColor": "green",
+      "percent": {
+        "green": 50,
+        "yellow": 80,
+        "type": 0,
+      },
     },
     {
       "type": "memory",
-      "key": "│ ├󰍛 ",
+      "key": "│ ├   RAM",
       "keyColor": "green",
+      "percent": {
+        "type": ["bar", "num"],
+      },
     },
     {
       "type": "disk",
-      "key": "└ └ ",
+      "key": "│ ├  Disk",
       "keyColor": "green",
+      "hideFS": "ntfs",
+      "percent": {
+        "type": ["bar", "num"],
+      },
+    },
+    {
+      "type": "battery",
+      "key": "│ └ 󰂅 Battery",
+      "keyColor": "green",
+      "percent": {
+        "green": 60,
+        "yellow": 20,
+        "type": ["bar", "num"],
+      },
     },
     {
       "type": "custom",
@@ -55,22 +82,23 @@
     },
     {
       "type": "os",
-      "key": " OS",
+      "key": "│ 󰖳 OS",
+      "format": "{name} {version} Pro",
       "keyColor": "yellow",
     },
     {
-      "type": "kernel",
-      "key": "│ ├ ",
+      "type": "uptime",
+      "key": "│ ├ 󰅐 Uptime",
       "keyColor": "yellow",
     },
     {
       "type": "packages",
-      "key": "│ ├󰏖 ",
+      "key": "│ ├ 󰏖 Packages",
       "keyColor": "yellow",
     },
     {
       "type": "shell",
-      "key": "└ └ ",
+      "key": "│ └  Shell",
       "keyColor": "yellow",
     },
     {
@@ -78,5 +106,28 @@
       "format": "\u001b[90m└────────────────────────────────────────────────────┘",
     },
     "break",
+    {
+      "type": "custom",
+      "format": "\u001b[90m┌──────────────────────Network───────────────────────┐",
+    },
+    {
+      "type": "localip",
+      "key": "  󱦂 IP",
+      "keyColor": "blue",
+    },
+    {
+      "type": "custom",
+      "format": "\u001b[90m└────────────────────────────────────────────────────┘",
+    },
+    "break",
+    {
+      "type": "colors",
+      "key": "  ",
+      "symbol": "block",
+      "block": {
+        "width": 3,
+        "range": [0, 7],
+      },
+    },
   ],
 }
