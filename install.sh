@@ -90,10 +90,10 @@ section_end() {
   echo -e "${AQUA}  └────────────────────────────────────────────${RESET}"
 }
 
-step()    { echo -e "${BLUE}  │  ${GRAY}$1${RESET}"; }
-ok()      { echo -e "${GREEN}  │  ✔ ${RESET}$1"; }
-warn()    { echo -e "${YELLOW}  │  ⚠ ${RESET}$1"; }
-err()     { echo -e "${RED}  │  ✖ ${RESET}$1"; }
+step() { echo -e "${BLUE}  │  ${GRAY}$1${RESET}"; }
+ok() { echo -e "${GREEN}  │  ✔ ${RESET}$1"; }
+warn() { echo -e "${YELLOW}  │  ⚠ ${RESET}$1"; }
+err() { echo -e "${RED}  │  ✖ ${RESET}$1"; }
 
 spinner() {
   local pid=$! frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
@@ -111,13 +111,14 @@ run_silent() {
 
 # ── pick_option: display to stderr, echo choice to stdout ────────
 pick_option() {
-  local prompt="$1"; shift
+  local prompt="$1"
+  shift
   local options=("$@")
 
   echo -e "\n  ${AQUA}${BOLD}$prompt${RESET}" >&2
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}" >&2
   for i in "${!options[@]}"; do
-    echo -e "  ${YELLOW}${BOLD}  $((i+1)))${RESET}  ${options[$i]}" >&2
+    echo -e "  ${YELLOW}${BOLD}  $((i + 1)))${RESET}  ${options[$i]}" >&2
   done
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}" >&2
 
@@ -126,7 +127,7 @@ pick_option() {
     printf "  ${ORANGE}▶${RESET}${GRAY} Select [1-%s]: ${RESET}" "${#options[@]}" >&2
     read -r choice
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
-      echo "${options[$((choice-1))]}"
+      echo "${options[$((choice - 1))]}"
       return
     fi
     echo -e "  ${RED}  Invalid option, try again.${RESET}" >&2
@@ -266,9 +267,9 @@ accion_install() {
 
   # ── Ask configuration ──────────────────────────────────────
   local shell_choice mux_choice term_choice
-  shell_choice=$(pick_option "Default shell:"            "Fish" "Zsh")
-  mux_choice=$(pick_option   "Terminal multiplexer:"    "Zellij" "Tmux")
-  term_choice=$(pick_option  "Terminal emulator config:" "Alacritty" "Wezterm")
+  shell_choice=$(pick_option "Default shell:" "Fish" "Zsh")
+  mux_choice=$(pick_option "Terminal multiplexer:" "Zellij" "Tmux")
+  term_choice=$(pick_option "Terminal emulator config:" "Alacritty" "Wezterm")
 
   # ── Summary ────────────────────────────────────────────────
   echo -e "\n  ${AQUA}${BOLD}Summary${RESET}"
@@ -279,7 +280,10 @@ accion_install() {
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}"
   printf "  ${ORANGE}▶${RESET}${GRAY} Proceed? [Y/n]: ${RESET}"
   read -r confirm
-  [[ "${confirm,,}" =~ ^(n|no)$ ]] && { echo -e "  ${RED}Aborted.${RESET}\n"; return; }
+  [[ "${confirm,,}" =~ ^(n|no)$ ]] && {
+    echo -e "  ${RED}Aborted.${RESET}\n"
+    return
+  }
 
   # ── System ─────────────────────────────────────────────────
   section "System"
@@ -308,32 +312,32 @@ accion_install() {
 
   # ── Core packages ──────────────────────────────────────────
   section "Core Tools"
-  run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit..." \
-    "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit"
+  run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, btop..." \
+    "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch"
   ok "Core tools installed."
   section_end
 
   # ── Shell ──────────────────────────────────────────────────
   section "Shell — $shell_choice"
   case "$shell_choice" in
-    Fish) setup_fish ;;
-    Zsh)  setup_zsh  ;;
+  Fish) setup_fish ;;
+  Zsh) setup_zsh ;;
   esac
   section_end
 
   # ── Multiplexer ────────────────────────────────────────────
   section "Multiplexer — $mux_choice"
   case "$mux_choice" in
-    Zellij) setup_zellij ;;
-    Tmux)   setup_tmux   ;;
+  Zellij) setup_zellij ;;
+  Tmux) setup_tmux ;;
   esac
   section_end
 
   # ── Terminal ───────────────────────────────────────────────
   section "Terminal — $term_choice"
   case "$term_choice" in
-    Alacritty) setup_alacritty ;;
-    Wezterm)   setup_wezterm   ;;
+  Alacritty) setup_alacritty ;;
+  Wezterm) setup_wezterm ;;
   esac
   section_end
 
@@ -453,8 +457,8 @@ while true; do
     "Install CLIs + Lazy sync" \
     "Quit")
   case "$choice" in
-    "Install everything")     accion_install ;;
-    "Install CLIs + Lazy sync") accion_cli   ;;
-    "Quit")                   accion_quit    ;;
+  "Install everything") accion_install ;;
+  "Install CLIs + Lazy sync") accion_cli ;;
+  "Quit") accion_quit ;;
   esac
 done
