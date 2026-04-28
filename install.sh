@@ -284,8 +284,8 @@ accion_install() {
   # ── System ─────────────────────────────────────────────────
   section "System"
   run_silent "apt update & upgrade..." "sudo apt-get update -y && sudo apt-get upgrade -y"
-  run_silent "build-essential, curl, git, ca-certificates..." \
-    "sudo apt-get install -y build-essential curl git ca-certificates"
+  run_silent "build-essential, curl, git, ca-certificates, unzip..." \
+    "sudo apt-get install -y build-essential curl git ca-certificates unzip"
   ok "System packages ready."
   section_end
 
@@ -308,8 +308,8 @@ accion_install() {
 
   # ── Core packages ──────────────────────────────────────────
   section "Core Tools"
-  run_silent "gcc, nvim, starship, carapace, fzf, zoxide, atuin, fd, eza, bat..." \
-    "brew install gcc nvim starship carapace fzf zoxide atuin fd eza bat"
+  run_silent "gcc, nvim, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp..." \
+    "brew install gcc nvim starship carapace fzf zoxide atuin fd eza bat asm-lsp"
   ok "Core tools installed."
   section_end
 
