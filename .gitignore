@@ -15,8 +15,22 @@ SalchipapaZsh/.oh-my-zsh/*
 *.tmp
 
 # LazyVim/Lazy.nvim y Neovim caché
-nvim/lazy-lock.json
-nvim/.backup/
 nvim/.undo/
 nvim/.swap/
 nvim/.session/
+# Archivos generados por fzf.fish
+SalchipapaFish/fish/completions/
+SalchipapaFish/fish/conf.d/fzf.fish
+SalchipapaFish/fish/functions/_fzf*
+# Archivos generados por nvm
+SalchipapaFish/fish/conf.d/nvm.fish
+SalchipapaFish/fish/functions/nvm.fish
+SalchipapaFish/fish/functions/_nvm*
+# Variables locales de fish
+SalchipapaFish/fish/fish_variables
+SalchipapaFish/fish/fish_plugins
+
+CLAUDE.md
+GEMINI.md
+CODEX.md
+SalchipapaFish/fish/functions/fzf*
