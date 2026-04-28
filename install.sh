@@ -308,8 +308,8 @@ accion_install() {
 
   # ── Core packages ──────────────────────────────────────────
   section "Core Tools"
-  run_silent "gcc, nvim, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit..." \
-    "brew install gcc nvim starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit"
+  run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit..." \
+    "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit"
   ok "Core tools installed."
   section_end
 
