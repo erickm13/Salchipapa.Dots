@@ -45,10 +45,10 @@ if not set -q ZELLIJ
 end
 
 # Initialize tools
-command -q starship && starship init fish | source
-command -q zoxide  && zoxide init fish | source
-command -q atuin   && atuin init fish | source
-command -q fzf     && fzf --fish | source
+starship init fish | source
+zoxide init fish | source
+atuin init fish | source
+fzf --fish | source
 
 set -x PATH $HOME/.cargo/bin $PATH
 
