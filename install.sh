@@ -352,6 +352,27 @@ accion_install() {
   step "Fastfetch..."
   symlink_force "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
   ok "Fastfetch linked."
+
+  # ── Obsidian vault ─────────────────────────────────────────
+  step "Obsidian vault..."
+  if grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; then
+    WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r\n')
+    WIN_VAULT="/mnt/c/Users/$WIN_USER/Documents/obsidian"
+    if [ ! -d "$WIN_VAULT/.git" ]; then
+      git clone https://github.com/erickm13/SalchipapaNotes.git "$WIN_VAULT"
+    else
+      warn "Obsidian vault already exists — skipping clone."
+    fi
+    symlink_force "$WIN_VAULT" "$HOME_DIR/.config/obsidian"
+    ok "Obsidian vault linked to Windows ($WIN_VAULT)."
+  else
+    if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
+      git clone https://github.com/erickm13/SalchipapaNotes.git "$HOME_DIR/.config/obsidian"
+    else
+      warn "Obsidian vault already exists — skipping clone."
+    fi
+    ok "Obsidian vault ready at ~/.config/obsidian."
+  fi
   section_end
 
   # ── Neovim Lazy sync ───────────────────────────────────────
@@ -370,6 +391,8 @@ accion_install() {
   fi
 
   echo -e "\n  ${GREEN}${BOLD}✔  Installation complete!${RESET}\n"
+  echo -e "  ${YELLOW}${BOLD}  ⚠  Restart your terminal${RESET}"
+  echo -e "  ${GRAY}  Close this window and open a new one for all tools to load correctly.${RESET}\n"
   read -rp "  Press [ENTER] to return to menu… "
 }
 

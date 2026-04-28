@@ -45,10 +45,10 @@ if not set -q ZELLIJ
 end
 
 # Initialize tools
-starship init fish | source
-zoxide init fish | source
-atuin init fish | source
-fzf --fish | source
+command -q starship && starship init fish | source
+command -q zoxide  && zoxide init fish | source
+command -q atuin   && atuin init fish | source
+command -q fzf     && fzf --fish | source
 
 set -x PATH $HOME/.cargo/bin $PATH
 
@@ -104,6 +104,9 @@ alias gs="git status"
 alias gp="git push"
 alias gl="git log --oneline --graph"
 alias gc="git commit -m"
+
+# Obsidian vault sync
+alias obs="git -C ~/.config/obsidian add . && git -C ~/.config/obsidian commit -m 'update notes' && git -C ~/.config/obsidian push"
 
 # Alias for navegation
 alias win="z /mnt/c/Users/Salchipapa"

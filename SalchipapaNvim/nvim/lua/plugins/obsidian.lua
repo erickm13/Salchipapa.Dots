@@ -14,7 +14,7 @@ return {
     legacy_commands = false,
     workspaces = {
       {
-        name = "GentlemanNotes", -- Name of the workspace
+        name = "SalchipapaNotes", -- Name of the workspace
         path = os.getenv("HOME") .. "/.config/obsidian", -- Path to the notes directory
       },
     },
@@ -46,12 +46,18 @@ return {
       end,
     },
 
+    daily_notes = {
+      folder = "daily",
+      date_format = "%Y-%m-%d",
+      template = "daily.md",
+    },
+
     -- Settings for templates
     templates = {
-      subdir = "templates", -- Subdirectory for templates
-      date_format = "%Y-%m-%d-%a", -- Date format for templates
-      gtime_format = "%H:%M", -- Time format for templates
-      tags = "", -- Default tags for templates
+      subdir = "templates",
+      date_format = "%Y-%m-%d-%a",
+      gtime_format = "%H:%M",
+      tags = "",
     },
   },
 }
