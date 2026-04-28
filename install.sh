@@ -359,7 +359,7 @@ accion_install() {
     WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r\n')
     WIN_VAULT="/mnt/c/Users/$WIN_USER/Documents/obsidian"
     if [ ! -d "$WIN_VAULT/.git" ]; then
-      git clone https://github.com/erickm13/SalchipapaNotes.git "$WIN_VAULT"
+      git clone -c core.filemode=false https://github.com/erickm13/SalchipapaNotes.git "$WIN_VAULT"
     else
       warn "Obsidian vault already exists — skipping clone."
     fi
