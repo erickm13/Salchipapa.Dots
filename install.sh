@@ -358,13 +358,16 @@ accion_install() {
   if grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; then
     WIN_USER=$(cmd.exe /c "echo %USERNAME%" 2>/dev/null | tr -d '\r\n')
     WIN_VAULT="/mnt/c/Users/$WIN_USER/Documents/obsidian"
-    if [ ! -d "$WIN_VAULT/.git" ]; then
-      git clone -c core.filemode=false https://github.com/erickm13/SalchipapaNotes.git "$WIN_VAULT"
+    # Clone git repo to WSL (no chmod issues)
+    if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
+      git clone https://github.com/erickm13/SalchipapaNotes.git "$HOME_DIR/.config/obsidian"
     else
-      warn "Obsidian vault already exists — skipping clone."
+      warn "Obsidian vault already exists in WSL — skipping clone."
     fi
-    symlink_force "$WIN_VAULT" "$HOME_DIR/.config/obsidian"
-    ok "Obsidian vault linked to Windows ($WIN_VAULT)."
+    # Copy files to Windows for Obsidian app (without .git)
+    mkdir -p "$WIN_VAULT"
+    rsync -a --exclude='.git' "$HOME_DIR/.config/obsidian/" "$WIN_VAULT/"
+    ok "Obsidian vault ready. WSL: ~/.config/obsidian | Windows: $WIN_VAULT"
   else
     if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
       git clone https://github.com/erickm13/SalchipapaNotes.git "$HOME_DIR/.config/obsidian"
