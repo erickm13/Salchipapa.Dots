@@ -10,6 +10,7 @@ local function get_system_node()
   local system_paths = {
     "/opt/homebrew/bin/node", -- Homebrew on Apple Silicon
     "/usr/local/bin/node", -- Homebrew on Intel Mac or standard install
+    "/home/linuxbrew/.linuxbrew/bin/node", -- Homebrew on Linux
     vim.fn.expand("~/.volta/bin/node"), -- Volta's global Node
     vim.fn.expand("~/.local/share/nvm/v*/bin/node"), -- nvm.fish (fish shell)
     vim.fn.expand("~/.nvm/versions/node/*/bin/node"), -- NVM default version
