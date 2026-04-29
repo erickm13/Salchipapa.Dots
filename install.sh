@@ -338,8 +338,8 @@ accion_install() {
 
   # ── Core packages ──────────────────────────────────────────
   section "Core Tools"
-  run_silent "gcc, nvim, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
-    "brew install gcc nvim starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi"
+  run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
+    "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi"
   ok "Core tools installed."
   section_end
 
@@ -507,7 +507,7 @@ accion_uninstall() {
     local brew_pkgs=(
       fish zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions
       zellij tmux alacritty
-      gcc nvim starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi
+      gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi
       nvm
     )
     step "Uninstalling brew packages..."
