@@ -274,9 +274,9 @@ accion_install() {
 
   # ── Ask configuration ──────────────────────────────────────
   local shell_choice mux_choice term_choice cli_gemini cli_angular cli_claude
-  shell_choice=$(pick_option "Default shell:" "Fish" "Zsh")
-  mux_choice=$(pick_option "Terminal multiplexer:" "Zellij" "Tmux")
-  term_choice=$(pick_option "Terminal emulator config:" "Alacritty" "Wezterm")
+  shell_choice=$(pick_option "Default shell:" "Fish" "Zsh" "Skip")
+  mux_choice=$(pick_option "Terminal multiplexer:" "Zellij" "Tmux" "Skip")
+  term_choice=$(pick_option "Terminal emulator config:" "Alacritty" "Wezterm" "Skip")
   cli_gemini=$(pick_option "Install Gemini CLI?" "Yes" "Skip")
   cli_angular=$(pick_option "Install Angular CLI?" "Yes" "Skip")
   cli_claude=$(pick_option "Install Claude Code?" "Yes" "Skip")
@@ -335,6 +335,7 @@ accion_install() {
   case "$shell_choice" in
   Fish) setup_fish ;;
   Zsh) setup_zsh ;;
+  Skip) ok "Skipped." ;;
   esac
   section_end
 
@@ -343,6 +344,7 @@ accion_install() {
   case "$mux_choice" in
   Zellij) setup_zellij ;;
   Tmux) setup_tmux ;;
+  Skip) ok "Skipped." ;;
   esac
   section_end
 
@@ -351,6 +353,7 @@ accion_install() {
   case "$term_choice" in
   Alacritty) setup_alacritty ;;
   Wezterm) setup_wezterm ;;
+  Skip) ok "Skipped." ;;
   esac
   section_end
 
