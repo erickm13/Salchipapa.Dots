@@ -42,6 +42,7 @@ jobs:
         with:
           repository: erickm13/Salchipapa.Dots
           token: ${{ secrets.TAP_GITHUB_TOKEN }}
+          ref: main
 
       - name: Update formula in Salchipapa.Dots
         run: |
@@ -55,4 +56,4 @@ jobs:
           git config user.email "mejiaerick3192@gmail.com"
           git add homebrew-tap/Formula/salchipapa-dots.rb
           git commit -m "feat: update homebrew formula to ${{ steps.info.outputs.version }}"
-          git push
+          git push origin HEAD:main
