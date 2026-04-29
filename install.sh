@@ -169,9 +169,11 @@ setup_fish() {
 
   step "Installing Fisher + plugins + Node LTS..."
   sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c '
-    if not functions -q fisher
+    if test -f ~/.config/fish/functions/fisher.fish
+      source ~/.config/fish/functions/fisher.fish
+    else
       curl -sL https://git.io/fisher | source
-      fisher install jorgebucaran/fisher
+      fisher install jorgebucaran/fisher >/dev/null 2>&1
     end
     rm -f ~/.config/fish/functions/_nvm_version_activate.fish \
           ~/.config/fish/functions/_nvm_version_deactivate.fish \
@@ -180,7 +182,7 @@ setup_fish() {
           ~/.config/fish/completions/pj.fish
     fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj >/dev/null 2>&1
     nvm install lts
-    nvm alias default lts
+    set -U nvm_default_version lts
   '
 
   ok "Fish ready."
