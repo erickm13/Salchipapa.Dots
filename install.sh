@@ -176,8 +176,12 @@ setup_fish() {
     fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
   '
 
-  step "Installing Node LTS via nvm.fish..."
-  sudo -u "$TARGET_USER" -H "$brew_fish" --login -c 'nvm install lts && nvm alias default lts'
+  if ! command -v node &>/dev/null; then
+    step "Installing Node LTS via nvm.fish..."
+    sudo -u "$TARGET_USER" -H "$brew_fish" --login -c 'nvm install lts && nvm alias default lts'
+  else
+    ok "Node already available ($(node --version)), skipping nvm install."
+  fi
 
   ok "Fish ready."
 }
