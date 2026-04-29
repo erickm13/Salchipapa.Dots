@@ -31,8 +31,8 @@ jobs:
 
       - name: Commit and push homebrew-tap
         run: |
-          git config user.name "salchipapa-bot"
-          git config user.email "actions@github.com"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add Formula/salchipapa-dots.rb
           git commit -m "feat: update salchipapa-dots to ${{ steps.info.outputs.version }}"
           git push
