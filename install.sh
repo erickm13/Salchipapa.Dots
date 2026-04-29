@@ -341,6 +341,52 @@ accion_install() {
   esac
   section_end
 
+  # ── CLIs ───────────────────────────────────────────────────
+  section "CLIs"
+  local brew_fish_cli="$brew_prefix/bin/fish"
+  local brew_zsh_cli="$brew_prefix/bin/zsh"
+
+  local NVM_ZSH_BOOT='
+    export NVM_DIR="$HOME/.nvm"; mkdir -p "$NVM_DIR"
+    for f in "$(brew --prefix)/opt/nvm/nvm.sh" "$(brew --prefix nvm)/nvm.sh"; do
+      [ -s "$f" ] && . "$f" && break
+    done
+    nvm install --lts >/dev/null 2>&1 || true
+    nvm alias default "lts/*" >/dev/null 2>&1 || true
+    nvm use default >/dev/null 2>&1 || true
+  '
+
+  install_npm_cli() {
+    local pkg="$1"
+    if [ -x "$brew_fish_cli" ]; then
+      run_silent "Installing $pkg..." \
+        "sudo -u '$TARGET_USER' -H $brew_fish_cli -c 'nvm use lts --silent 2>/dev/null || true; npm i -g $pkg'"
+    else
+      run_silent "Installing $pkg..." \
+        "sudo -u '$TARGET_USER' -H $brew_zsh_cli -ic '$NVM_ZSH_BOOT && npm i -g $pkg'"
+    fi
+  }
+
+  local cli_choice
+  cli_choice=$(pick_option "Which CLIs to install?" \
+    "All (Gemini + Angular + Claude Code)" \
+    "Gemini CLI" \
+    "Angular CLI" \
+    "Claude Code")
+
+  case "$cli_choice" in
+    "All (Gemini + Angular + Claude Code)")
+      install_npm_cli "@google/gemini-cli"
+      install_npm_cli "@angular/cli"
+      install_npm_cli "@anthropic-ai/claude-code"
+      ;;
+    "Gemini CLI")   install_npm_cli "@google/gemini-cli" ;;
+    "Angular CLI")  install_npm_cli "@angular/cli" ;;
+    "Claude Code")  install_npm_cli "@anthropic-ai/claude-code" ;;
+  esac
+  ok "CLIs installed."
+  section_end
+
   # ── Common symlinks ────────────────────────────────────────
   section "Config Symlinks"
   ensure_dir "$HOME_DIR/.config"
@@ -389,54 +435,6 @@ accion_install() {
 }
 
 # ════════════════════════════════════════════════════════════════
-#   Action: CLIs + Lazy sync
-# ════════════════════════════════════════════════════════════════
-
-accion_cli() {
-  show_header
-  section "CLIs + Lazy Sync"
-
-  if ! command -v brew >/dev/null 2>&1; then
-    err "Homebrew not found — run 'Install' first."
-    section_end
-    read -rp "  Press [ENTER] to return to menu… "
-    return
-  fi
-
-  local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
-  local brew_fish="$brew_prefix/bin/fish"
-  local brew_zsh="$brew_prefix/bin/zsh"
-
-  local NVM_ZSH_BOOT='
-    export NVM_DIR="$HOME/.nvm"; mkdir -p "$NVM_DIR"
-    for f in "$(brew --prefix)/opt/nvm/nvm.sh" "$(brew --prefix nvm)/nvm.sh"; do
-      [ -s "$f" ] && . "$f" && break
-    done
-    nvm install --lts >/dev/null 2>&1 || true
-    nvm alias default "lts/*" >/dev/null 2>&1 || true
-    nvm use default >/dev/null 2>&1 || true
-  '
-
-  if [ -x "$brew_fish" ]; then
-    run_silent "Installing @google/gemini-cli..." \
-      "sudo -u '$TARGET_USER' -H $brew_fish -c 'nvm use lts --silent 2>/dev/null || true; npm i -g @google/gemini-cli'"
-    run_silent "Installing @angular/cli..." \
-      "sudo -u '$TARGET_USER' -H $brew_fish -c 'nvm use lts --silent 2>/dev/null || true; npm i -g @angular/cli'"
-  else
-    run_silent "Installing @google/gemini-cli..." \
-      "sudo -u '$TARGET_USER' -H $brew_zsh -ic '$NVM_ZSH_BOOT && npm i -g @google/gemini-cli'"
-    run_silent "Installing @angular/cli..." \
-      "sudo -u '$TARGET_USER' -H $brew_zsh -ic '$NVM_ZSH_BOOT && npm i -g @angular/cli'"
-  fi
-
-  run_silent "Neovim Lazy sync..." "nvim --headless '+Lazy! sync' +qa"
-  ok "CLIs installed and Lazy sync done."
-  section_end
-
-  read -rp "  Press [ENTER] to return to menu… "
-}
-
-# ════════════════════════════════════════════════════════════════
 #   Action: Quit
 # ════════════════════════════════════════════════════════════════
 
@@ -454,11 +452,9 @@ while true; do
   show_header
   choice=$(pick_option "What do you want to do?" \
     "Install everything" \
-    "Install CLIs + Lazy sync" \
     "Quit")
   case "$choice" in
   "Install everything") accion_install ;;
-  "Install CLIs + Lazy sync") accion_cli ;;
   "Quit") accion_quit ;;
   esac
 done
