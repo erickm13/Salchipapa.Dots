@@ -182,7 +182,6 @@ setup_fish() {
           ~/.config/fish/completions/pj.fish
     fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj >/dev/null 2>&1
     nvm install lts
-    set -U nvm_default_version lts
   '
 
   ok "Fish ready."
