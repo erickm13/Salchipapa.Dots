@@ -174,7 +174,7 @@ setup_fish() {
   '
 
   step "Installing Node LTS via nvm.fish..."
-  sudo -u "$TARGET_USER" -H "$brew_fish" -c 'nvm install lts && nvm alias default lts'
+  sudo -u "$TARGET_USER" -H "$brew_fish" --login -c 'nvm install lts && nvm alias default lts'
 
   ok "Fish ready."
 }
@@ -374,7 +374,7 @@ accion_install() {
     local pkg="$1"
     step "Installing $pkg..."
     if [ -x "$brew_fish_cli" ]; then
-      sudo -u "$TARGET_USER" -H "$brew_fish_cli" -c "nvm use lts --silent 2>/dev/null || true; npm i -g $pkg"
+      sudo -u "$TARGET_USER" -H "$brew_fish_cli" --login -c "nvm use lts --silent 2>/dev/null || true; npm i -g $pkg"
     else
       sudo -u "$TARGET_USER" -H "$brew_zsh_cli" -ic "$NVM_ZSH_BOOT && npm i -g $pkg"
     fi
