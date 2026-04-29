@@ -181,12 +181,8 @@ setup_fish() {
       fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
     '"
 
-  if ! command -v node &>/dev/null; then
-    run_silent "Installing Node LTS via nvm.fish..." \
-      "sudo -u '$TARGET_USER' -H '$brew_fish' --no-config -c 'nvm install lts && nvm alias default lts'"
-  else
-    ok "Node already available ($(node --version)), skipping nvm install."
-  fi
+  run_silent "Installing Node LTS via nvm.fish..." \
+    "sudo -u '$TARGET_USER' -H '$brew_fish' --no-config -c 'nvm install lts && nvm alias default lts'"
 
   ok "Fish ready."
 }
@@ -340,8 +336,8 @@ accion_install() {
 
   # ── Core packages ──────────────────────────────────────────
   section "Core Tools"
-  run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, , yazi, btop..." \
-    "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi"
+  run_silent "gcc, nvim, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
+    "brew install gcc nvim starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi"
   ok "Core tools installed."
   section_end
 
@@ -453,9 +449,7 @@ accion_install() {
   fi
 
   echo -e "\n  ${GREEN}${BOLD}✔  Installation complete!${RESET}\n"
-  echo -e "  ${YELLOW}${BOLD}  ⚠  Restart your terminal${RESET}"
-  echo -e "  ${GRAY}  Close this window and open a new one for all tools to load correctly.${RESET}\n"
-  read -rp "  Press [ENTER] to return to menu… "
+  exec fish
 }
 
 # ════════════════════════════════════════════════════════════════
@@ -511,7 +505,7 @@ accion_uninstall() {
     local brew_pkgs=(
       fish zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions
       zellij tmux alacritty
-      gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi
+      gcc nvim starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi
       nvm
     )
     step "Uninstalling brew packages..."
