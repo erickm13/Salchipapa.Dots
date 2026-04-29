@@ -499,6 +499,8 @@ accion_uninstall() {
   rm -rf "$HOME_DIR/Salchipapa.Dots"
   ok "Removed ~/Salchipapa.Dots"
 
+  chsh -s "$(which bash)" "$TARGET_USER" 2>/dev/null && ok "Default shell restored to bash." || true
+
   if [ -d "$HOME_DIR/.config/obsidian" ]; then
     rm -rf "$HOME_DIR/.config/obsidian"
     ok "Removed ~/.config/obsidian"
