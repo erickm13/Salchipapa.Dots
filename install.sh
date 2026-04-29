@@ -9,7 +9,8 @@ TARGET_USER="${SUDO_USER:-$USER}"
 HOME_DIR="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
 : "${HOME_DIR:=$HOME}"
 
-BREW_SHARE="$(brew --prefix 2>/dev/null)/share/salchipapa-dots"
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+BREW_SHARE="$(dirname "$SCRIPT_DIR")/share/salchipapa-dots"
 if [ -d "$BREW_SHARE" ]; then
   DOTS_DIR="$BREW_SHARE"
 else
