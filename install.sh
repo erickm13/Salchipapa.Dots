@@ -520,6 +520,11 @@ accion_uninstall() {
     done
     ok "Brew packages removed."
 
+    if [ -d "/home/linuxbrew/.linuxbrew/etc/fish" ]; then
+      rm -rf "/home/linuxbrew/.linuxbrew/etc/fish"
+      ok "Removed /home/linuxbrew/.linuxbrew/etc/fish"
+    fi
+
     step "Uninstalling npm CLIs..."
     npm uninstall -g @google/gemini-cli @angular/cli @anthropic-ai/claude-code 2>/dev/null || true
     ok "npm CLIs removed."
