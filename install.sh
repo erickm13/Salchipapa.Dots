@@ -12,7 +12,10 @@ HOME_DIR="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 BREW_SHARE="$(dirname "$SCRIPT_DIR")/share/salchipapa-dots"
 if [ -d "$BREW_SHARE" ]; then
-  DOTS_DIR="$BREW_SHARE"
+  if [ ! -d "$HOME_DIR/Salchipapa.Dots/.git" ]; then
+    git clone https://github.com/erickm13/Salchipapa.Dots.git "$HOME_DIR/Salchipapa.Dots"
+  fi
+  DOTS_DIR="$HOME_DIR/Salchipapa.Dots"
 else
   DOTS_DIR="$HOME_DIR/Salchipapa.Dots"
 fi
