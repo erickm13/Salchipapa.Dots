@@ -149,30 +149,32 @@ setup_fish() {
   local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
   local brew_fish="$brew_prefix/bin/fish"
 
-  run_silent "Installing fish..." "brew install fish"
+  step "Installing fish..."
+  brew install fish
 
   if ! grep -qxF "$brew_fish" /etc/shells; then
     step "Adding fish to /etc/shells..."
     echo "$brew_fish" | sudo tee -a /etc/shells >/dev/null
   fi
-  run_silent "Setting fish as default shell..." "sudo chsh -s '$brew_fish' '$TARGET_USER'"
+  step "Setting fish as default shell..."
+  sudo chsh -s "$brew_fish" "$TARGET_USER"
 
   ensure_dir "$HOME_DIR/.config"
   step "Linking fish config..."
   symlink_force "$DOTS_DIR/SalchipapaFish/fish" "$HOME_DIR/.config/fish"
   ok "fish config linked."
 
-  run_silent "Installing Fisher + plugins..." \
-    "sudo -u '$TARGET_USER' -H $brew_fish -c '
-      if not functions -q fisher
-        curl -sL https://git.io/fisher | source
-        fisher install jorgebucaran/fisher
-      end
-      fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
-    '"
+  step "Installing Fisher + plugins..."
+  sudo -u "$TARGET_USER" -H "$brew_fish" -c '
+    if not functions -q fisher
+      curl -sL https://git.io/fisher | source
+      fisher install jorgebucaran/fisher
+    end
+    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
+  '
 
-  run_silent "Installing Node LTS via nvm.fish..." \
-    "sudo -u '$TARGET_USER' -H $brew_fish -c 'nvm install lts && nvm alias default lts'"
+  step "Installing Node LTS via nvm.fish..."
+  sudo -u "$TARGET_USER" -H "$brew_fish" -c 'nvm install lts && nvm alias default lts'
 
   ok "Fish ready."
 }
@@ -370,12 +372,11 @@ accion_install() {
 
   install_npm_cli() {
     local pkg="$1"
+    step "Installing $pkg..."
     if [ -x "$brew_fish_cli" ]; then
-      run_silent "Installing $pkg..." \
-        "sudo -u '$TARGET_USER' -H $brew_fish_cli -c 'nvm use lts --silent 2>/dev/null || true; npm i -g $pkg'"
+      sudo -u "$TARGET_USER" -H "$brew_fish_cli" -c "nvm use lts --silent 2>/dev/null || true; npm i -g $pkg"
     else
-      run_silent "Installing $pkg..." \
-        "sudo -u '$TARGET_USER' -H $brew_zsh_cli -ic '$NVM_ZSH_BOOT && npm i -g $pkg'"
+      sudo -u "$TARGET_USER" -H "$brew_zsh_cli" -ic "$NVM_ZSH_BOOT && npm i -g $pkg"
     fi
   }
 
