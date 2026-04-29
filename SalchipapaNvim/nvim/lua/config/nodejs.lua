@@ -11,6 +11,7 @@ local function get_system_node()
     "/opt/homebrew/bin/node", -- Homebrew on Apple Silicon
     "/usr/local/bin/node", -- Homebrew on Intel Mac or standard install
     vim.fn.expand("~/.volta/bin/node"), -- Volta's global Node
+    vim.fn.expand("~/.local/share/nvm/v*/bin/node"), -- nvm.fish (fish shell)
     vim.fn.expand("~/.nvm/versions/node/*/bin/node"), -- NVM default version
     vim.fn.expand("~/.nix-profile/bin/node"), -- Nix
     "/usr/bin/node", -- System default
@@ -128,7 +129,7 @@ local function setup_nodejs()
   end
 
   vim.notify(
-    "⚠️  Node.js not found! Some plugins may not work correctly.\nInstall Node.js with:\n  brew install node",
+    "⚠️  Node.js not found! Some plugins may not work correctly.\nInstall Node.js with:\n  nvm install lts",
     vim.log.levels.ERROR
   )
   return false, nil
