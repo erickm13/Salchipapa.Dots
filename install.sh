@@ -503,7 +503,7 @@ accion_uninstall() {
     fi
   done
 
-  chsh -s "$(which bash)" "$TARGET_USER" 2>/dev/null && ok "Default shell restored to bash." || true
+  usermod -s "$(which bash)" "$TARGET_USER" 2>/dev/null && ok "Default shell restored to bash." || true
 
   if [ -d "$HOME_DIR/.config/obsidian" ]; then
     rm -rf "$HOME_DIR/.config/obsidian"
