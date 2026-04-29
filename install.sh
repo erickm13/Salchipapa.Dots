@@ -168,7 +168,7 @@ setup_fish() {
   ok "fish config linked."
 
   step "Installing Fisher + plugins..."
-  sudo -u "$TARGET_USER" -H "$brew_fish" -c '
+  sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c '
     if not functions -q fisher
       curl -sL https://git.io/fisher | source
       fisher install jorgebucaran/fisher
@@ -178,7 +178,7 @@ setup_fish() {
 
   if ! command -v node &>/dev/null; then
     step "Installing Node LTS via nvm.fish..."
-    sudo -u "$TARGET_USER" -H "$brew_fish" --login -c 'nvm install lts && nvm alias default lts'
+    sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c 'nvm install lts && nvm alias default lts'
   else
     ok "Node already available ($(node --version)), skipping nvm install."
   fi
