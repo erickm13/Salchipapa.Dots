@@ -40,7 +40,7 @@ end
 
 # Start tmux/zellij
 
-if not set -q ZELLIJ
+if status is-interactive && not set -q ZELLIJ
     zellij
 end
 
