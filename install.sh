@@ -167,23 +167,23 @@ setup_fish() {
   symlink_force "$DOTS_DIR/SalchipapaFish/fish" "$HOME_DIR/.config/fish"
   ok "fish config linked."
 
-  step "Installing Fisher + plugins..."
-  sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c '
-    if not functions -q fisher
-      curl -sL https://git.io/fisher | source
-      fisher install jorgebucaran/fisher
-    end
-    rm -f ~/.config/fish/functions/_nvm_version_activate.fish \
-          ~/.config/fish/functions/_nvm_version_deactivate.fish \
-          ~/.config/fish/completions/nvm.fish \
-          ~/.config/fish/functions/pj.fish \
-          ~/.config/fish/completions/pj.fish
-    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
-  '
+  run_silent "Installing Fisher + plugins..." \
+    "sudo -u '$TARGET_USER' -H '$brew_fish' --no-config -c '
+      if not functions -q fisher
+        curl -sL https://git.io/fisher | source
+        fisher install jorgebucaran/fisher
+      end
+      rm -f ~/.config/fish/functions/_nvm_version_activate.fish \
+            ~/.config/fish/functions/_nvm_version_deactivate.fish \
+            ~/.config/fish/completions/nvm.fish \
+            ~/.config/fish/functions/pj.fish \
+            ~/.config/fish/completions/pj.fish
+      fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
+    '"
 
   if ! command -v node &>/dev/null; then
-    step "Installing Node LTS via nvm.fish..."
-    sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c 'nvm install lts && nvm alias default lts'
+    run_silent "Installing Node LTS via nvm.fish..." \
+      "sudo -u '$TARGET_USER' -H '$brew_fish' --no-config -c 'nvm install lts && nvm alias default lts'"
   else
     ok "Node already available ($(node --version)), skipping nvm install."
   fi
