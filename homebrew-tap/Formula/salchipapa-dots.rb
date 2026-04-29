@@ -1,9 +1,9 @@
 class SalchipapaDots < Formula
   desc "Salchipapa dotfiles installer — Fish/Zsh, Zellij/Tmux, Neovim & CLI tools"
   homepage "https://github.com/erickm13/Salchipapa.Dots"
-  url "https://github.com/erickm13/Salchipapa.Dots/archive/refs/tags/v2.1.7.tar.gz"
-  sha256 "844aa45eb69bfbaa892ea8f5ac4830674c29eec85d4efaf6e072699536bfef2c"
-  version "v2.1.7"
+  url "https://github.com/erickm13/Salchipapa.Dots/archive/refs/tags/v2.1.8.tar.gz"
+  sha256 "f6c95027b972a13663a48f68dc9f344189a333c6df80dc0f8d78a9fb9eaf58c2"
+  version "v2.1.8"
 
   def install
     bin.install "install.sh" => "salchipapa-dots"
