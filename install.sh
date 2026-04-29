@@ -381,7 +381,7 @@ accion_install() {
   install_npm_cli() {
     local pkg="$1"
     step "Installing $pkg..."
-    sudo -u "$TARGET_USER" env PATH="$PATH" npm i -g "$pkg"
+    npm i -g "$pkg"
   }
 
   case "$cli_choice" in
