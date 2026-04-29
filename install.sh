@@ -132,7 +132,7 @@ pick_option() {
   local choice
   while true; do
     printf "  ${ORANGE}▶${RESET}${GRAY} Select [1-%s]: ${RESET}" "${#options[@]}" >&2
-    read -r choice
+    read -r choice </dev/tty
     if [[ "$choice" =~ ^[0-9]+$ ]] && [ "$choice" -ge 1 ] && [ "$choice" -le "${#options[@]}" ]; then
       echo "${options[$((choice - 1))]}"
       return
@@ -290,7 +290,7 @@ accion_install() {
   echo -e "  ${YELLOW}  CLIs:${RESET}         $cli_choice"
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}"
   printf "  ${ORANGE}▶${RESET}${GRAY} Proceed? [Y/n]: ${RESET}"
-  read -r confirm
+  read -r confirm </dev/tty
   [[ "${confirm,,}" =~ ^(n|no)$ ]] && {
     echo -e "  ${RED}Aborted.${RESET}\n"
     return
