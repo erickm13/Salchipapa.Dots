@@ -468,6 +468,69 @@ accion_quit() {
   exit 0
 }
 
+accion_uninstall() {
+  section "Uninstall"
+  warn "This will remove all symlinks created by salchipapa-dots."
+
+  local confirm
+  printf "\n  ${BOLD}Type 'yes' to confirm: ${RESET}" >&2
+  read -r confirm </dev/tty
+  if [ "$confirm" != "yes" ]; then
+    warn "Uninstall cancelled."
+    return
+  fi
+
+  local symlinks=(
+    "$HOME_DIR/.config/fish"
+    "$HOME_DIR/.config/zellij"
+    "$HOME_DIR/.config/tmux"
+    "$HOME_DIR/.config/alacritty"
+    "$HOME_DIR/.config/nvim"
+    "$HOME_DIR/.config/starship.toml"
+    "$HOME_DIR/.config/fastfetch"
+    "$HOME_DIR/.wezterm.lua"
+    "$HOME_DIR/.zshrc"
+  )
+
+  for link in "${symlinks[@]}"; do
+    if [ -L "$link" ]; then
+      rm "$link"
+      ok "Removed symlink: $link"
+    fi
+  done
+
+  rm -rf "$HOME_DIR/Salchipapa.Dots"
+  ok "Removed ~/Salchipapa.Dots"
+
+  if [ -d "$HOME_DIR/.config/obsidian" ]; then
+    rm -rf "$HOME_DIR/.config/obsidian"
+    ok "Removed ~/.config/obsidian"
+  fi
+
+  if command -v brew &>/dev/null; then
+    local brew_pkgs=(
+      fish zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions
+      zellij tmux alacritty
+      gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi
+      nvm
+    )
+    step "Uninstalling brew packages..."
+    for pkg in "${brew_pkgs[@]}"; do
+      brew uninstall --ignore-dependencies "$pkg" 2>/dev/null || true
+    done
+    ok "Brew packages removed."
+
+    step "Uninstalling npm CLIs..."
+    npm uninstall -g @google/gemini-cli @angular/cli @anthropic-ai/claude-code 2>/dev/null || true
+    ok "npm CLIs removed."
+
+    brew uninstall salchipapa-dots 2>/dev/null && ok "Removed salchipapa-dots formula." || true
+  fi
+
+  section_end
+  ok "Uninstall complete."
+}
+
 # ════════════════════════════════════════════════════════════════
 #   Main Menu
 # ════════════════════════════════════════════════════════════════
@@ -476,9 +539,11 @@ while true; do
   show_header
   choice=$(pick_option "What do you want to do?" \
     "Install everything" \
+    "Uninstall" \
     "Quit")
   case "$choice" in
   "Install everything") accion_install ;;
+  "Uninstall") accion_uninstall ;;
   "Quit") accion_quit ;;
   esac
 done
