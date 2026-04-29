@@ -167,7 +167,7 @@ setup_fish() {
   symlink_force "$DOTS_DIR/SalchipapaFish/fish" "$HOME_DIR/.config/fish"
   ok "fish config linked."
 
-  step "Installing Fisher + plugins..."
+  step "Installing Fisher + plugins + Node LTS..."
   sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c '
     if not functions -q fisher
       curl -sL https://git.io/fisher | source
@@ -178,11 +178,10 @@ setup_fish() {
           ~/.config/fish/completions/nvm.fish \
           ~/.config/fish/functions/pj.fish \
           ~/.config/fish/completions/pj.fish
-    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
-  ' >/dev/null 2>&1
-
-  step "Installing Node LTS via nvm.fish..."
-  sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c 'nvm install lts && nvm alias default lts'
+    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj >/dev/null 2>&1
+    nvm install lts
+    nvm alias default lts
+  '
 
   ok "Fish ready."
 }
