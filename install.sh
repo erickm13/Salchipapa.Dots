@@ -8,7 +8,13 @@ set -euo pipefail
 TARGET_USER="${SUDO_USER:-$USER}"
 HOME_DIR="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
 : "${HOME_DIR:=$HOME}"
-DOTS_DIR="$HOME_DIR/Salchipapa.Dots"
+
+BREW_SHARE="$(brew --prefix 2>/dev/null)/share/salchipapa-dots"
+if [ -d "$BREW_SHARE" ]; then
+  DOTS_DIR="$BREW_SHARE"
+else
+  DOTS_DIR="$HOME_DIR/Salchipapa.Dots"
+fi
 
 # ── Solarized Osaka Colors ───────────────────────────────────────
 BG0=$(tput setab 0 2>/dev/null || true)     # #001014 - background
