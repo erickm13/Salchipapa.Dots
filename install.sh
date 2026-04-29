@@ -542,7 +542,7 @@ accion_uninstall() {
   section_end
   echo -e "\n  ${AQUA}${BOLD}Uninstall complete.${RESET}  ${GRAY}salchipapa.dots${RESET}\n"
   read -rp "  Press [ENTER] to continue… " </dev/tty
-  exec bash --norc --noprofile
+  exec su -s /bin/bash "$TARGET_USER"
 }
 
 # ════════════════════════════════════════════════════════════════
