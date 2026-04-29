@@ -177,7 +177,10 @@ setup_fish() {
     end
     rm -f ~/.config/fish/functions/_nvm_version_activate.fish \
           ~/.config/fish/functions/_nvm_version_deactivate.fish \
+          ~/.config/fish/functions/_nvm_index_update.fish \
+          ~/.config/fish/functions/_nvm_list.fish \
           ~/.config/fish/completions/nvm.fish \
+          ~/.config/fish/conf.d/nvm.fish \
           ~/.config/fish/functions/pj.fish \
           ~/.config/fish/completions/pj.fish
     fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj >/dev/null 2>&1
