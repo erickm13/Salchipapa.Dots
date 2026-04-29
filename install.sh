@@ -273,10 +273,13 @@ accion_install() {
   show_header
 
   # ── Ask configuration ──────────────────────────────────────
-  local shell_choice mux_choice term_choice
+  local shell_choice mux_choice term_choice cli_gemini cli_angular cli_claude
   shell_choice=$(pick_option "Default shell:" "Fish" "Zsh")
   mux_choice=$(pick_option "Terminal multiplexer:" "Zellij" "Tmux")
   term_choice=$(pick_option "Terminal emulator config:" "Alacritty" "Wezterm")
+  cli_gemini=$(pick_option "Install Gemini CLI?" "Yes" "Skip")
+  cli_angular=$(pick_option "Install Angular CLI?" "Yes" "Skip")
+  cli_claude=$(pick_option "Install Claude Code?" "Yes" "Skip")
 
   # ── Summary ────────────────────────────────────────────────
   echo -e "\n  ${AQUA}${BOLD}Summary${RESET}"
@@ -284,6 +287,9 @@ accion_install() {
   echo -e "  ${YELLOW}  Shell:${RESET}        $shell_choice"
   echo -e "  ${YELLOW}  Multiplexer:${RESET}  $mux_choice"
   echo -e "  ${YELLOW}  Terminal:${RESET}     $term_choice"
+  echo -e "  ${YELLOW}  Gemini CLI:${RESET}   $cli_gemini"
+  echo -e "  ${YELLOW}  Angular CLI:${RESET}  $cli_angular"
+  echo -e "  ${YELLOW}  Claude Code:${RESET}  $cli_claude"
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}"
   printf "  ${ORANGE}▶${RESET}${GRAY} Proceed? [Y/n]: ${RESET}"
   read -r confirm
@@ -374,24 +380,10 @@ accion_install() {
     fi
   }
 
-  local cli_choice
-  cli_choice=$(pick_option "Which CLIs to install?" \
-    "All (Gemini + Angular + Claude Code)" \
-    "Gemini CLI" \
-    "Angular CLI" \
-    "Claude Code")
-
-  case "$cli_choice" in
-    "All (Gemini + Angular + Claude Code)")
-      install_npm_cli "@google/gemini-cli"
-      install_npm_cli "@angular/cli"
-      install_npm_cli "@anthropic-ai/claude-code"
-      ;;
-    "Gemini CLI")   install_npm_cli "@google/gemini-cli" ;;
-    "Angular CLI")  install_npm_cli "@angular/cli" ;;
-    "Claude Code")  install_npm_cli "@anthropic-ai/claude-code" ;;
-  esac
-  ok "CLIs installed."
+  [ "$cli_gemini" = "Yes" ]  && install_npm_cli "@google/gemini-cli"
+  [ "$cli_angular" = "Yes" ] && install_npm_cli "@angular/cli"
+  [ "$cli_claude" = "Yes" ]  && install_npm_cli "@anthropic-ai/claude-code"
+  ok "CLIs done."
   section_end
 
   # ── Common symlinks ────────────────────────────────────────
