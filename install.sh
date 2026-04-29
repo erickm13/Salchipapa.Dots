@@ -451,6 +451,7 @@ accion_install() {
   fi
 
   echo -e "\n  ${GREEN}${BOLD}✔  Installation complete!${RESET}\n"
+  read -rp "  Press [ENTER] to launch fish shell… " </dev/tty
   exec fish
 }
 
