@@ -437,7 +437,7 @@ accion_install() {
 
   # ── Neovim Lazy sync ───────────────────────────────────────
   section "Neovim"
-  run_silent "Running Lazy sync..." "nvim --headless '+Lazy! sync' +qa"
+  run_silent "Running Lazy sync..." "sudo -u '$TARGET_USER' nvim --headless '+Lazy! sync' +qa"
   ok "Lazy sync done."
   section_end
 
