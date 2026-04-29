@@ -3,8 +3,8 @@ return {
   version = "*", -- recommended, use latest release instead of latest commit
   lazy = false,
   enabled = function()
-    -- Disable Obsidian when running from Oil Simple (to avoid path issues in Zed context)
-    return not vim.g.disable_obsidian
+    local vault_path = os.getenv("HOME") .. "/.config/obsidian"
+    return vim.fn.isdirectory(vault_path) == 1 and not vim.g.disable_obsidian
   end,
   dependencies = {
     -- Required.

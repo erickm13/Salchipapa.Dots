@@ -293,6 +293,11 @@ accion_install() {
   term_choice=$(pick_option "Terminal emulator config:" "Alacritty" "Wezterm" "Skip")
   cli_choice=$(pick_option "CLIs to install:" "All (Gemini + Angular + Claude Code)" "Gemini CLI" "Angular CLI" "Claude Code" "Skip")
 
+  echo -e "\n  ${AQUA}${BOLD}Obsidian vault${RESET}"
+  echo -e "  ${GRAY}Enter your vault repo URL (SSH or HTTPS), or leave empty to skip.${RESET}"
+  printf "  ${BOLD}URL:${RESET} " >&2
+  read -r vault_url </dev/tty
+
   # ── Summary ────────────────────────────────────────────────
   echo -e "\n  ${AQUA}${BOLD}Summary${RESET}"
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}"
@@ -419,13 +424,17 @@ accion_install() {
   ok "Fastfetch linked."
 
   # ── Obsidian vault ─────────────────────────────────────────
-  step "Obsidian vault..."
-  if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
-    git clone https://github.com/erickm13/SalchipapaNotes.git "$HOME_DIR/.config/obsidian"
+  if [ -n "$vault_url" ]; then
+    step "Obsidian vault..."
+    if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
+      sudo -u "$TARGET_USER" git clone "$vault_url" "$HOME_DIR/.config/obsidian"
+    else
+      warn "Obsidian vault already exists — skipping clone."
+    fi
+    ok "Obsidian vault ready at ~/.config/obsidian."
   else
-    warn "Obsidian vault already exists — skipping clone."
+    warn "Obsidian vault skipped."
   fi
-  ok "Obsidian vault ready at ~/.config/obsidian."
   section_end
 
   # ── Neovim Lazy sync ───────────────────────────────────────
