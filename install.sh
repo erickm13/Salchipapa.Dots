@@ -173,7 +173,8 @@ setup_fish() {
       curl -sL https://git.io/fisher | source
       fisher install jorgebucaran/fisher
     end
-    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
+    fisher update jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj 2>/dev/null
+    or fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
   '
 
   if ! command -v node &>/dev/null; then
@@ -380,7 +381,7 @@ accion_install() {
   install_npm_cli() {
     local pkg="$1"
     step "Installing $pkg..."
-    sudo -u "$TARGET_USER" npm i -g "$pkg"
+    sudo -u "$TARGET_USER" env PATH="$PATH" npm i -g "$pkg"
   }
 
   case "$cli_choice" in
