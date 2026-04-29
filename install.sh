@@ -496,10 +496,6 @@ accion_uninstall() {
     fi
   done
 
-  cd "$HOME_DIR" || cd /tmp
-  rm -rf "$HOME_DIR/Salchipapa.Dots"
-  ok "Removed ~/Salchipapa.Dots"
-
   chsh -s "$(which bash)" "$TARGET_USER" 2>/dev/null && ok "Default shell restored to bash." || true
 
   if [ -d "$HOME_DIR/.config/obsidian" ]; then
@@ -531,6 +527,10 @@ accion_uninstall() {
 
     brew uninstall salchipapa-dots 2>/dev/null && ok "Removed salchipapa-dots formula." || true
   fi
+
+  cd "$HOME_DIR" || cd /tmp
+  rm -rf "$HOME_DIR/Salchipapa.Dots"
+  ok "Removed ~/Salchipapa.Dots"
 
   section_end
   echo -e "\n  ${AQUA}${BOLD}Uninstall complete.${RESET}  ${GRAY}salchipapa.dots${RESET}\n"
