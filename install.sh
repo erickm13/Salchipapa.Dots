@@ -173,8 +173,12 @@ setup_fish() {
       curl -sL https://git.io/fisher | source
       fisher install jorgebucaran/fisher
     end
-    fisher update jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj 2>/dev/null
-    or fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
+    rm -f ~/.config/fish/functions/_nvm_version_activate.fish \
+          ~/.config/fish/functions/_nvm_version_deactivate.fish \
+          ~/.config/fish/completions/nvm.fish \
+          ~/.config/fish/functions/pj.fish \
+          ~/.config/fish/completions/pj.fish
+    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
   '
 
   if ! command -v node &>/dev/null; then
