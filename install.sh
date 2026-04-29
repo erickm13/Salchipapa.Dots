@@ -496,6 +496,7 @@ accion_uninstall() {
     fi
   done
 
+  cd "$HOME_DIR" || cd /tmp
   rm -rf "$HOME_DIR/Salchipapa.Dots"
   ok "Removed ~/Salchipapa.Dots"
 
