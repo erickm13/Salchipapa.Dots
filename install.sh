@@ -469,6 +469,13 @@ accion_uninstall() {
   section "Uninstall"
   warn "This will remove all symlinks created by salchipapa-dots."
 
+  # Ensure brew is in PATH
+  if [ -f /home/linuxbrew/.linuxbrew/bin/brew ]; then
+    eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
+  elif [ -f /opt/homebrew/bin/brew ]; then
+    eval "$(/opt/homebrew/bin/brew shellenv)"
+  fi
+
   local confirm
   printf "\n  ${BOLD}Type 'yes' to confirm: ${RESET}" >&2
   read -r confirm </dev/tty
