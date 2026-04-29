@@ -1,10 +1,10 @@
 # 🧠 Salchipapa.Dots
 
 <p align="center">
-  <img src="images/alacritty.png" width="48%" alt="Alacritty">
+  <img src="images/nvimSetup.png" width="48%" alt="nvimStup">
   <img src="images/nvimSetupAlacritty.png" width="48%" alt="Terminal Preview">
   <br>
-  <img src="images/alacrittyTerm.png" width="48%" alt="Alacritty Terminal">
+  <img src="images/terminal.png" width="48%" alt="Terminal">
 </p>
 
 ---
