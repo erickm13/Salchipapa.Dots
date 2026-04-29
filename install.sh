@@ -380,11 +380,7 @@ accion_install() {
   install_npm_cli() {
     local pkg="$1"
     step "Installing $pkg..."
-    if [ -x "$brew_fish_cli" ]; then
-      sudo -u "$TARGET_USER" -H "$brew_fish_cli" --login -c "nvm use lts --silent 2>/dev/null || true; npm i -g $pkg"
-    else
-      sudo -u "$TARGET_USER" -H "$brew_zsh_cli" -ic "$NVM_ZSH_BOOT && npm i -g $pkg"
-    fi
+    sudo -u "$TARGET_USER" npm i -g "$pkg"
   }
 
   case "$cli_choice" in
