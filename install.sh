@@ -528,7 +528,8 @@ accion_uninstall() {
   fi
 
   section_end
-  ok "Uninstall complete."
+  echo -e "\n  ${AQUA}${BOLD}Uninstall complete.${RESET}  ${GRAY}salchipapa.dots${RESET}\n"
+  exec bash --norc --noprofile
 }
 
 # ════════════════════════════════════════════════════════════════
