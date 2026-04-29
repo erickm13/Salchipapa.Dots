@@ -23,16 +23,36 @@ jobs:
           repository: erickm13/homebrew-tap
           token: ${{ secrets.TAP_GITHUB_TOKEN }}
 
-      - name: Update formula
+      - name: Update formula in homebrew-tap
         run: |
           sed -i "s|url .*|url \"https://github.com/erickm13/Salchipapa.Dots/archive/refs/tags/${{ steps.info.outputs.version }}.tar.gz\"|" Formula/salchipapa-dots.rb
           sed -i "s|sha256 .*|sha256 \"${{ steps.info.outputs.sha256 }}\"|" Formula/salchipapa-dots.rb
           sed -i "s|version .*|version \"${{ steps.info.outputs.version }}\"|" Formula/salchipapa-dots.rb
 
-      - name: Commit and push
+      - name: Commit and push homebrew-tap
         run: |
-          git config user.name "github-actions"
+          git config user.name "salchipapa-bot"
           git config user.email "actions@github.com"
           git add Formula/salchipapa-dots.rb
           git commit -m "feat: update salchipapa-dots to ${{ steps.info.outputs.version }}"
+          git push
+
+      - name: Checkout Salchipapa.Dots
+        uses: actions/checkout@v4
+        with:
+          repository: erickm13/Salchipapa.Dots
+          token: ${{ secrets.TAP_GITHUB_TOKEN }}
+
+      - name: Update formula in Salchipapa.Dots
+        run: |
+          sed -i "s|url .*|url \"https://github.com/erickm13/Salchipapa.Dots/archive/refs/tags/${{ steps.info.outputs.version }}.tar.gz\"|" homebrew-tap/Formula/salchipapa-dots.rb
+          sed -i "s|sha256 .*|sha256 \"${{ steps.info.outputs.sha256 }}\"|" homebrew-tap/Formula/salchipapa-dots.rb
+          sed -i "s|version .*|version \"${{ steps.info.outputs.version }}\"|" homebrew-tap/Formula/salchipapa-dots.rb
+
+      - name: Commit and push Salchipapa.Dots
+        run: |
+          git config user.name "erickm13"
+          git config user.email "mejiaerick3192@gmail.com"
+          git add homebrew-tap/Formula/salchipapa-dots.rb
+          git commit -m "feat: update homebrew formula to ${{ steps.info.outputs.version }}"
           git push
