@@ -516,7 +516,7 @@ accion_uninstall() {
     )
     step "Uninstalling brew packages..."
     for pkg in "${brew_pkgs[@]}"; do
-      brew uninstall --ignore-dependencies "$pkg" >/dev/null 2>&1 || true
+      brew uninstall --ignore-dependencies "$pkg" 2>/dev/null || true
     done
     ok "Brew packages removed."
 
@@ -526,7 +526,7 @@ accion_uninstall() {
     fi
 
     step "Uninstalling npm CLIs..."
-    npm uninstall -g @google/gemini-cli @angular/cli @anthropic-ai/claude-code >/dev/null 2>&1 || true
+    npm uninstall -g @google/gemini-cli @angular/cli @anthropic-ai/claude-code 2>/dev/null || true
     ok "npm CLIs removed."
 
     brew uninstall salchipapa-dots 2>/dev/null && ok "Removed salchipapa-dots formula." || true
