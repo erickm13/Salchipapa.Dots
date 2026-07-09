@@ -221,15 +221,13 @@ Related repo: [erickm13/homebrew-tap](https://github.com/erickm13/homebrew-tap) 
 
 ## Star History
 
-<p align=center>
 <a href="https://www.star-history.com/?repos=erickm13%2FSalchipapa.Dots&type=date&legend=top-left">
  <picture>
-   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=erickm13/Salchipapa.Dots&type=date&theme=dark&legend=top-left" />
-   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=erickm13/Salchipapa.Dots&type=date&legend=top-left" />
-   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=erickm13/Salchipapa.Dots&type=date&legend=top-left" />
+   <source media="(prefers-color-scheme: dark)" srcset="https://api.star-history.com/chart?repos=erickm13/Salchipapa.Dots&type=date&theme=dark&legend=top-left&sealed_token=k6OUAdaAcemMHVApavelO-b4-_z7O0x5zoxQ3RM5G3tVG8XYja1bX1bfEesUdUdWEkTOwj-EOUn-pcS9cfxgTpSQnaF5rd0JTWbe7-qORaSmRgs9UVjqhg" />
+   <source media="(prefers-color-scheme: light)" srcset="https://api.star-history.com/chart?repos=erickm13/Salchipapa.Dots&type=date&legend=top-left&sealed_token=k6OUAdaAcemMHVApavelO-b4-_z7O0x5zoxQ3RM5G3tVG8XYja1bX1bfEesUdUdWEkTOwj-EOUn-pcS9cfxgTpSQnaF5rd0JTWbe7-qORaSmRgs9UVjqhg" />
+   <img alt="Star History Chart" src="https://api.star-history.com/chart?repos=erickm13/Salchipapa.Dots&type=date&legend=top-left&sealed_token=k6OUAdaAcemMHVApavelO-b4-_z7O0x5zoxQ3RM5G3tVG8XYja1bX1bfEesUdUdWEkTOwj-EOUn-pcS9cfxgTpSQnaF5rd0JTWbe7-qORaSmRgs9UVjqhg" />
  </picture>
 </a>
-</p>
 
 ---
 
