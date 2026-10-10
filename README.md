@@ -19,7 +19,7 @@ It configures your shell, editor, multiplexer, and a curated set of CLI utilitie
 | Shell       | Fish, Zsh                                  |
 | Multiplexer | Zellij, Tmux                               |
 | Editor      | Neovim (LazyVim)                           |
-| Terminal    | Alacritty, WezTerm                         |
+| Terminal    | Kitty, Alacritty, WezTerm                  |
 | Prompt      | Starship                                   |
 | CLI tools   | zoxide, atuin, fzf, carapace, fd, eza, bat |
 
@@ -29,7 +29,7 @@ There are three ways to install: **Homebrew tap** (easiest), the **install scrip
 
 ## Requirements
 
-- Linux (Debian-based recommended) or WSL2
+- Linux (Debian-based or Arch Linux) or WSL2
 - `sudo` privileges
 - A [Nerd Font](https://www.nerdfonts.com/font-downloads) installed in your terminal — this setup uses **IosevkaTerm Nerd Font** (see [Fonts](#fonts))
 
@@ -67,10 +67,17 @@ chmod +x install.sh
 
 The script provides an interactive menu with:
 
-- **Install** → complete setup (brew, shell, nvim, zellij, symlinks, Lazy sync)
+- **Install** → complete setup (packages, shell, nvim, zellij, symlinks, Lazy sync)
 - **Install CLIs + Lazy sync** → installs `gemini` and `ng` separately, then runs Lazy sync
 
 > The script requires sudo privileges for package installation.
+
+The installer detects the distro automatically:
+
+- **Debian/Ubuntu** → `apt` for system packages and **Homebrew** for the tools.
+- **Arch Linux** → `pacman` for everything (no Homebrew), `yay` is installed from the AUR,
+  and `carapace` comes from its GitHub release. Run it as your normal user, not as root
+  (`makepkg` refuses to build as root).
 
 ---
 
@@ -207,6 +214,7 @@ Salchipapa.Dots/
 ├── SalchipapaZsh/          → Zsh configuration (plugins, themes, aliases)
 ├── SalchipapaNvim/         → Neovim setup (LazyVim, plugins, LSP)
 ├── SalchipapaZellij/       → Zellij layouts and configuration
+├── SalchipapaKitty/        → Kitty terminal configuration
 ├── SalchipapaAlacritty/    → Alacritty terminal configuration
 ├── SalchipapaWezterm/      → WezTerm terminal configuration
 ├── SalchipapaTmux/         → Tmux configuration (alternative to Zellij)
