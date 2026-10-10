@@ -19,6 +19,7 @@ $time\
 
 add_newline = true
 command_timeout = 5600000
+scan_timeout = 500
 palette = "solarized_osaka"
 
 [fill]
