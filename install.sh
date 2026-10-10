@@ -318,6 +318,20 @@ setup_tmux() {
   ok "Tmux ready."
 }
 
+setup_herdr() {
+  # Official installer: release binary to ~/.local/bin with SHA-256 check (updates: `herdr update`)
+  if ! as_user sh -c 'command -v herdr || test -x "$HOME/.local/bin/herdr"' >/dev/null 2>&1; then
+    run_silent "Installing herdr..." "as_user sh -c 'curl -fsSL https://herdr.dev/install.sh | sh'"
+  else
+    warn "herdr already installed — skipping (update with: herdr update)."
+  fi
+  # Only link config.toml: ~/.config/herdr also holds herdr's sockets, logs and session state
+  as_user mkdir -p "$HOME_DIR/.config/herdr"
+  step "Linking herdr config..."
+  symlink_force "$DOTS_DIR/SalchipapaHerdr/config.toml" "$HOME_DIR/.config/herdr/config.toml"
+  ok "Herdr ready."
+}
+
 # ════════════════════════════════════════════════════════════════
 #   Setup: Terminal
 # ════════════════════════════════════════════════════════════════
@@ -472,7 +486,7 @@ accion_install() {
   # ── Ask configuration ──────────────────────────────────────
   local shell_choice mux_choice term_choice cli_gemini cli_angular cli_claude
   shell_choice=$(pick_option "Default shell:" "Fish" "Zsh" "Skip")
-  mux_choice=$(pick_option "Terminal multiplexer:" "Zellij" "Tmux" "Skip")
+  mux_choice=$(pick_option "Terminal multiplexer:" "Herdr" "Zellij" "Tmux" "Skip")
   term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Alacritty" "Wezterm" "Skip")
   cli_choice=$(pick_option "CLIs to install:" "All (Gemini + Angular + Claude Code)" "Gemini CLI" "Angular CLI" "Claude Code" "Skip")
 
@@ -515,7 +529,7 @@ accion_install() {
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
     run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, spotify-player, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player"
+      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player jq python"
     run_silent "carapace (GitHub release)..." "install_carapace_bin"
     if command -v yay >/dev/null 2>&1; then
       # Not silent: yay may ask for the user's sudo password
@@ -554,7 +568,7 @@ accion_install() {
     # ── Core packages ────────────────────────────────────────
     section "Core Tools"
     run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
-      "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi"
+      "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi jq"
     ok "Core tools installed."
     section_end
   fi
@@ -571,6 +585,7 @@ accion_install() {
   # ── Multiplexer ────────────────────────────────────────────
   section "Multiplexer — $mux_choice"
   case "$mux_choice" in
+  Herdr) setup_herdr ;;
   Zellij) setup_zellij ;;
   Tmux) setup_tmux ;;
   Skip) ok "Skipped." ;;
@@ -715,6 +730,7 @@ accion_uninstall() {
   local symlinks=(
     "$HOME_DIR/.config/fish"
     "$HOME_DIR/.config/zellij"
+    "$HOME_DIR/.config/herdr/config.toml"
     "$HOME_DIR/.config/tmux"
     "$HOME_DIR/.config/alacritty"
     "$HOME_DIR/.config/kitty"
