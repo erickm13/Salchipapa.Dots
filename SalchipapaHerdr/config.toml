@@ -32,6 +32,8 @@ prefix = "ctrl+g"
 # Pestañas: Alt Shift h / Alt Shift l
 previous_tab = ["prefix+p", "alt+shift+h"]
 next_tab = ["prefix+n", "alt+shift+l"]
+# Nueva pestaña: Alt t
+new_tab = ["prefix+c", "alt+t"]
 # Mover la pestaña de posicion: Alt i / Alt o
 move_tab_previous = "alt+i"
 move_tab_next = "alt+o"
@@ -40,5 +42,10 @@ focus_pane_left = ["prefix+h", "alt+h", "alt+left"]
 focus_pane_right = ["prefix+l", "alt+l", "alt+right"]
 focus_pane_down = ["prefix+j", "alt+j", "alt+down"]
 focus_pane_up = ["prefix+k", "alt+k", "alt+up"]
-# Nuevo panel: Alt n (a la derecha, como el NewPane por defecto)
+# Nuevo panel a la derecha: Alt n (como el NewPane por defecto de zellij)
 split_vertical = ["prefix+v", "alt+n"]
+# Nuevo panel abajo: Alt d (como la "d" del modo panel de zellij)
+split_horizontal = ["prefix+minus", "alt+d"]
+# Cerrar panel: Alt x / cerrar pestaña: Alt Shift x (la "x" de zellij)
+close_pane = ["prefix+x", "alt+x"]
+close_tab = ["prefix+shift+x", "alt+shift+x"]
