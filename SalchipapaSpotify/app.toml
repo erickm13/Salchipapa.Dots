@@ -32,8 +32,8 @@ border_type = "Plain"
 progress_bar_type = "Rectangle"
 progress_bar_position = "Bottom"
 genre_num = 2
-cover_img_length = 9
-cover_img_width = 5
+cover_img_length = 22
+cover_img_width = 10
 enable_media_control = true
 enable_streaming = "Always"
 enable_audio_visualization = false
@@ -54,7 +54,7 @@ body = "{album}"
 
 [layout]
 playback_window_position = "Top"
-playback_window_height = 6
+playback_window_height = 12
 
 [layout.library]
 playlist_percent = 40
