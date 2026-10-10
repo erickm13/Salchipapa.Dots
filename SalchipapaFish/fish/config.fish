@@ -1,3 +1,24 @@
+# herdr: nombres de pestañas. Va al principio para que el nombre aparezca al instante.
+# herdr no tiene nombre por defecto: las pestañas sin nombre muestran su posicion.
+# Workspace nuevo: "shell" + "nvim", como mi layout de zellij.
+# Pestañas nuevas sin nombre: adjetivo-animal aleatorio, al estilo de los nombres de zellij.
+if status is-interactive; and test "$HERDR_ENV" = 1; and set -q HERDR_TAB_ID; and type -q jq
+    set -l label (herdr tab get $HERDR_TAB_ID 2>/dev/null | jq -r '.result.tab.label // empty')
+    if string match -qr '^[0-9]+$' -- "$label"
+        set -l n_tabs (herdr tab list --workspace $HERDR_WORKSPACE_ID 2>/dev/null | jq -r '.result.tabs | length')
+        if test "$n_tabs" = 1
+            herdr tab rename $HERDR_TAB_ID shell >/dev/null 2>&1
+            herdr tab create --workspace $HERDR_WORKSPACE_ID --label nvim >/dev/null 2>&1
+        else
+            set -l adj blossoming sleepy jolly cosmic fuzzy brave quiet sunny mighty gentle \
+                curious dancing electric frosty golden hidden lucky misty noble rapid silent spicy
+            set -l animal bee fox otter panda koala lynx owl raccoon falcon wombat \
+                badger heron gecko llama marmot narwhal penguin quokka tapir walrus yak zebra
+            herdr tab rename $HERDR_TAB_ID (random choice $adj)-(random choice $animal) >/dev/null 2>&1
+        end
+    end
+end
+
 if status is-interactive
     # Commands to run in interactive sessions can go here
     # Install Fisher if not installed
@@ -185,5 +206,20 @@ clear
 
 # fastfetch al abrir la terminal (zellij se abre a mano: no deja pasar las imagenes de kitty)
 if status is-interactive && not set -q ZELLIJ && type -q fastfetch
+    # Al arrancar herdr la terminal a veces aun no sabe su tamaño en pixeles y fastfetch cae al
+    # logo ASCII. Esperamos (max 1 s) a que el pty lo tenga; se lee con ioctl, sin secuencias de
+    # escape que interfieran con las consultas de fastfetch.
+    if test "$HERDR_ENV" = 1; and type -q python3
+        python3 -Ic '
+import fcntl, struct, termios, time
+for _ in range(50):
+    try:
+        with open("/dev/tty") as t:
+            if struct.unpack("HHHH", fcntl.ioctl(t, termios.TIOCGWINSZ, b"\0" * 8))[2] > 0:
+                break
+    except OSError:
+        break
+    time.sleep(0.02)'
+    end
     fastfetch
 end

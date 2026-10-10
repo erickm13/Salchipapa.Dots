@@ -17,7 +17,7 @@ It configures your shell, editor, multiplexer, and a curated set of CLI utilitie
 | Tool        | Options                                    |
 | ----------- | ------------------------------------------ |
 | Shell       | Fish, Zsh                                  |
-| Multiplexer | Zellij, Tmux                               |
+| Multiplexer | Herdr, Zellij, Tmux                        |
 | Editor      | Neovim (LazyVim)                           |
 | Terminal    | Kitty, Alacritty, WezTerm                  |
 | Prompt      | Starship                                   |
@@ -218,6 +218,7 @@ Salchipapa.Dots/
 ├── install.sh              → Installer with interactive menu
 ├── SalchipapaZsh/          → Zsh configuration (plugins, themes, aliases)
 ├── SalchipapaNvim/         → Neovim setup (LazyVim, plugins, LSP)
+├── SalchipapaHerdr/        → Herdr config (agent-aware multiplexer; only config.toml is linked)
 ├── SalchipapaZellij/       → Zellij layouts and configuration
 ├── SalchipapaKitty/        → Kitty terminal configuration
 ├── SalchipapaAlacritty/    → Alacritty terminal configuration
