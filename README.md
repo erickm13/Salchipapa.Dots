@@ -220,6 +220,7 @@ Salchipapa.Dots/
 ├── SalchipapaTmux/         → Tmux configuration (alternative to Zellij)
 ├── SalchipapaFastfetch/    → Fastfetch settings
 ├── SalchipapaSpotify/      → spotify_player configuration
+├── SalchipapaYtx/          → yt-x (YouTube in the terminal) configuration
 ├── homebrew/               → Homebrew formula packaging (see homebrew-tap repo)
 └── images/                 → Screenshots used in this README
 ```
