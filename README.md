@@ -83,6 +83,9 @@ The installer detects the distro automatically:
   for the Neovim clipboard, `wslu` (`wslview`), a kitty wrapper that renders through D3D12,
   and a `mpv` wrapper in /usr/local/bin so every `mpv` call (yt-x, yazi, terminal) uses the
   Windows mpv, translating Linux file paths.
+  Choosing **Wezterm** as the terminal on WSL installs WezTerm **on Windows** (native, much
+  smoother than a Linux terminal through WSLg), the IosevkaTerm Nerd Font for Windows if missing,
+  and copies the config to the Windows home pointing at the current distro.
 
 ---
 
