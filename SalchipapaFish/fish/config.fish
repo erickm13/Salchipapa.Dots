@@ -59,6 +59,31 @@ if test $IS_TERMUX -eq 0; and set -q BREW_BIN; and test -f $BREW_BIN
     eval ($BREW_BIN shellenv)
 end
 
+# fastfetch al abrir la terminal. Va antes de inicializar starship/zoxide/atuin/fzf/carapace para
+# que aparezca cuanto antes (despues de brew shellenv: en Debian fastfetch viene de Homebrew).
+# zellij se abre a mano: no deja pasar las imagenes de kitty.
+if status is-interactive
+    clear
+    if not set -q ZELLIJ; and type -q fastfetch
+        # Al arrancar herdr la terminal a veces aun no sabe su tamaño en pixeles y fastfetch cae al
+        # logo ASCII. Esperamos (max 1 s) a que el pty lo tenga; se lee con ioctl, sin secuencias
+        # de escape que interfieran con las consultas de fastfetch.
+        if test "$HERDR_ENV" = 1; and type -q python3
+            python3 -Ic '
+import fcntl, struct, termios, time
+for _ in range(50):
+    try:
+        with open("/dev/tty") as t:
+            if struct.unpack("HHHH", fcntl.ioctl(t, termios.TIOCGWINSZ, b"\0" * 8))[2] > 0:
+                break
+    except OSError:
+        break
+    time.sleep(0.02)'
+        end
+        fastfetch
+    end
+end
+
 # Initialize tools
 starship init fish | source
 zoxide init fish | source
@@ -82,7 +107,17 @@ if not test -f ~/.config/fish/completions/.initialized
     touch ~/.config/fish/completions/.initialized
 end
 
-carapace _carapace | source
+# `carapace _carapace` tarda ~125 ms en cada arranque y siempre genera lo mismo: se cachea y solo se
+# regenera cuando cambia el binario de carapace (o el cache no existe)
+set -l carapace_cache ~/.cache/carapace/init.fish
+set -l carapace_bin (command -s carapace)
+if test -n "$carapace_bin"
+    if not test -s $carapace_cache; or test $carapace_bin -nt $carapace_cache
+        mkdir -p (path dirname $carapace_cache)
+        carapace _carapace >$carapace_cache
+    end
+    source $carapace_cache
+end
 
 set -g fish_greeting ""
 
@@ -202,24 +237,3 @@ set -g fish_color_valid_path $blue
 
 # Fix WSL other-writable directories (Windows folders)
 set -gx LS_COLORS "di=01;34:ow=01;34:ln=01;36:ex=01;32:*.tar=01;31:*.zip=01;31"
-clear
-
-# fastfetch al abrir la terminal (zellij se abre a mano: no deja pasar las imagenes de kitty)
-if status is-interactive && not set -q ZELLIJ && type -q fastfetch
-    # Al arrancar herdr la terminal a veces aun no sabe su tamaño en pixeles y fastfetch cae al
-    # logo ASCII. Esperamos (max 1 s) a que el pty lo tenga; se lee con ioctl, sin secuencias de
-    # escape que interfieran con las consultas de fastfetch.
-    if test "$HERDR_ENV" = 1; and type -q python3
-        python3 -Ic '
-import fcntl, struct, termios, time
-for _ in range(50):
-    try:
-        with open("/dev/tty") as t:
-            if struct.unpack("HHHH", fcntl.ioctl(t, termios.TIOCGWINSZ, b"\0" * 8))[2] > 0:
-                break
-    except OSError:
-        break
-    time.sleep(0.02)'
-    end
-    fastfetch
-end
