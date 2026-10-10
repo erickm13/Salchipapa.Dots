@@ -22,6 +22,7 @@ It configures your shell, editor, multiplexer, and a curated set of CLI utilitie
 | Terminal    | Kitty, Alacritty, WezTerm                  |
 | Prompt      | Starship                                   |
 | CLI tools   | zoxide, atuin, fzf, carapace, fd, eza, bat |
+| AI agents   | Claude Code, Codex, opencode, Gemini CLI   |
 
 There are three ways to install: **Homebrew tap** (easiest), the **install script**, or **manual setup**.
 

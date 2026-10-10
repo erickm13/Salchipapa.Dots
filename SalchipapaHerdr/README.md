@@ -110,7 +110,8 @@ herdr session list              # sesiones guardadas
 herdr session attach trabajo    # usar una sesión con nombre, separada de la principal
 
 herdr agent list                # agentes detectados y su estado
-herdr integration install claude  # integración con Claude Code (mejor detección y restaurar sesiones)
+herdr integration status        # integraciones (el instalador pone claude, codex y opencode)
+herdr integration install claude  # mejor detección de estado y restaurar sesiones del agente
 herdr tab list / herdr pane list  # pestañas y paneles (JSON)
 
 herdr --remote usuario@host     # conectarse a herdr en otra máquina por SSH
