@@ -429,19 +429,34 @@ EOF
     sudo chmod +x /usr/local/bin/kitty
   fi
 
-  # ── Linux mpv: WSLg can't show 1080p60 smoothly and has no hardware decoding
-  local linux_mpv_conf="$HOME_DIR/.config/mpv/mpv.conf"
-  if [ ! -f "$linux_mpv_conf" ]; then
-    write_as_user "$linux_mpv_conf" <<'EOF'
-# mpv en WSL (no va en Salchipapa.Dots: en Arch nativo la GPU aguanta mas)
+  # ── mpv: every `mpv` call (yt-x, yazi, terminal) goes to the Windows mpv.
+  # WSLg has no hardware decoding and can't show 1080p60 smoothly; the Windows
+  # mpv decodes on the GPU. Linux file paths are translated to \\wsl.localhost\...
+  if [ -x "/mnt/c/Program Files/MPV Player/mpv.exe" ] && [ ! -e /usr/local/bin/mpv ]; then
+    step "mpv -> Windows mpv wrapper..."
+    sudo tee /usr/local/bin/mpv >/dev/null <<'EOF'
+#!/bin/sh
+# mpv en WSL -> mpv de Windows (decodificacion por GPU, 4K).
+# Traduce las rutas de archivos de Linux a rutas de Windows (\\wsl.localhost\...).
+win_mpv="/mnt/c/Program Files/MPV Player/mpv.exe"
+[ -x "$win_mpv" ] || exec /usr/bin/mpv "$@"
 
-# WSLg no muestra fluido 1080p a 60 fps: 1080p si el video es de 30 fps,
-# 720p si es de 60 fps. Sin AV1 (no hay decodificacion por hardware en WSL).
-ytdl-format=bv*[height>720][height<=1080][fps<=30][vcodec!^=av01]+ba/bv*[height<=720][vcodec!^=av01]+ba/b[height<=720]
-
-# Audio directo a PulseAudio (WSLg): evita el aviso de PipeWire "client.conf"
-ao=pulse
+for arg in "$@"; do
+  shift
+  case "$arg" in
+    --*=*)
+      key="${arg%%=*}"; val="${arg#*=}"
+      if [ -e "$val" ]; then set -- "$@" "$key=$(wslpath -w "$val")"; else set -- "$@" "$arg"; fi
+      ;;
+    -*) set -- "$@" "$arg" ;;
+    *)
+      if [ -e "$arg" ]; then set -- "$@" "$(wslpath -w "$arg")"; else set -- "$@" "$arg"; fi
+      ;;
+  esac
+done
+exec "$win_mpv" "$@"
 EOF
+    sudo chmod +x /usr/local/bin/mpv
   fi
 
   ok "WSL extras ready."
