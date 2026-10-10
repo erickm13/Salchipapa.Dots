@@ -397,8 +397,8 @@ accion_install() {
 
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
-    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji"
+    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, spotify-player, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player"
     run_silent "carapace (GitHub release)..." "install_carapace_bin"
     if command -v yay >/dev/null 2>&1; then
       # Not silent: yay may ask for the user's sudo password
@@ -526,6 +526,10 @@ accion_install() {
   symlink_force "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
   ok "Fastfetch linked."
 
+  step "spotify_player..."
+  symlink_force "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
+  ok "spotify_player linked."
+
   # ── Obsidian vault ─────────────────────────────────────────
   if [ -n "$vault_url" ]; then
     step "Obsidian vault..."
@@ -598,6 +602,7 @@ accion_uninstall() {
     "$HOME_DIR/.config/nvim"
     "$HOME_DIR/.config/starship.toml"
     "$HOME_DIR/.config/fastfetch"
+    "$HOME_DIR/.config/spotify-player"
     "$HOME_DIR/.wezterm.lua"
     "$HOME_DIR/.zshrc"
   )

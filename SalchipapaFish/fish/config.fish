@@ -38,20 +38,6 @@ if test $IS_TERMUX -eq 0; and set -q BREW_BIN; and test -f $BREW_BIN
     eval ($BREW_BIN shellenv)
 end
 
-# Start tmux/zellij
-
-if status is-interactive && not set -q ZELLIJ
-    # fastfetch fuera de zellij: zellij no deja pasar las imagenes de kitty
-    if type -q fastfetch
-        clear
-        fastfetch
-        # bash lee una sola tecla sin Enter (fish no tiene `read -n1`)
-        bash -c 'read -rsn1 -p "  Presiona cualquier tecla para continuar..."'
-        echo
-    end
-    zellij
-end
-
 # Initialize tools
 starship init fish | source
 zoxide init fish | source
@@ -196,3 +182,8 @@ set -g fish_color_valid_path $blue
 # Fix WSL other-writable directories (Windows folders)
 set -gx LS_COLORS "di=01;34:ow=01;34:ln=01;36:ex=01;32:*.tar=01;31:*.zip=01;31"
 clear
+
+# fastfetch al abrir la terminal (zellij se abre a mano: no deja pasar las imagenes de kitty)
+if status is-interactive && not set -q ZELLIJ && type -q fastfetch
+    fastfetch
+end

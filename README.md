@@ -219,6 +219,7 @@ Salchipapa.Dots/
 ├── SalchipapaWezterm/      → WezTerm terminal configuration
 ├── SalchipapaTmux/         → Tmux configuration (alternative to Zellij)
 ├── SalchipapaFastfetch/    → Fastfetch settings
+├── SalchipapaSpotify/      → spotify_player configuration
 ├── homebrew/               → Homebrew formula packaging (see homebrew-tap repo)
 └── images/                 → Screenshots used in this README
 ```
