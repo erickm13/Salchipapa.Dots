@@ -402,10 +402,10 @@ accion_install() {
     run_silent "carapace (GitHub release)..." "install_carapace_bin"
     if command -v yay >/dev/null 2>&1; then
       # Not silent: yay may ask for the user's sudo password
-      step "asm-lsp (AUR)..."
-      as_user yay -S --needed --noconfirm asm-lsp || warn "asm-lsp failed — install it later with: yay -S asm-lsp"
+      step "asm-lsp, yt-x, gum (AUR)..."
+      as_user yay -S --needed --noconfirm asm-lsp yt-x gum || warn "AUR packages failed — install them later with: yay -S asm-lsp yt-x gum"
     else
-      warn "asm-lsp skipped (needs yay)."
+      warn "asm-lsp and yt-x skipped (need yay)."
     fi
     ok "Core tools installed."
     section_end
@@ -530,6 +530,10 @@ accion_install() {
   symlink_force "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
   ok "spotify_player linked."
 
+  step "yt-x..."
+  symlink_force "$DOTS_DIR/SalchipapaYtx" "$HOME_DIR/.config/yt-x"
+  ok "yt-x linked."
+
   # ── Obsidian vault ─────────────────────────────────────────
   if [ -n "$vault_url" ]; then
     step "Obsidian vault..."
@@ -603,6 +607,7 @@ accion_uninstall() {
     "$HOME_DIR/.config/starship.toml"
     "$HOME_DIR/.config/fastfetch"
     "$HOME_DIR/.config/spotify-player"
+    "$HOME_DIR/.config/yt-x"
     "$HOME_DIR/.wezterm.lua"
     "$HOME_DIR/.zshrc"
   )
