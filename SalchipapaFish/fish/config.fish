@@ -17,6 +17,23 @@ if status is-interactive; and test "$HERDR_ENV" = 1; and set -q HERDR_TAB_ID; an
             herdr tab rename $HERDR_TAB_ID (random choice $adj)-(random choice $animal) >/dev/null 2>&1
         end
     end
+
+    # `exit` en el ultimo panel: cerrar herdr del todo. Si no, herdr crea un workspace nuevo (con
+    # "shell" + "nvim" otra vez) y la terminal nunca se cierra. Solo en el fish principal del
+    # panel (su padre es herdr), no en un fish abierto dentro de otro.
+    if test (ps -o comm= -p (ps -o ppid= -p $fish_pid | string trim)) = herdr
+        function __herdr_cerrar_si_ultimo_panel --on-event fish_exit
+            # Solo si el unico panel que queda es este (si herdr ya lo quito de la lista, p. ej.
+            # al cerrarlo con Alt x, quedan otros y no se toca nada)
+            set -l panes (herdr pane list 2>/dev/null | jq -r '.result.panes[].pane_id')
+            if test (count $panes) = 1; and test "$panes[1]" = "$HERDR_PANE_ID"
+                # Marca para que la fish de kitty borre la sesion guardada: si no, herdr restauraria
+                # el ultimo estado (solo la pestaña que quedaba) en vez de empezar con shell + nvim
+                mkdir -p ~/.cache/herdr; and touch ~/.cache/herdr/reset-session
+                herdr server stop >/dev/null 2>&1
+            end
+        end
+    end
 end
 
 if status is-interactive
@@ -60,10 +77,31 @@ if test $IS_TERMUX -eq 0; and set -q BREW_BIN; and test -f $BREW_BIN
 end
 
 # Abrir herdr al abrir kitty. Solo en ventanas de kitty (no en VS Code, Windows Terminal ni SSH) y
-# nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q) se vuelve a esta fish.
+# nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q, o exit en el ultimo panel) se
+# cierra la ventana; si herdr falla al arrancar (dura menos de 2 s) se queda en esta fish.
 if status is-interactive; and set -q KITTY_WINDOW_ID; and not set -q HERDR_ENV; and not set -q ZELLIJ
     and type -q herdr
+    set -l herdr_inicio (date +%s)
     herdr
+    set -l herdr_duro (math (date +%s) - $herdr_inicio)
+    # Salida normal: limpiar ya el mensaje de herdr ("server shut down…") para que no se vea
+    # mientras se cierra la ventana. Si fallo al arrancar (< 2 s) el mensaje se queda visible.
+    test $herdr_duro -ge 2; and clear
+    # Se salio con exit en el ultimo panel: borrar la sesion guardada para que la proxima vez herdr
+    # empiece de cero (con Ctrl+g q no hay marca y la sesion se conserva)
+    if test -e ~/.cache/herdr/reset-session
+        # En segundo plano y fuera de kitty (setsid) para que la ventana se cierre ya: esperar
+        # (max 2 s) a que el servidor termine de apagarse y de guardar la sesion, y borrarla
+        setsid -f fish --no-config -c '
+            for i in (seq 20)
+                herdr status server 2>/dev/null | string match -q "status: not running"; and break
+                sleep 0.1
+            end
+            rm -f ~/.cache/herdr/reset-session ~/.config/herdr/session.json' >/dev/null 2>&1
+    end
+    # `exit` en config.fish solo deja de leer este archivo (fish sigue abierto a medias);
+    # `exec true` reemplaza fish por un comando que termina al instante y la ventana se cierra
+    test $herdr_duro -ge 2; and exec true
 end
 
 # fastfetch al abrir la terminal. Va antes de inicializar starship/zoxide/atuin/fzf/carapace para
