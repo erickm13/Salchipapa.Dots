@@ -345,10 +345,56 @@ setup_alacritty() {
 }
 
 setup_wezterm() {
+  if is_wsl; then
+    setup_wezterm_windows
+    return
+  fi
   [ "$IS_ARCH" -eq 1 ] && run_silent "Installing wezterm..." "pkg_install wezterm"
   step "Linking .wezterm.lua..."
   symlink_force "$DOTS_DIR/SalchipapaWezterm/.wezterm.lua" "$HOME_DIR/.wezterm.lua"
   ok "Wezterm config linked."
+}
+
+# WSL: WezTerm runs natively on Windows (much smoother than a Linux terminal through WSLg) and
+# opens this distro. Its config lives in the Windows home and must be a plain copy: loading it
+# from \\wsl.localhost made WezTerm crash.
+setup_wezterm_windows() {
+  local winhome distro fontdir
+  winhome="$(win_home)"
+  distro="${WSL_DISTRO_NAME:-archlinux}"
+
+  step "Windows: WezTerm (winget)..."
+  (cd /mnt/c && powershell.exe -NoProfile -Command \
+    "winget install --id wez.wezterm --exact --source winget --silent --accept-package-agreements --accept-source-agreements" \
+    >/dev/null 2>&1) || true
+
+  # WezTerm is a Windows app: it can't see Linux fonts. Per-user install, no admin needed.
+  fontdir="$winhome/AppData/Local/Microsoft/Windows/Fonts"
+  if ! compgen -G "$fontdir/IosevkaTermNerdFont-*.ttf" >/dev/null &&
+    ! compgen -G "/mnt/c/Windows/Fonts/IosevkaTermNerdFont-*.ttf" >/dev/null; then
+    step "Windows: IosevkaTerm Nerd Font..."
+    local tmp f
+    tmp="$(mktemp -d)"
+    if curl -fsSL https://github.com/ryanoasis/nerd-fonts/releases/latest/download/IosevkaTerm.zip -o "$tmp/font.zip" &&
+      unzip -q -o "$tmp/font.zip" 'IosevkaTermNerdFont-*.ttf' -d "$tmp/ttf"; then
+      mkdir -p "$fontdir"
+      for f in "$tmp"/ttf/*.ttf; do
+        cp "$f" "$fontdir/" || { warn "Could not copy $(basename "$f")"; continue; }
+        (cd /mnt/c && reg.exe add 'HKCU\Software\Microsoft\Windows NT\CurrentVersion\Fonts' \
+          /v "$(basename "$f" .ttf) (TrueType)" /t REG_SZ /d "$(wslpath -w "$fontdir/$(basename "$f")")" /f \
+          >/dev/null 2>&1) || true
+      done
+    else
+      warn "Could not download IosevkaTerm Nerd Font — install it on Windows by hand."
+    fi
+    rm -rf "$tmp"
+  fi
+
+  # Copy the config, pointing default_prog at this distro (the repo file says "archlinux")
+  step "Windows: .wezterm.lua (distro: $distro)..."
+  sed "s/\"-d\", \"archlinux\"/\"-d\", \"$distro\"/" "$DOTS_DIR/SalchipapaWezterm/.wezterm.lua" \
+    >"$winhome/.wezterm.lua"
+  ok "WezTerm ready (Windows). Edit the repo file and re-run, or copy it to $(wslpath -w "$winhome")\\.wezterm.lua"
 }
 
 setup_kitty() {
