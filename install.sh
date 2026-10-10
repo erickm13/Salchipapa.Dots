@@ -528,8 +528,8 @@ accion_install() {
 
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
-    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, spotify-player, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player jq python"
+    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, spotify-player, mpv, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player jq python mpv"
     run_silent "carapace (GitHub release)..." "install_carapace_bin"
     if command -v yay >/dev/null 2>&1; then
       # Not silent: yay may ask for the user's sudo password
