@@ -86,7 +86,7 @@ CONFIG_DOWNLOADS_ENUMERATE="false"
 
 # Automatically check for script updates on startup
 # Options: true, false (Default: true)
-CONFIG_CHECK_FOR_UPDATES="true"
+CONFIG_CHECK_FOR_UPDATES="false"
 
 # Number of items to keep in the recent history
 CONFIG_NO_OF_RECENT="10"
@@ -106,6 +106,7 @@ CONFIG_GUM_CONFIRM_OPTS="--prompt.foreground #2ac3de --selected.foreground #1a1b
 CONFIG_FZF_HEADER="\
 "
 CONFIG_FZF_OPTS="
+  --with-shell='sh -c'
   --ansi
   --border
   --scheme=history

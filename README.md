@@ -78,6 +78,10 @@ The installer detects the distro automatically:
 - **Arch Linux** → `pacman` for everything (no Homebrew), `yay` is installed from the AUR,
   and `carapace` comes from its GitHub release. Run it as your normal user, not as root
   (`makepkg` refuses to build as root).
+- **WSL** (either distro) → extra WSL-only setup: installs `mpv` and `yt-dlp` on Windows with
+  `winget` (yt-x plays videos through the Windows mpv for GPU decoding / 4K), `win32yank`
+  for the Neovim clipboard, `wslu` (`wslview`), a kitty wrapper that renders through D3D12,
+  and a Linux `mpv.conf` capped to 1080p30 / 720p60.
 
 ---
 

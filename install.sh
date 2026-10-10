@@ -346,6 +346,108 @@ setup_kitty() {
 }
 
 # ════════════════════════════════════════════════════════════════
+#   Setup: WSL extras (Windows side + WSL-only tweaks)
+# ════════════════════════════════════════════════════════════════
+
+is_wsl() { grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; }
+
+# Write a file as the target user (the script may be running under sudo)
+write_as_user() {
+  local dst="$1"
+  as_user mkdir -p "$(dirname "$dst")"
+  as_user tee "$dst" >/dev/null
+}
+
+# Windows home as a WSL path, e.g. /mnt/c/Users/name
+win_home() {
+  wslpath "$(cd /mnt/c && cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')"
+}
+
+setup_wsl() {
+  local winhome
+  winhome="$(win_home)"
+
+  # ── Windows: mpv + yt-dlp (yt-x plays through the Windows mpv: GPU decoding, 4K)
+  step "Windows: mpv + yt-dlp (winget)..."
+  (cd /mnt/c && powershell.exe -NoProfile -Command \
+    "winget install --id shinchiro.mpv --exact --source winget --silent --accept-package-agreements --accept-source-agreements; \
+     winget install --id yt-dlp.yt-dlp --exact --source winget --silent --accept-package-agreements --accept-source-agreements" \
+    >/dev/null 2>&1) || true
+
+  # winget's PATH changes aren't visible until WSL restarts, so point mpv at yt-dlp.exe directly
+  local ytdlp mpv_conf="$winhome/AppData/Roaming/mpv/mpv.conf"
+  ytdlp="$(find "$winhome/AppData/Local/Microsoft/WinGet/Packages" -maxdepth 2 -path '*yt-dlp.yt-dlp_*' -name yt-dlp.exe 2>/dev/null | head -1)"
+  if [ -f "$mpv_conf" ]; then
+    warn "Windows mpv.conf already exists — left untouched."
+  elif [ -n "$ytdlp" ]; then
+    mkdir -p "$(dirname "$mpv_conf")"
+    cat >"$mpv_conf" <<EOF
+# mpv de Windows (lo usa yt-x desde WSL para ver en 4K con la GPU)
+
+# Decodificacion por GPU
+hwdec=auto-safe
+vo=gpu-next
+
+# yt-dlp instalado con winget
+script-opts=ytdl_hook-ytdl_path=$(wslpath -w "$ytdlp")
+EOF
+    ok "Windows mpv configured."
+  else
+    warn "yt-dlp.exe not found — Windows mpv may not open YouTube links."
+  fi
+
+  # ── win32yank: Neovim clipboard (lazy.lua uses it under WSL)
+  if ! command -v win32yank.exe >/dev/null 2>&1; then
+    step "win32yank (Neovim clipboard)..."
+    local tmp url
+    tmp="$(mktemp -d)"
+    url="$(curl -fsSL https://api.github.com/repos/equalsraf/win32yank/releases/latest |
+      grep -oE '"browser_download_url": "[^"]*x64\.zip"' | cut -d'"' -f4)"
+    curl -fsSL "$url" -o "$tmp/win32yank.zip" &&
+      unzip -o -q "$tmp/win32yank.zip" -d "$tmp" &&
+      sudo install -m755 "$tmp/win32yank.exe" /usr/local/bin/win32yank.exe
+    rm -rf "$tmp"
+  fi
+
+  # ── wslu: wslview opens links in the Windows browser (gh auth, etc.)
+  if ! command -v wslview >/dev/null 2>&1; then
+    step "wslu (wslview)..."
+    if [ "$IS_ARCH" -eq 1 ]; then
+      command -v yay >/dev/null 2>&1 && as_user yay -S --needed --noconfirm wslu || warn "wslu skipped (needs yay)."
+    else
+      sudo apt-get install -y wslu >/dev/null 2>&1 || warn "wslu not available via apt."
+    fi
+  fi
+
+  # ── kitty: render with the GPU through D3D12 instead of llvmpipe
+  local kitty_bin
+  kitty_bin="$(type -ap kitty 2>/dev/null | grep -v '^/usr/local/bin/kitty$' | head -1 || true)"
+  if [ -n "$kitty_bin" ] && [ ! -e /usr/local/bin/kitty ]; then
+    step "kitty GPU wrapper (D3D12)..."
+    printf '#!/bin/sh\n# Usa la GPU via D3D12 (WSL) en vez de renderizado por software (llvmpipe)\nexport GALLIUM_DRIVER=d3d12\nexec %s "$@"\n' "$kitty_bin" |
+      sudo tee /usr/local/bin/kitty >/dev/null
+    sudo chmod +x /usr/local/bin/kitty
+  fi
+
+  # ── Linux mpv: WSLg can't show 1080p60 smoothly and has no hardware decoding
+  local linux_mpv_conf="$HOME_DIR/.config/mpv/mpv.conf"
+  if [ ! -f "$linux_mpv_conf" ]; then
+    write_as_user "$linux_mpv_conf" <<'EOF'
+# mpv en WSL (no va en Salchipapa.Dots: en Arch nativo la GPU aguanta mas)
+
+# WSLg no muestra fluido 1080p a 60 fps: 1080p si el video es de 30 fps,
+# 720p si es de 60 fps. Sin AV1 (no hay decodificacion por hardware en WSL).
+ytdl-format=bv*[height>720][height<=1080][fps<=30][vcodec!^=av01]+ba/bv*[height<=720][vcodec!^=av01]+ba/b[height<=720]
+
+# Audio directo a PulseAudio (WSLg): evita el aviso de PipeWire "client.conf"
+ao=pulse
+EOF
+  fi
+
+  ok "WSL extras ready."
+}
+
+# ════════════════════════════════════════════════════════════════
 #   Action: Full Install
 # ════════════════════════════════════════════════════════════════
 
@@ -402,8 +504,8 @@ accion_install() {
     run_silent "carapace (GitHub release)..." "install_carapace_bin"
     if command -v yay >/dev/null 2>&1; then
       # Not silent: yay may ask for the user's sudo password
-      step "asm-lsp, yt-x, gum (AUR)..."
-      as_user yay -S --needed --noconfirm asm-lsp yt-x gum || warn "AUR packages failed — install them later with: yay -S asm-lsp yt-x gum"
+      step "asm-lsp, yt-x-git, gum (AUR)..."
+      as_user yay -S --needed --noconfirm asm-lsp yt-x-git gum || warn "AUR packages failed — install them later with: yay -S asm-lsp yt-x-git gum"
     else
       warn "asm-lsp and yt-x skipped (need yay)."
     fi
@@ -554,13 +656,11 @@ accion_install() {
   ok "Lazy sync done."
   section_end
 
-  # ── WSL clipboard note ─────────────────────────────────────
-  if grep -qiE "microsoft|wsl" /proc/version 2>/dev/null; then
-    echo -e "\n  ${YELLOW}${BOLD}  ⚠  WSL Clipboard${RESET}"
-    echo -e "  ${GRAY}  Neovim uses win32yank for clipboard in WSL.${RESET}"
-    echo -e "  ${GRAY}  Install it on the Windows side:${RESET}"
-    echo -e "  ${BLUE}    scoop install win32yank${RESET}${GRAY}  or  ${RESET}${BLUE}choco install win32yank${RESET}"
-    echo -e "  ${GRAY}  Then make sure win32yank.exe is in your Windows PATH.${RESET}"
+  # ── WSL extras ─────────────────────────────────────────────
+  if is_wsl; then
+    section "WSL"
+    setup_wsl
+    section_end
   fi
 
   echo -e "\n  ${GREEN}${BOLD}✔  Installation complete!${RESET}\n"
