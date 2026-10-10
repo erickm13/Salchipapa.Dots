@@ -329,6 +329,16 @@ setup_herdr() {
   as_user mkdir -p "$HOME_DIR/.config/herdr"
   step "Linking herdr config..."
   symlink_force "$DOTS_DIR/SalchipapaHerdr/config.toml" "$HOME_DIR/.config/herdr/config.toml"
+  # Agent integrations: better state detection and native session restore
+  local herdr_bin="$HOME_DIR/.local/bin/herdr" target
+  [ -x "$herdr_bin" ] || herdr_bin="$(command -v herdr || true)"
+  if [ -n "$herdr_bin" ]; then
+    for target in claude codex opencode; do
+      as_user "$herdr_bin" integration install "$target" >/dev/null 2>&1 ||
+        warn "herdr integration for $target failed — run: herdr integration install $target"
+    done
+    ok "herdr integrations: claude, codex, opencode."
+  fi
   ok "Herdr ready."
 }
 
@@ -574,8 +584,8 @@ accion_install() {
 
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
-    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, spotify-player, mpv, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player jq python mpv"
+    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, spotify-player, mpv, codex, opencode, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player jq python mpv openai-codex opencode"
     run_silent "carapace (GitHub release)..." "install_carapace_bin"
     if command -v yay >/dev/null 2>&1; then
       # Not silent: yay may ask for the user's sudo password
@@ -679,6 +689,11 @@ accion_install() {
       install_npm_cli "@google/gemini-cli"
       install_npm_cli "@angular/cli"
       install_npm_cli "@anthropic-ai/claude-code"
+      # On Arch, codex and opencode already come from pacman (Core Tools)
+      if [ "$IS_ARCH" -eq 0 ]; then
+        install_npm_cli "@openai/codex"
+        install_npm_cli "opencode-ai"
+      fi
       ;;
     "Gemini CLI")   install_npm_cli "@google/gemini-cli" ;;
     "Angular CLI")  install_npm_cli "@angular/cli" ;;
