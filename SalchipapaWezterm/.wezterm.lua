@@ -1,71 +1,52 @@
--- Import the wezterm API
+-- Salchipapa.Dots — WezTerm (mismo aspecto que SalchipapaKitty: Solarized Osaka, IosevkaTerm)
 local wezterm = require("wezterm")
+local config = wezterm.config_builder()
 
--- Initialize an empty configuration table
-local config = {}
-config.default_prog = { "wsl.exe", "~" }
--- Background image options
--- config.background = {
--- 	{
--- 		source = {
--- 			File = "C:/Users/alanb/Pictures/synth-kanagawa-blur-20.jpg", -- Path to the background image file
--- 		},
--- 		width = "100%", -- Set the background image width to 100% of the terminal window
--- 		height = "100%", -- Set the background image height to gg100% of the terminal window
--- 		opacity = 1, -- Set the opacity of the background image (0.0 - 1.0)
--- 		hsb = {
--- 			brightness = 0.04, -- Set the brightness of the background image (low value to darken the image)
--- 			saturation = 1, -- Set the saturation of the background image
--- 		},
--- 	},
--- }
+local is_windows = wezterm.target_triple:find("windows") ~= nil
 
-config.color_scheme = "GruvboxDarkHard"
--- This is where you actually apply your config choices
-config.window_padding = {
-	top = 0,
-	right = 0,
-	left = 0,
-	bottom = 0
-}
+-- ── Windows: abrir la distro de Arch en WSL ─────────────────────
+if is_windows then
+	-- La distro por defecto de WSL puede ser otra (p. ej. docker-desktop): se nombra explicitamente
+	config.default_prog = { "wsl.exe", "-d", "archlinux", "--cd", "~" }
+	-- Pasar TERM_PROGRAM a WSL para que fish sepa que esta en WezTerm (abre herdr al arrancar)
+	config.set_environment_variables = { WSLENV = "TERM_PROGRAM:TERM_PROGRAM_VERSION" }
+end
 
--- Set the terminal font
-config.font = wezterm.font("IosevkaTerm NF")
+-- ── Fuente ──────────────────────────────────────────────────────
+config.font = wezterm.font("IosevkaTerm Nerd Font")
+config.font_size = 14
 
--- Hide the tab bar if only one tab is open
+-- ── Ventana ─────────────────────────────────────────────────────
+config.window_background_opacity = 0.75
+-- WezTerm solo transparenta el fondo "por defecto"; herdr pinta el fondo de los paneles con un
+-- color explicito (no hace caso a panel_bg = "reset") y sin esto queda opaco. Las dos opacidades
+-- se combinan: 0.5 deja los paneles cerca de la barra lateral y aun se ven selecciones y resaltados
+config.text_background_opacity = 0.5
+config.window_padding = { left = 4, right = 4, top = 4, bottom = 4 }
 config.hide_tab_bar_if_only_one_tab = true
-config.max_fps = 240 -- hack for smoothness
-config.enable_kitty_graphics = true
-
--- Background with Transparency
-config.window_background_opacity = 0.80 -- Adjust this value as needed
-config.macos_window_background_blur = 20 -- Adjust this value as needed
--- config.win32_system_backdrop = "Acrylic" -- Only Works in Windows
-
--- Font Size
-config.font_size = 16
-
--- Smooth hack
-config.max_fps = 240
-
--- Enable Kitty Graphics
-config.enable_kitty_graphics = true
-
--- Disable Scroll Bar
 config.enable_scroll_bar = false
+config.window_close_confirmation = "NeverPrompt"
+config.audible_bell = "Disabled"
 
--- activate ONLY if windows --
+-- ── Rendimiento e imagenes ──────────────────────────────────────
+config.max_fps = 120
+-- Protocolo de imagenes de kitty: fastfetch, herdr, spotify_player, yt-x
+config.enable_kitty_graphics = true
 
--- config.default_domain = 'WSL:Ubuntu'
--- config.front_end = "OpenGL"
--- local gpus = wezterm.gui.enumerate_gpus()
--- if #gpus > 0 then
---   config.webgpu_preferred_adapter = gpus[1] -- only set if there's at least one GPU
--- else
---   -- fallback to default behavior or log a message
---   wezterm.log_info("No GPUs found, using default settings")
--- end
+-- ── Cursor ──────────────────────────────────────────────────────
+config.default_cursor_style = "SteadyBlock"
 
--- and finally, return the configuration to wezterm
+-- ── Solarized Osaka ─────────────────────────────────────────────
+config.colors = {
+	background = "#001419",
+	foreground = "#839395",
+	cursor_bg = "#839395",
+	cursor_fg = "#001419",
+	cursor_border = "#839395",
+	selection_bg = "#1a6397",
+	selection_fg = "#839395",
+	ansi = { "#001014", "#db302d", "#849900", "#b28500", "#268bd3", "#d23681", "#29a298", "#9eabac" },
+	brights = { "#001419", "#db302d", "#849900", "#b28500", "#268bd3", "#d23681", "#29a298", "#839395" },
+}
 
 return config

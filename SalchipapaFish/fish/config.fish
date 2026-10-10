@@ -76,10 +76,11 @@ if test $IS_TERMUX -eq 0; and set -q BREW_BIN; and test -f $BREW_BIN
     eval ($BREW_BIN shellenv)
 end
 
-# Abrir herdr al abrir kitty. Solo en ventanas de kitty (no en VS Code, Windows Terminal ni SSH) y
-# nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q, o exit en el ultimo panel) se
+# Abrir herdr al abrir kitty o WezTerm. Solo en esas terminales (no en VS Code, Windows Terminal ni
+# SSH) y nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q, o exit en el ultimo panel) se
 # cierra la ventana; si herdr falla al arrancar (dura menos de 2 s) se queda en esta fish.
-if status is-interactive; and set -q KITTY_WINDOW_ID; and not set -q HERDR_ENV; and not set -q ZELLIJ
+if status is-interactive; and begin; set -q KITTY_WINDOW_ID; or test "$TERM_PROGRAM" = WezTerm; end
+    and not set -q HERDR_ENV; and not set -q ZELLIJ
     and type -q herdr
     set -l herdr_inicio (date +%s)
     herdr
