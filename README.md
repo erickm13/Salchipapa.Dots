@@ -218,7 +218,7 @@ Salchipapa.Dots/
 ├── install.sh              → Installer with interactive menu
 ├── SalchipapaZsh/          → Zsh configuration (plugins, themes, aliases)
 ├── SalchipapaNvim/         → Neovim setup (LazyVim, plugins, LSP)
-├── SalchipapaHerdr/        → Herdr config (agent-aware multiplexer; only config.toml is linked)
+├── SalchipapaHerdr/        → Herdr config + keybinding guide (README.md); only config.toml is linked
 ├── SalchipapaZellij/       → Zellij layouts and configuration
 ├── SalchipapaKitty/        → Kitty terminal configuration
 ├── SalchipapaAlacritty/    → Alacritty terminal configuration
