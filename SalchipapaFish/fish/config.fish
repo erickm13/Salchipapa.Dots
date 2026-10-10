@@ -105,6 +105,9 @@ alias gp="git push"
 alias gl="git log --oneline --graph"
 alias gc="git commit -m"
 
+# Claude Code con bypass permissions
+alias cl="claude --dangerously-skip-permissions"
+
 # Obsidian vault sync
 alias obs="git -C ~/.config/obsidian add . && git -C ~/.config/obsidian commit -m 'update notes' && git -C ~/.config/obsidian push"
 
