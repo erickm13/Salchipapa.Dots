@@ -16,8 +16,8 @@ sudo ./install.sh
 ```
 
 The installer is interactive. It:
-1. Prompts for shell choice (Fish or Zsh), multiplexer (Zellij or Tmux), and terminal emulator (Alacritty or Wezterm).
-2. Installs Homebrew, system packages, and core tools via `brew`.
+1. Prompts for shell choice (Fish or Zsh), multiplexer (Zellij or Tmux), and terminal emulator (Kitty, Alacritty or Wezterm).
+2. Installs system packages and core tools: on Debian via `apt` + Homebrew, on Arch via `pacman` (plus `yay` and the `carapace` release binary). Distro is detected with `command -v pacman` (`IS_ARCH`).
 3. Creates symlinks from this repo into `~/.config/`.
 4. Syncs Neovim plugins: `nvim --headless '+Lazy! sync' +qa`
 

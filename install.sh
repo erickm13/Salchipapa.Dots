@@ -20,6 +20,10 @@ else
   DOTS_DIR="$HOME_DIR/Salchipapa.Dots"
 fi
 
+# ── Distro: Arch (pacman) or Debian-based (apt + Homebrew) ──────
+IS_ARCH=0
+command -v pacman >/dev/null 2>&1 && IS_ARCH=1
+
 # ── Solarized Osaka Colors ───────────────────────────────────────
 BG0=$(tput setab 0 2>/dev/null || true)     # #001014 - background
 FG0=$(tput setaf 7 2>/dev/null || true)     # #9eabac - foreground
@@ -69,6 +73,52 @@ symlink_force() {
     rm -rf "$dst"
   fi
   ln -s "$src" "$dst"
+}
+
+# Install packages with pacman on Arch, brew elsewhere
+pkg_install() {
+  if [ "$IS_ARCH" -eq 1 ]; then
+    sudo pacman -S --needed --noconfirm "$@"
+  else
+    brew install "$@"
+  fi
+}
+
+# Run a command as the target user (needed for makepkg, which refuses root)
+as_user() {
+  if [ "$(id -u)" -eq 0 ]; then
+    sudo -u "$TARGET_USER" -H "$@"
+  else
+    "$@"
+  fi
+}
+
+# Arch: install yay (AUR helper) from yay-bin if missing
+install_yay() {
+  command -v yay >/dev/null 2>&1 && return 0
+  if [ "$TARGET_USER" = "root" ]; then
+    warn "yay can't be built as root — create a normal user to use it."
+    return 0
+  fi
+  local tmp
+  tmp="$(as_user mktemp -d)"
+  as_user git clone --depth=1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin"
+  (cd "$tmp/yay-bin" && as_user makepkg --noconfirm)
+  sudo pacman -U --noconfirm "$tmp"/yay-bin/yay-bin-*.pkg.tar.zst
+  rm -rf "$tmp"
+}
+
+# Arch: carapace isn't in the official repos, install the release binary
+install_carapace_bin() {
+  command -v carapace >/dev/null 2>&1 && return 0
+  local tmp url
+  tmp="$(mktemp -d)"
+  url="$(curl -fsSL https://api.github.com/repos/carapace-sh/carapace-bin/releases/latest |
+    grep -oE '"browser_download_url": "[^"]*linux_amd64\.tar\.gz"' | cut -d'"' -f4)"
+  curl -fsSL "$url" -o "$tmp/carapace.tgz"
+  tar xzf "$tmp/carapace.tgz" -C "$tmp" carapace
+  sudo install -m755 "$tmp/carapace" /usr/local/bin/carapace
+  rm -rf "$tmp"
 }
 
 load_nvm_brew() {
@@ -151,9 +201,10 @@ pick_option() {
 setup_fish() {
   local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
   local brew_fish="$brew_prefix/bin/fish"
+  [ "$IS_ARCH" -eq 1 ] && brew_fish="/usr/bin/fish"
 
   step "Installing fish..."
-  brew install fish
+  pkg_install fish
 
   if ! grep -qxF "$brew_fish" /etc/shells; then
     step "Adding fish to /etc/shells..."
@@ -192,9 +243,10 @@ setup_fish() {
 setup_zsh() {
   local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
   local brew_zsh="$brew_prefix/bin/zsh"
+  [ "$IS_ARCH" -eq 1 ] && brew_zsh="/usr/bin/zsh"
 
   run_silent "Installing zsh + plugins..." \
-    "brew install zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions"
+    "pkg_install zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions"
 
   if ! grep -qxF "$brew_zsh" /etc/shells; then
     step "Adding zsh to /etc/shells..."
@@ -208,6 +260,12 @@ setup_zsh() {
 
   run_silent "Installing Oh My Zsh (KEEP_ZSHRC)..." \
     'export RUNZSH=no CHSH=no KEEP_ZSHRC=yes; sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
+
+  # Arch: Node comes from pacman (nodejs/npm); .zshrc loads the nvm package if present
+  if [ "$IS_ARCH" -eq 1 ]; then
+    ok "Zsh ready."
+    return
+  fi
 
   if ! brew list nvm >/dev/null 2>&1; then
     run_silent "Installing nvm via brew..." "brew install nvm"
@@ -236,7 +294,7 @@ setup_zsh() {
 # ════════════════════════════════════════════════════════════════
 
 setup_zellij() {
-  run_silent "Installing zellij..." "brew install zellij"
+  run_silent "Installing zellij..." "pkg_install zellij"
   ensure_dir "$HOME_DIR/.config"
   step "Linking zellij config..."
   symlink_force "$DOTS_DIR/SalchipapaZellij/zellij" "$HOME_DIR/.config/zellij"
@@ -244,7 +302,7 @@ setup_zellij() {
 }
 
 setup_tmux() {
-  run_silent "Installing tmux..." "brew install tmux"
+  run_silent "Installing tmux..." "pkg_install tmux"
   step "Linking tmux config..."
   symlink_force "$DOTS_DIR/SalchipapaTmux" "$HOME_DIR/.config/tmux"
   ok "tmux config linked."
@@ -265,6 +323,7 @@ setup_tmux() {
 # ════════════════════════════════════════════════════════════════
 
 setup_alacritty() {
+  [ "$IS_ARCH" -eq 1 ] && run_silent "Installing alacritty..." "pkg_install alacritty"
   ensure_dir "$HOME_DIR/.config"
   step "Linking alacritty config..."
   symlink_force "$DOTS_DIR/SalchipapaAlacritty" "$HOME_DIR/.config/alacritty"
@@ -272,9 +331,18 @@ setup_alacritty() {
 }
 
 setup_wezterm() {
+  [ "$IS_ARCH" -eq 1 ] && run_silent "Installing wezterm..." "pkg_install wezterm"
   step "Linking .wezterm.lua..."
   symlink_force "$DOTS_DIR/SalchipapaWezterm/.wezterm.lua" "$HOME_DIR/.wezterm.lua"
   ok "Wezterm config linked."
+}
+
+setup_kitty() {
+  [ "$IS_ARCH" -eq 1 ] && run_silent "Installing kitty..." "pkg_install kitty"
+  ensure_dir "$HOME_DIR/.config"
+  step "Linking kitty config..."
+  symlink_force "$DOTS_DIR/SalchipapaKitty" "$HOME_DIR/.config/kitty"
+  ok "Kitty config linked."
 }
 
 # ════════════════════════════════════════════════════════════════
@@ -288,7 +356,7 @@ accion_install() {
   local shell_choice mux_choice term_choice cli_gemini cli_angular cli_claude
   shell_choice=$(pick_option "Default shell:" "Fish" "Zsh" "Skip")
   mux_choice=$(pick_option "Terminal multiplexer:" "Zellij" "Tmux" "Skip")
-  term_choice=$(pick_option "Terminal emulator config:" "Alacritty" "Wezterm" "Skip")
+  term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Alacritty" "Wezterm" "Skip")
   cli_choice=$(pick_option "CLIs to install:" "All (Gemini + Angular + Claude Code)" "Gemini CLI" "Angular CLI" "Claude Code" "Skip")
 
   echo -e "\n  ${AQUA}${BOLD}Obsidian vault${RESET}"
@@ -311,37 +379,68 @@ accion_install() {
     return
   }
 
-  # ── System ─────────────────────────────────────────────────
-  section "System"
-  run_silent "apt update & upgrade..." "sudo apt-get update -y && sudo apt-get upgrade -y"
-  run_silent "build-essential, curl, git, ca-certificates, unzip..." \
-    "sudo apt-get install -y build-essential curl git ca-certificates unzip"
-  ok "System packages ready."
-  section_end
+  # Ask for the sudo password up front so silent steps don't hang on it
+  sudo -v
 
-  # ── Homebrew ───────────────────────────────────────────────
-  section "Homebrew"
   local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
-  if ! command -v brew >/dev/null 2>&1; then
-    run_silent "Installing Homebrew..." \
-      'NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
-  else
-    warn "Homebrew already installed — skipping."
-  fi
-  touch "$HOME_DIR/.bashrc"
-  append_unique_line "" "$HOME_DIR/.bashrc"
-  append_unique_line 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' "$HOME_DIR/.bashrc"
-  eval "$("$brew_prefix/bin/brew" shellenv)"
-  run_silent "brew update..." "brew update"
-  ok "Homebrew ready."
-  section_end
 
-  # ── Core packages ──────────────────────────────────────────
-  section "Core Tools"
-  run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
-    "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi"
-  ok "Core tools installed."
-  section_end
+  if [ "$IS_ARCH" -eq 1 ]; then
+    # ── System (Arch) ────────────────────────────────────────
+    section "System — Arch Linux"
+    run_silent "pacman -Syu..." "sudo pacman -Syu --noconfirm"
+    run_silent "base-devel, curl, git, ca-certificates, unzip..." \
+      "sudo pacman -S --needed --noconfirm base-devel curl git ca-certificates unzip"
+    step "yay (AUR helper)..."
+    install_yay
+    ok "System packages ready."
+    section_end
+
+    # ── Core packages (Arch) ─────────────────────────────────
+    section "Core Tools"
+    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji"
+    run_silent "carapace (GitHub release)..." "install_carapace_bin"
+    if command -v yay >/dev/null 2>&1; then
+      # Not silent: yay may ask for the user's sudo password
+      step "asm-lsp (AUR)..."
+      as_user yay -S --needed --noconfirm asm-lsp || warn "asm-lsp failed — install it later with: yay -S asm-lsp"
+    else
+      warn "asm-lsp skipped (needs yay)."
+    fi
+    ok "Core tools installed."
+    section_end
+  else
+    # ── System (Debian) ──────────────────────────────────────
+    section "System"
+    run_silent "apt update & upgrade..." "sudo apt-get update -y && sudo apt-get upgrade -y"
+    run_silent "build-essential, curl, git, ca-certificates, unzip..." \
+      "sudo apt-get install -y build-essential curl git ca-certificates unzip"
+    ok "System packages ready."
+    section_end
+
+    # ── Homebrew ─────────────────────────────────────────────
+    section "Homebrew"
+    if ! command -v brew >/dev/null 2>&1; then
+      run_silent "Installing Homebrew..." \
+        'NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
+    else
+      warn "Homebrew already installed — skipping."
+    fi
+    touch "$HOME_DIR/.bashrc"
+    append_unique_line "" "$HOME_DIR/.bashrc"
+    append_unique_line 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' "$HOME_DIR/.bashrc"
+    eval "$("$brew_prefix/bin/brew" shellenv)"
+    run_silent "brew update..." "brew update"
+    ok "Homebrew ready."
+    section_end
+
+    # ── Core packages ────────────────────────────────────────
+    section "Core Tools"
+    run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
+      "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi"
+    ok "Core tools installed."
+    section_end
+  fi
 
   # ── Shell ──────────────────────────────────────────────────
   section "Shell — $shell_choice"
@@ -364,6 +463,7 @@ accion_install() {
   # ── Terminal ───────────────────────────────────────────────
   section "Terminal — $term_choice"
   case "$term_choice" in
+  Kitty) setup_kitty ;;
   Alacritty) setup_alacritty ;;
   Wezterm) setup_wezterm ;;
   Skip) ok "Skipped." ;;
@@ -388,7 +488,12 @@ accion_install() {
   install_npm_cli() {
     local pkg="$1"
     step "Installing $pkg..."
-    npm i -g "$pkg"
+    # pacman's npm uses a global prefix under /usr, which needs root
+    if [ "$IS_ARCH" -eq 1 ]; then
+      sudo npm i -g "$pkg"
+    else
+      npm i -g "$pkg"
+    fi
   }
 
   case "$cli_choice" in
@@ -489,6 +594,7 @@ accion_uninstall() {
     "$HOME_DIR/.config/zellij"
     "$HOME_DIR/.config/tmux"
     "$HOME_DIR/.config/alacritty"
+    "$HOME_DIR/.config/kitty"
     "$HOME_DIR/.config/nvim"
     "$HOME_DIR/.config/starship.toml"
     "$HOME_DIR/.config/fastfetch"
@@ -503,7 +609,7 @@ accion_uninstall() {
     fi
   done
 
-  usermod -s "$(which bash)" "$TARGET_USER" 2>/dev/null && ok "Default shell restored to bash." || true
+  usermod -s "$(command -v bash)" "$TARGET_USER" 2>/dev/null && ok "Default shell restored to bash." || true
 
   if [ -d "$HOME_DIR/.config/obsidian" ]; then
     rm -rf "$HOME_DIR/.config/obsidian"

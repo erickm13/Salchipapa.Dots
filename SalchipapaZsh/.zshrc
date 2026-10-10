@@ -9,6 +9,7 @@
  export NVM_DIR="$HOME/.nvm"
   [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"  # This loads nvm
   [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
+  [ -s "/usr/share/nvm/init-nvm.sh" ] && \. "/usr/share/nvm/init-nvm.sh"  # Arch (pacman nvm)
 
 
 
@@ -52,11 +53,21 @@ fi
 
 # Usar la variable BREW_BIN donde se necesite
 
-eval "$($BREW_BIN/brew shellenv)"
+[ -x "$BREW_BIN/brew" ] && eval "$($BREW_BIN/brew shellenv)"
 
-source $(dirname $BREW_BIN)/share/zsh-autocomplete/zsh-autocomplete.plugin.zsh
-source $(dirname $BREW_BIN)/share/zsh-syntax-highlighting/zsh-syntax-highlighting.zsh
-source $(dirname $BREW_BIN)/share/zsh-autosuggestions/zsh-autosuggestions.zsh
+# Plugins: Homebrew (share/<plugin>) o Arch/pacman (/usr/share/zsh/plugins/<plugin>)
+for plugin_file in \
+  zsh-autocomplete/zsh-autocomplete.plugin.zsh \
+  zsh-syntax-highlighting/zsh-syntax-highlighting.zsh \
+  zsh-autosuggestions/zsh-autosuggestions.zsh; do
+  for plugin_dir in "$(dirname $BREW_BIN)/share" /usr/share/zsh/plugins; do
+    if [ -f "$plugin_dir/$plugin_file" ]; then
+      source "$plugin_dir/$plugin_file"
+      break
+    fi
+  done
+done
+unset plugin_file plugin_dir
 #source $(dirname $BREW_BIN)/share/powerlevel10k/powerlevel10k.zsh-theme
 
 export PROJECT_PATHS="/home/alanbuscaglia/work"
