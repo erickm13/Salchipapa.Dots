@@ -59,6 +59,13 @@ if test $IS_TERMUX -eq 0; and set -q BREW_BIN; and test -f $BREW_BIN
     eval ($BREW_BIN shellenv)
 end
 
+# Abrir herdr al abrir kitty. Solo en ventanas de kitty (no en VS Code, Windows Terminal ni SSH) y
+# nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q) se vuelve a esta fish.
+if status is-interactive; and set -q KITTY_WINDOW_ID; and not set -q HERDR_ENV; and not set -q ZELLIJ
+    and type -q herdr
+    herdr
+end
+
 # fastfetch al abrir la terminal. Va antes de inicializar starship/zoxide/atuin/fzf/carapace para
 # que aparezca cuanto antes (despues de brew shellenv: en Debian fastfetch viene de Homebrew).
 # zellij se abre a mano: no deja pasar las imagenes de kitty.
