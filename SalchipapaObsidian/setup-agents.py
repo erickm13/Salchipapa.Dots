@@ -14,11 +14,14 @@ actualizar despues de un `git pull`:
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
 - Instala los timers systemd de la nota diaria y la revision semanal (los servicios con la ruta
   real del repo, @DIR@) y los activa. Si la revision semanal se desactivo a mano en este equipo
-  (para no tenerla en dos), la deja desactivada.
+  (para no tenerla en dos), la deja desactivada. Si la boveda trae los workflows de GitHub Actions
+  (.github/workflows/daily-note.yml, weekly-review.yml), esos trabajos corren en la nube y aqui se
+  desactivan sus timers. SALCHIPAPA_NO_TIMERS=1: no toca los timers (CI).
 
 Cada paso informa: ✔ hecho, ✔ ... (ya estaba), ⚠ omitido, ✖ fallo. Sale con 1 si algo fallo.
 """
 import json
+import os
 import shutil
 import subprocess
 from pathlib import Path
@@ -179,7 +182,11 @@ def systemctl(*args):
 
 
 def timers(weekly_was_installed):
-    """daemon-reload y activar los timers. Respeta una revision semanal desactivada a mano."""
+    """daemon-reload y activar los timers. Respeta una revision semanal desactivada a mano y
+    desactiva los que ya corren en GitHub Actions (workflow en la boveda)."""
+    if os.environ.get("SALCHIPAPA_NO_TIMERS") == "1":
+        warn("SALCHIPAPA_NO_TIMERS=1: timers sin tocar")
+        return
     if not shutil.which("systemctl"):
         warn("systemctl no disponible: activa los timers a mano en un sistema con systemd")
         return
@@ -187,13 +194,20 @@ def timers(weekly_was_installed):
     if rc != 0:
         fail(f"systemctl --user daemon-reload: {out or 'sin sesion de usuario de systemd'}")
         return
-    wanted = ["obsidian-daily.timer"]
-    rc, _ = systemctl("is-enabled", "obsidian-weekly.timer")
-    if rc == 0 or not weekly_was_installed:
-        wanted.append("obsidian-weekly.timer")
-    else:
-        warn("obsidian-weekly.timer desactivado en este equipo: se deja asi "
-             "(activar: systemctl --user enable --now obsidian-weekly.timer)")
+    wanted = []
+    workflows = VAULT / ".github" / "workflows"
+    for timer, wf in (("obsidian-daily.timer", "daily-note.yml"), ("obsidian-weekly.timer", "weekly-review.yml")):
+        if (workflows / wf).exists():
+            rc, _ = systemctl("disable", "--now", timer)
+            if rc == 0:
+                ok(f"{timer} desactivado: corre en GitHub Actions ({wf} en la boveda)")
+            else:
+                fail(f"no se pudo desactivar {timer}")
+        elif timer == "obsidian-weekly.timer" and weekly_was_installed and systemctl("is-enabled", timer)[0] != 0:
+            warn("obsidian-weekly.timer desactivado en este equipo: se deja asi "
+                 "(activar: systemctl --user enable --now obsidian-weekly.timer)")
+        else:
+            wanted.append(timer)
     for timer in wanted:
         rc, out = systemctl("enable", "--now", timer)
         rc2, state = systemctl("is-active", timer)

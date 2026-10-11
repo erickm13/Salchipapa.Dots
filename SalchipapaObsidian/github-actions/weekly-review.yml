@@ -1,0 +1,62 @@
+# Revisión semanal de la bóveda en GitHub Actions (copiar a <bóveda>/.github/workflows/).
+# Corre aunque todos tus equipos estén apagados. Necesita el secret CLAUDE_CODE_OAUTH_TOKEN
+# (`claude setup-token`). Con este workflow en la bóveda, setup-agents.py desactiva los timers locales.
+name: Revisión semanal
+
+on:
+  schedule:
+    - cron: "40 6 * * 1" # lunes 00:40 en America/Guatemala (UTC-6), tras la diaria del domingo
+  workflow_dispatch:
+    inputs:
+      date:
+        description: "Un día de la semana a (re)generar, AAAA-MM-DD (vacío = la semana pasada)"
+        required: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: vault
+  cancel-in-progress: false
+
+jobs:
+  weekly:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    env:
+      TZ: America/Guatemala # tu zona: las fechas de la nota y de los commits
+    steps:
+      - name: Bóveda
+        uses: actions/checkout@v4
+        with:
+          path: vault
+          fetch-depth: 0
+      - name: Scripts (Salchipapa.Dots)
+        uses: actions/checkout@v4
+        with:
+          repository: erickm13/Salchipapa.Dots
+          path: dots
+      - name: Claude Code
+        run: |
+          curl -fsSL https://claude.ai/install.sh | bash
+          echo "$HOME/.local/bin" >>"$GITHUB_PATH"
+      - name: Identidad de git
+        working-directory: vault
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+      - name: Revisión semanal
+        env:
+          CLAUDE_CODE_OAUTH_TOKEN: ${{ secrets.CLAUDE_CODE_OAUTH_TOKEN }}
+          # Para buscar tus commits; con un token propio (secret DAILY_GH_TOKEN) también los privados
+          GH_TOKEN: ${{ secrets.DAILY_GH_TOKEN || github.token }}
+          OBSIDIAN_VAULT: ${{ github.workspace }}/vault
+          DATE: ${{ inputs.date }}
+        run: |
+          if [ -z "${CLAUDE_CODE_OAUTH_TOKEN:-}" ]; then
+            echo "::error::Falta el secret CLAUDE_CODE_OAUTH_TOKEN (claude setup-token)"; exit 1
+          fi
+          bash dots/SalchipapaObsidian/weekly-review.sh ${DATE:+"$DATE"}
+      - name: Log
+        if: always()
+        run: cat ~/.cache/salchipapa-dots/weekly-review.log ~/.cache/salchipapa-dots/vault-sync.log 2>/dev/null || true

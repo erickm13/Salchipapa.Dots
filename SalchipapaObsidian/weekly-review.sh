@@ -6,6 +6,8 @@
 #
 # Semana: lunes a domingo. Sin fecha: la que termina hoy si es domingo; si no, la anterior
 # (el lunes a las 00:40 es la que acaba de terminar; el timer es Persistent: corre al volver).
+# En GitHub Actions (GITHUB_ACTIONS=true): una semana esta hecha si ya existe weekly/AAAA-Wnn.md, y
+# un fallo hace fallar el job.
 set -uo pipefail
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/.config/obsidian}"
@@ -28,7 +30,10 @@ W="$(date -d "$SUN" +%G-W%V)"
 [ -d "$VAULT/.git" ] || { log "$W: no hay boveda en $VAULT"; exit 0; }
 CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
 [ -x "$CLAUDE" ] || { fail "La revisión semanal $W no se escribió: no se encontró claude."; exit 0; }
-if [ -z "${1:-}" ] && grep -qxF "$W" "$STATE/weekly-review.done" 2>/dev/null; then
+CLOUD=0
+[ "${GITHUB_ACTIONS:-}" = true ] && CLOUD=1
+if [ -z "${1:-}" ] && { grep -qxF "$W" "$STATE/weekly-review.done" 2>/dev/null ||
+  { [ "$CLOUD" -eq 1 ] && [ -f "$VAULT/weekly/$W.md" ]; }; }; then
   log "$W: ya generada, se omite"
   exit 0
 fi
@@ -77,5 +82,6 @@ if [ "$rc" -eq 0 ]; then
   bash "$HERE/vault-sync.sh" push semanal
 else
   fail "La revisión semanal $W falló (claude rc=$rc). Detalle: $LOG"
+  [ "$CLOUD" -eq 1 ] && exit 1
 fi
 exit 0

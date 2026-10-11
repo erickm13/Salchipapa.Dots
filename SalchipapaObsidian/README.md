@@ -42,6 +42,25 @@ diarias en `daily/`). El nombre del saludo sale de `git config user.name` (o `OB
 Los agentes que no muestran la salida del hook saludan igual: `AGENTS.md` les pide que, en su
 primera respuesta, recuerden lo último que hice leyendo la diaria más reciente.
 
+## Diaria y semanal en GitHub Actions (opcional, recomendado)
+Con los timers locales, la diaria y la semanal corren en **cada** equipo y solo si está encendido.
+En GitHub Actions corren una sola vez, a su hora, aunque todos tus equipos estén apagados:
+
+1. Token de tu suscripción de Claude para CI (lo creas tú; no lo pegues en ningún chat):
+   ```bash
+   claude setup-token                                            # abre el navegador y muestra el token
+   gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <usuario>/<bóveda>   # lo pide oculto
+   ```
+2. Copia [`github-actions/daily-note.yml`](github-actions/daily-note.yml) y
+   [`github-actions/weekly-review.yml`](github-actions/weekly-review.yml) a `<bóveda>/.github/workflows/`
+   (ajusta `TZ` y el `cron` a tu zona horaria).
+3. En cada equipo: `setup-agents.py` ve los workflows y **desactiva** los timers locales.
+
+En la nube no hay claude-mem (es local): la diaria se hace con `## Sesiones de hoy` y tus commits
+(API de GitHub: con el token del workflow, los repos públicos; para incluir los privados, crea el
+secret `DAILY_GH_TOKEN` con un token de solo lectura). Si un trabajo falla, GitHub te avisa por correo.
+Lanzarlo a mano: pestaña **Actions** de la bóveda → *Nota diaria* → *Run workflow* (con fecha opcional).
+
 ## Conectar otro equipo
 En un equipo que ya tiene Salchipapa.Dots (sin reinstalar todo). El instalador hace lo mismo si
 eliges login de GitHub y pones la URL de tu bóveda:
