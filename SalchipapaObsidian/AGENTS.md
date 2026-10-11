@@ -18,38 +18,58 @@ de inicio ya te pasó ese resumen, Erick ya lo vio en pantalla: no lo repitas ni
 saludar, atiende directamente. Si no te llegó ningún resumen, léelo tú de la nota más reciente de `daily/`
 (secciones *Qué hice hoy*, *Mañana*, *Pendiente*) y de las tareas `- [ ]` de `projects/`.
 
-## Estructura
-| Carpeta | Qué hay |
-|---|---|
-| `me.md` | Quién es Erick: estudios, trabajo (QA), stack |
-| `areas/<tema>/` | Conocimiento duradero por tema. Cada área tiene un hub `<id>-<tema>-hub.md` que enlaza sus notas: `linux`, `neovim`, `terminal` (herdr, kitty/WezTerm, fish, spotify_player, yt-x), `ia` (Claude Code, Codex, opencode), `programacion`, `qa`, `universidad` |
-| `projects/` | Un archivo por proyecto (p. ej. `Salchipapa.Dots.md`, con su lista de Estado) |
-| `daily/` | Notas diarias (las escribe el trabajo nocturno) |
-| `templates/` | Plantillas (`daily.md`) |
-| `limbo/` | Ideas sueltas sin clasificar |
+## Estructura: PARA (Building a Second Brain, Tiago Forte)
+Las notas se ordenan por **qué tan accionables son**, no por tema:
+
+| Carpeta | PARA | Qué va ahí |
+|---|---|---|
+| `projects/` | **Projects** | Esfuerzos **con meta y final**, activos ahora. Un archivo por proyecto con su objetivo y su lista **Estado** (`- [ ]`). Hoy: `Salchipapa.Dots` |
+| `areas/<area>/` | **Areas** | **Responsabilidades** que Erick mantiene sin fecha de fin: `qa` (trabajo), `universidad` |
+| `resources/<tema>/` | **Resources** | Temas que **consulta**: `terminal` (herdr, kitty/WezTerm, fish, spotify_player, yt-x), `ia` (Claude Code, Codex, opencode, skills), `linux`, `neovim`, `programacion` |
+| `archive/` | **Archives** | Proyectos terminados y áreas o recursos inactivos (p. ej. `homebrew-tap-setup`) |
+| `inbox/` | Captura | Ideas y notas sueltas sin clasificar todavía |
+| `daily/` | Diario | Notas diarias (las escribe el trabajo nocturno) |
+| `templates/` | — | Plantillas (`daily.md`) |
+| `me.md` | — | Quién es Erick: estudios, trabajo (QA), stack |
+
+Cada carpeta de `areas/` y `resources/` tiene un **hub** `<id>-<tema>-hub.md` que enlaza sus notas.
 
 ## Cuándo leer
 - Al empezar una tarea sobre un proyecto, herramienta o tema que pueda estar documentado, busca
-  primero en la bóveda (`rg -i "<tema>" ~/.config/obsidian`) y lee la nota relevante (hub del área,
-  nota del proyecto). Ahí están decisiones, comandos y problemas ya resueltos.
+  primero en la bóveda (`rg -i "<tema>" ~/.config/obsidian`) y lee la nota relevante (nota del
+  proyecto, hub del recurso o del área). Ahí están decisiones, comandos y problemas ya resueltos.
+- `archive/` solo si buscas algo de un proyecto ya cerrado.
 
-## Cuándo escribir
-Solo conocimiento **duradero** y útil en otra sesión u otro equipo:
-- Un comando, atajo o configuración nueva de una herramienta → la nota de esa herramienta en su área
-  (o una nota nueva enlazada desde el hub).
-- Un bug resuelto con su causa, o una decisión con su porqué → la nota del proyecto (`projects/`).
-- Algo completado de la lista **Estado** de un proyecto → marcarlo `[x]`; una tarea nueva → `[ ]`.
+## Cuándo escribir y dónde (PARA)
+Solo conocimiento **duradero** y útil en otra sesión u otro equipo. Para decidir la carpeta,
+pregúntate *"¿en qué es más accionable esto?"*:
+1. ¿Sirve para un **proyecto activo**? → su nota en `projects/`: bugs resueltos con su causa,
+   decisiones con su porqué, y la lista **Estado** (completado → `[x]`, tarea nueva → `[ ]`).
+2. ¿Es de una **responsabilidad continua** (trabajo de QA, universidad)? → `areas/<area>/`.
+3. ¿Es **referencia** de una herramienta o tema (comando, atajo, configuración, cómo funciona
+   algo)? → la nota de esa herramienta en `resources/<tema>/`, o una nota nueva enlazada desde su hub.
+4. ¿No está claro? → `inbox/`, y Erick la clasifica después.
+
+Ciclo de vida:
+- **Proyecto nuevo** (Erick empieza algo con una meta) → crea `projects/<Nombre>.md` con objetivo,
+  descripción y lista **Estado**, y enlázalo desde `me.md` (sección Proyectos).
+- **Proyecto terminado** (Erick dice que lo cerró) → muévelo a `archive/`, quítalo de Proyectos en
+  `me.md`, y pasa a `resources/` lo que siga sirviendo como referencia.
+- Un tema de `resources/` nuevo → carpeta `resources/<tema>/` con su hub.
+- Nunca guardes conocimiento de referencia en `projects/` ni proyectos en `resources/`.
 
 No escribas: conversación del día, pasos intermedios, intentos fallidos sin conclusión ni nada que
 ya esté en la nota.
 
 ## Cómo escribir
 - Respeta el estilo de la nota: frontmatter (`id`, `aliases`, `tags`), tablas y bloques de código.
-- Enlaces con `[[nombre-de-nota]]`. Al crear una nota nueva, enlázala desde el hub de su área.
+- Enlaces con `[[nombre-de-nota]]` (sin carpeta: Obsidian los resuelve por nombre, así mover notas
+  no los rompe). Al crear una nota nueva, enlázala desde el hub de su área o recurso.
 - Edita lo justo: añade o corrige secciones; no reescribas notas enteras.
 - En español, conciso.
 
 ## Nunca
 - Secretos: tokens, claves de API, contraseñas, nada de `.env`. Si hace falta mencionarlos:
   "token de GitHub (revocado)", nunca su valor. La sincronización se niega a subir lo que parezca un secreto.
-- Borrar o mover notas, o cambiar `.obsidian/`, sin que Erick lo pida.
+- Borrar notas, moverlas (salvo archivar un proyecto que Erick dio por terminado) o cambiar
+  `.obsidian/`, sin que Erick lo pida.

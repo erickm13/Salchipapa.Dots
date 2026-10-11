@@ -46,6 +46,10 @@ return {
       end,
     },
 
+    -- Notas nuevas a la bandeja de entrada (PARA: se clasifican despues)
+    notes_subdir = "inbox",
+    new_notes_location = "notes_subdir",
+
     daily_notes = {
       folder = "daily",
       date_format = "%Y-%m-%d",

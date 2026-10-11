@@ -3,6 +3,12 @@
 La bóveda (`~/.config/obsidian`, repo privado `erickm13/SalchipapaNotes`) es la memoria a largo
 plazo de todos los agentes —Claude Code, Codex, opencode y Copilot CLI— y se sincroniza sola con GitHub.
 
+La bóveda sigue **PARA** (*Building a Second Brain*, Tiago Forte): `projects/` (con meta y final),
+`areas/` (responsabilidades: qa, universidad), `resources/` (temas de consulta), `archive/`
+(terminado), más `inbox/` (captura), `daily/` y `templates/`. `AGENTS.md` les dice a los agentes dónde
+va cada cosa y cómo archivar un proyecto terminado. Las notas nuevas de Obsidian y de obsidian.nvim
+caen en `inbox/`.
+
 | Archivo | Qué hace |
 |---|---|
 | [`AGENTS.md`](AGENTS.md) | Instrucciones de memoria para los agentes: dónde está la bóveda, estructura, cuándo leer y escribir, nunca secretos. Enlazado como `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md` y `~/.copilot/copilot-instructions.md` |
