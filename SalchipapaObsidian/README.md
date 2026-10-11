@@ -52,12 +52,18 @@ DOTS=~/Salchipapa.Dots      # o donde tengas clonado el repo (en fish: set DOTS 
 cd "$DOTS" && git pull
 [ -d ~/.config/obsidian/.git ] && git -C ~/.config/obsidian pull --rebase --autostash \
   || gh repo clone erickm13/SalchipapaNotes ~/.config/obsidian
-python3 "$DOTS"/SalchipapaObsidian/setup-agents.py
-systemctl --user daemon-reload && systemctl --user enable --now obsidian-daily.timer obsidian-weekly.timer
+python3 "$DOTS"/SalchipapaObsidian/setup-agents.py      # instrucciones, hooks, plugin y timers
 python3 "$DOTS"/SalchipapaObsidian/vault-welcome.py | jq -r .systemMessage   # comprobar
 ```
+`setup-agents.py` informa de cada paso (✔ hecho / ya estaba, ⚠ omitido, ✖ fallo con el motivo), termina
+con un resumen y sale con 1 si algo falló. También activa los timers (`daemon-reload` + `enable --now`).
+
+**Actualizar un equipo ya conectado** (tras cambios en el repo): `git pull` y volver a ejecutar
+`setup-agents.py`; es idempotente.
+
 La revisión semanal basta con tenerla en un equipo (el que esté encendido los domingos):
-`systemctl --user disable --now obsidian-weekly.timer` en los demás.
+`systemctl --user disable --now obsidian-weekly.timer` en los demás. `setup-agents.py` respeta esa
+decisión y no la vuelve a activar.
 
 ## Comandos útiles
 `$DOTS` es la carpeta del repo (por defecto `~/Salchipapa.Dots`; los scripts funcionan desde cualquier ruta).

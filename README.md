@@ -87,6 +87,11 @@ The installer detects the distro automatically:
   smoother than a Linux terminal through WSLg), the IosevkaTerm Nerd Font for Windows if missing,
   and copies the config to the Windows home pointing at the current distro.
 
+Every step reports its result: **✔** done (or already there), **⚠** skipped, **✖** failed with the
+reason. A failed step doesn't stop the install: each section says if something failed, and the final
+summary lists every failed step and the log (`~/.cache/salchipapa-dots/install-*.log`). If something
+unexpected still stops it, it prints the command and line that failed and the log path.
+
 Optional prompts during the install:
 
 - **AI agents & dev CLIs** (pick several, e.g. `1 3 4`, `a` = all): Claude Code (native installer),
