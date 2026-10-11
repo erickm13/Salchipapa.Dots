@@ -9,15 +9,17 @@ TARGET_USER="${SUDO_USER:-$USER}"
 HOME_DIR="$(getent passwd "$TARGET_USER" | cut -d: -f6 || true)"
 : "${HOME_DIR:=$HOME}"
 
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SCRIPT_DIR="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 BREW_SHARE="$(dirname "$SCRIPT_DIR")/share/salchipapa-dots"
 if [ -d "$BREW_SHARE" ]; then
-  if [ ! -d "$HOME_DIR/Salchipapa.Dots/.git" ]; then
-    git clone https://github.com/erickm13/Salchipapa.Dots.git "$HOME_DIR/Salchipapa.Dots"
+  # Homebrew: the formula only ships the script, the configs live in a clone (default ~/Salchipapa.Dots)
+  DOTS_DIR="${SALCHIPAPA_DOTS:-$HOME_DIR/Salchipapa.Dots}"
+  if [ ! -d "$DOTS_DIR/.git" ]; then
+    git clone https://github.com/erickm13/Salchipapa.Dots.git "$DOTS_DIR"
   fi
-  DOTS_DIR="$HOME_DIR/Salchipapa.Dots"
 else
-  DOTS_DIR="$HOME_DIR/Salchipapa.Dots"
+  # Run from a clone: use that clone, wherever it is
+  DOTS_DIR="$SCRIPT_DIR"
 fi
 
 # ── Distro: Arch (pacman) or Debian-based (apt + Homebrew) ──────
@@ -1210,8 +1212,11 @@ accion_uninstall() {
   fi
 
   cd "$HOME_DIR" || cd /tmp
-  rm -rf "$HOME_DIR/Salchipapa.Dots"
-  ok "Removed ~/Salchipapa.Dots"
+  # Only a real Salchipapa.Dots clone is removed
+  if [ -f "$DOTS_DIR/install.sh" ] && [ -d "$DOTS_DIR/SalchipapaObsidian" ]; then
+    rm -rf "$DOTS_DIR"
+    ok "Removed $DOTS_DIR"
+  fi
 
   section_end
   echo -e "\n  ${AQUA}${BOLD}Uninstall complete.${RESET}  ${GRAY}salchipapa.dots${RESET}\n"

@@ -48,22 +48,24 @@ eliges login de GitHub y pones la URL de tu bóveda:
 gh auth login && gh auth setup-git                       # GitHub (la bóveda es privada)
 git config --global user.name "Tu Nombre"                # la bienvenida saluda con tu nombre de pila
 git config --global user.email "tu@correo"
-cd ~/Salchipapa.Dots && git pull
+DOTS=~/Salchipapa.Dots      # o donde tengas clonado el repo (en fish: set DOTS ~/Salchipapa.Dots)
+cd "$DOTS" && git pull
 [ -d ~/.config/obsidian/.git ] && git -C ~/.config/obsidian pull --rebase --autostash \
   || gh repo clone erickm13/SalchipapaNotes ~/.config/obsidian
-python3 ~/Salchipapa.Dots/SalchipapaObsidian/setup-agents.py
+python3 "$DOTS"/SalchipapaObsidian/setup-agents.py
 systemctl --user daemon-reload && systemctl --user enable --now obsidian-daily.timer obsidian-weekly.timer
-python3 ~/Salchipapa.Dots/SalchipapaObsidian/vault-welcome.py | jq -r .systemMessage   # comprobar
+python3 "$DOTS"/SalchipapaObsidian/vault-welcome.py | jq -r .systemMessage   # comprobar
 ```
 La revisión semanal basta con tenerla en un equipo (el que esté encendido los domingos):
 `systemctl --user disable --now obsidian-weekly.timer` en los demás.
 
 ## Comandos útiles
+`$DOTS` es la carpeta del repo (por defecto `~/Salchipapa.Dots`; los scripts funcionan desde cualquier ruta).
 ```bash
 tail ~/.cache/salchipapa-dots/vault-sync.log            # qué sincronizó cada agente
-python3 ~/Salchipapa.Dots/SalchipapaObsidian/vault-welcome.py | jq -r .systemMessage   # ver la bienvenida
+python3 "$DOTS"/SalchipapaObsidian/vault-welcome.py | jq -r .systemMessage   # ver la bienvenida
 systemctl --user list-timers 'obsidian-*'                # próxima diaria y revisión semanal
-bash ~/Salchipapa.Dots/SalchipapaObsidian/weekly-review.sh 2026-10-10  # (re)generar la semanal de esa semana
-bash ~/Salchipapa.Dots/SalchipapaObsidian/daily-note.sh 2026-10-10   # (re)generar una diaria a mano
+bash "$DOTS"/SalchipapaObsidian/weekly-review.sh 2026-10-10  # (re)generar la semanal de esa semana
+bash "$DOTS"/SalchipapaObsidian/daily-note.sh 2026-10-10   # (re)generar una diaria a mano
 systemctl --user disable --now obsidian-daily.timer      # desactivar la diaria automática
 ```
