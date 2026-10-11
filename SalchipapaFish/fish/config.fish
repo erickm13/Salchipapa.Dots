@@ -174,6 +174,9 @@ fish_vi_key_bindings
 set -gx EDITOR nvim
 set -gx VISUAL nvim
 
+# headroom: sin telemetria (su beacon de estadisticas viene activado por defecto)
+set -gx HEADROOM_BEACON off
+
 ## alias
 alias ls="eza --icons"
 alias ll="eza -la --icons --git"
