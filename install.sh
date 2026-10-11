@@ -592,12 +592,19 @@ accion_install() {
   echo -e "  ${YELLOW}  Terminal:${RESET}     $term_choice"
   echo -e "  ${YELLOW}  CLIs:${RESET}         $cli_choice"
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}"
-  printf "  ${ORANGE}▶${RESET}${GRAY} Proceed? [Y/n]: ${RESET}"
-  read -r confirm
-  [[ "${confirm,,}" =~ ^(n|no)$ ]] && {
-    echo -e "  ${RED}Aborted.${RESET}\n"
-    return
-  }
+  # Explicit answer required: an empty Enter used to count as "yes"
+  while true; do
+    printf "  ${ORANGE}▶${RESET}${GRAY} Proceed? [y/n]: ${RESET}"
+    read -r confirm
+    case "${confirm,,}" in
+    y | yes | s | si | sí) break ;;
+    n | no)
+      echo -e "  ${RED}Aborted.${RESET}\n"
+      return
+      ;;
+    *) echo -e "  ${RED}  Please answer y or n.${RESET}" ;;
+    esac
+  done
 
   # Ask for the sudo password up front so silent steps don't hang on it
   sudo -v
