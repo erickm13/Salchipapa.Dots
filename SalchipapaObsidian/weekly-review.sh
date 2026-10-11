@@ -1,11 +1,11 @@
 #!/usr/bin/env bash
 # weekly-review.sh [AAAA-MM-DD] — revision semanal de la boveda (Building a Second Brain) con Claude Code.
-# Lo lanza cada domingo obsidian-weekly.timer. Escribe weekly/AAAA-Wnn.md con el resumen de la semana
-# y PROPUESTAS (inbox a clasificar, proyectos a archivar) como tareas `- [ ]`: no mueve nada solo.
+# Lo lanza obsidian-weekly.timer los lunes a las 00:40, con las diarias de toda la semana ya
+# escritas. Escribe weekly/AAAA-Wnn.md con el resumen de la semana y PROPUESTAS (inbox a clasificar, proyectos a archivar) como tareas `- [ ]`: no mueve nada solo.
 # El usuario las aplica diciendole a un agente "aplica la revision semanal".
 #
 # Semana: lunes a domingo. Sin fecha: la que termina hoy si es domingo; si no, la anterior
-# (el timer es Persistent: si WSL estaba apagado el domingo, corre al volver).
+# (el lunes a las 00:40 es la que acaba de terminar; el timer es Persistent: corre al volver).
 set -uo pipefail
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/.config/obsidian}"
@@ -67,7 +67,7 @@ log "$W: generando ($MON a $SUN)"
 cd "$VAULT" || exit 0
 out="$("$CLAUDE" -p "$PROMPT" \
   --allowedTools "Read,Write,Edit,Glob,Grep" \
-  --permission-mode acceptEdits </dev/null 2>&1)"
+  --permission-mode acceptEdits --settings '{"disableAllHooks": true}' </dev/null 2>&1)"
 rc=$?
 log "$W: claude rc=$rc: $(printf '%s' "$out" | tail -c 300 | tr '\n' ' ')"
 

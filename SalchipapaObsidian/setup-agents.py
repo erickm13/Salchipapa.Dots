@@ -9,7 +9,8 @@ actualizar despues de un `git pull`:
   (vault-template/: me.md, templates/daily.md, config de notas nuevas y diarias). Nunca sobrescribe.
 - Enlaza AGENTS.md como instrucciones globales de Claude Code, Codex, opencode y Copilot CLI
   (si ya hay un archivo propio, lo respalda como .bak-vault) y el plugin de opencode.
-- Anade los hooks de inicio (vault-start.sh) y fin (vault-sync.sh push) de cada agente,
+- Anade los hooks de inicio (vault-start.sh) y fin (vault-session-end.sh: resumen de la sesion en
+  la nota de hoy + push) de cada agente,
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
 - Instala los timers systemd de la nota diaria y la revision semanal (los servicios con la ruta
   real del repo, @DIR@) y los activa. Si la revision semanal se desactivo a mano en este equipo
@@ -29,7 +30,8 @@ UNITS = HOME / ".config/systemd/user"
 PARA = ["projects", "areas", "resources", "archive", "inbox", "daily", "weekly", "templates"]
 START = f"bash {HERE}/vault-start.sh"
 PULL = f"bash {HERE}/vault-sync.sh pull"
-PUSH = f"setsid -f bash {HERE}/vault-sync.sh push {{}} >/dev/null 2>&1"
+# Fin de sesion: resumen en la nota de hoy + push, en segundo plano (el agente no espera)
+END = f"bash {HERE}/vault-session-end.sh {{}}"
 
 ERRORS = []
 
@@ -97,7 +99,7 @@ def save(path, data):
         shutil.copy2(target, target.with_name(target.name + ".bak-vault"))
     target.write_text(json.dumps(data, indent=2, ensure_ascii=False) + "\n")
     json.loads(target.read_text())  # comprobar que quedo JSON valido
-    ok(f"{short(path)}: inicio (sync + bienvenida) y cierre (push)")
+    ok(f"{short(path)}: inicio (sync + bienvenida) y cierre (resumen + push)")
 
 
 def drop_vault(entries, key):
@@ -123,7 +125,7 @@ def claude():
     ss.append({"matcher": "^resume$", "hooks": [{"type": "command", "command": f"{PULL} claude",
                "timeout": 30, "statusMessage": "Sincronizando Obsidian..."}]})
     se = hooks["SessionEnd"] = drop_vault(hooks.get("SessionEnd"), "command")
-    se.append({"hooks": [{"type": "command", "command": PUSH.format("claude"), "timeout": 10}]})
+    se.append({"hooks": [{"type": "command", "command": END.format("claude"), "timeout": 10}]})
     save(p, s)
 
 
@@ -134,7 +136,7 @@ def codex():
     ss = hooks["SessionStart"] = drop_vault(hooks.get("SessionStart"), "command")
     ss.append({"hooks": [{"type": "command", "command": f"{START} codex", "timeout": 45}]})
     se = hooks["SessionEnd"] = drop_vault(hooks.get("SessionEnd"), "command")
-    se.append({"hooks": [{"type": "command", "command": PUSH.format("codex"), "timeout": 10}]})
+    se.append({"hooks": [{"type": "command", "command": END.format("codex"), "timeout": 10}]})
     save(p, s)
 
 
@@ -145,7 +147,7 @@ def copilot():
     ss = hooks["SessionStart"] = drop_vault(hooks.get("SessionStart"), "bash")
     ss.append({"type": "command", "bash": f"{START} copilot", "timeoutSec": 45})
     se = hooks["SessionEnd"] = drop_vault(hooks.get("SessionEnd"), "bash")
-    se.append({"type": "command", "bash": PUSH.format("copilot"), "timeoutSec": 10})
+    se.append({"type": "command", "bash": END.format("copilot"), "timeoutSec": 10})
     save(p, s)
 
 

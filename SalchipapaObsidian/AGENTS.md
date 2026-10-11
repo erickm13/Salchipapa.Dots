@@ -9,8 +9,11 @@ léelo si necesitas contexto sobre él. Responde en su idioma (el de sus notas).
 - Al **empezar** cada sesión se suben los cambios que hubieran quedado pendientes y se hace `git pull`;
   al **terminar** se suben los cambios (hooks/plugins).
 - **No ejecutes git en la bóveda** (ni pull, ni commit, ni push) salvo que el usuario lo pida.
-- La **nota diaria** (`daily/AAAA-MM-DD.md`) la escribe un trabajo automático cada noche: **no la
-  crees ni la edites**, salvo que el usuario lo pida.
+- La **nota diaria** (`daily/AAAA-MM-DD.md`) se escribe sola: al **cerrar cada sesión** (en cualquier
+  equipo) se añade un resumen en `## Sesiones de hoy`, y a las 00:10 un trabajo automático la completa
+  con las secciones de la plantilla. **No la crees ni la edites**, salvo que el usuario lo pida.
+- Para saber qué hizo el usuario **hoy** (quizá en otro equipo), lee `## Sesiones de hoy` de la diaria
+  de hoy.
 
 ## Bienvenida al empezar
 En tu **primera respuesta** de cada sesión nueva, saluda al usuario en una línea y recuérdale en una
@@ -30,8 +33,8 @@ Las notas se ordenan por **qué tan accionables son**, no por tema:
 | `resources/<tema>/` | **Resources** | Temas que **consulta**: herramientas, lenguajes, cómo funciona algo |
 | `archive/` | **Archives** | Proyectos terminados y áreas o recursos inactivos |
 | `inbox/` | Captura | Ideas y notas sueltas sin clasificar todavía |
-| `daily/` | Diario | Notas diarias (las escribe el trabajo nocturno) |
-| `weekly/` | Revisión semanal | `AAAA-Wnn.md`: resumen de la semana y **Propuestas** para ordenar la bóveda (las escribe un trabajo cada domingo) |
+| `daily/` | Diario | Notas diarias: `## Sesiones de hoy` (resumen al cerrar cada sesión) + secciones de la plantilla (trabajo de las 00:10) |
+| `weekly/` | Revisión semanal | `AAAA-Wnn.md`: resumen de la semana y **Propuestas** para ordenar la bóveda (las escribe un trabajo los lunes a las 00:40) |
 | `templates/` | — | Plantillas (`daily.md`) |
 | `me.md` | — | Quién es el usuario |
 
@@ -63,7 +66,7 @@ Ciclo de vida:
 - Nunca guardes conocimiento de referencia en `projects/` ni proyectos en `resources/`.
 
 ## Revisión semanal
-Cada domingo un trabajo automático escribe `weekly/AAAA-Wnn.md` con propuestas `- [ ]` (mover
+Cada lunes a las 00:40 un trabajo automático escribe `weekly/AAAA-Wnn.md` con propuestas `- [ ]` (mover
 notas de `inbox/`, archivar proyectos, borrar notas vacías). **No las apliques por tu cuenta.**
 Cuando el usuario diga *"aplica la revisión semanal"* (o similar):
 1. Abre la `weekly/` más reciente y aplica cada propuesta `- [ ]` de **Propuestas**: mueve la nota,
