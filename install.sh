@@ -142,8 +142,19 @@ show_header() {
   echo -e "  ${GRAY}──────────────────────────────────────────────${RESET}\n"
 }
 
+# Install-run state: log of every silent step, failures for the final summary, section counter
+LOG_FILE=/dev/null
+FAILED_STEPS=()
+SECTION_N=0
+SECTION_TOTAL=0
+
 section() {
-  echo -e "\n${AQUA}${BOLD}  ┌─ $1${RESET}"
+  local counter=""
+  if [ "$SECTION_TOTAL" -gt 0 ]; then
+    SECTION_N=$((SECTION_N + 1))
+    counter="${GRAY}[${SECTION_N}/${SECTION_TOTAL}]${RESET}${AQUA}${BOLD} "
+  fi
+  echo -e "\n${AQUA}${BOLD}  ┌─ ${counter}$1${RESET}"
 }
 
 section_end() {
@@ -155,18 +166,40 @@ ok() { echo -e "${GREEN}  │  ✔ ${RESET}$1"; }
 warn() { echo -e "${YELLOW}  │  ⚠ ${RESET}$1"; }
 err() { echo -e "${RED}  │  ✖ ${RESET}$1"; }
 
+# spinner <pid> <label> <start-seconds>: one line with the label and elapsed time, redrawn in place
 spinner() {
-  local pid=$! frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
+  local pid="$1" label="$2" start="$3" frames='⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏' i=0
   while kill -0 "$pid" 2>/dev/null; do
-    printf "  ${YELLOW}%s${RESET}\r" "${frames:i++%${#frames}:1}"
+    printf "\r${BLUE}  │  ${YELLOW}%s ${GRAY}%s ${BLUE}%ss${RESET}\033[K" \
+      "${frames:i++%${#frames}:1}" "$label" "$((SECONDS - start))"
     sleep 0.1
   done
+  printf "\r\033[K"
 }
 
+# run_silent <label> <command>: runs the command quietly (output to LOG_FILE), then shows ✔ or ✖.
+# A failure is recorded for the final summary and shows the step's last log lines; the install goes on.
 run_silent() {
-  step "$1"
-  (eval "$2" &>/dev/null) &
-  spinner
+  local label="$1" cmd="$2" start=$SECONDS rc=0 before=0 pid
+  if [ "$LOG_FILE" != /dev/null ]; then
+    before=$(wc -l <"$LOG_FILE")
+    printf '\n### %s\n$ %s\n' "$label" "$cmd" >>"$LOG_FILE"
+  fi
+  (eval "$cmd") >>"$LOG_FILE" 2>&1 &
+  pid=$!
+  spinner "$pid" "$label" "$start"
+  wait "$pid" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "$label ${GRAY}($((SECONDS - start))s)${RESET}"
+  else
+    err "$label ${GRAY}($((SECONDS - start))s, exit $rc)${RESET}"
+    FAILED_STEPS+=("$label")
+    if [ "$LOG_FILE" != /dev/null ]; then
+      # skip the 3 header lines this step wrote (blank, "### label", "$ command")
+      tail -n +"$((before + 4))" "$LOG_FILE" | tail -n 5 | sed "s/^/  │    ${GRAY}/; s/\$/${RESET}/"
+    fi
+  fi
+  return 0
 }
 
 # ── pick_option: display to stderr, echo choice to stdout ────────
@@ -609,6 +642,17 @@ accion_install() {
   # Ask for the sudo password up front so silent steps don't hang on it
   sudo -v
 
+  # Log for every silent step, run timer and section counter
+  as_user mkdir -p "$HOME_DIR/.cache/salchipapa-dots"
+  LOG_FILE="$HOME_DIR/.cache/salchipapa-dots/install-$(date +%Y%m%d-%H%M%S).log"
+  : >"$LOG_FILE"
+  FAILED_STEPS=()
+  INSTALL_START=$SECONDS
+  SECTION_N=0
+  # System + Core Tools (+ Homebrew on Debian), Shell, Multiplexer, Terminal, CLIs, Symlinks, Neovim (+ WSL)
+  SECTION_TOTAL=$((IS_ARCH == 1 ? 8 : 9))
+  is_wsl && SECTION_TOTAL=$((SECTION_TOTAL + 1))
+
   local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
 
   if [ "$IS_ARCH" -eq 1 ]; then
@@ -797,9 +841,41 @@ accion_install() {
     section_end
   fi
 
-  echo -e "\n  ${GREEN}${BOLD}✔  Installation complete!${RESET}\n"
-  read -rp "  Press [ENTER] to launch fish shell… " </dev/tty
-  exec fish
+  show_summary "$shell_choice"
+}
+
+# ── Final summary: time, failed steps, log, next steps; then the chosen shell ──
+show_summary() {
+  local shell_choice="$1" elapsed=$((SECONDS - INSTALL_START)) f shell_bin=""
+  local took="$((elapsed / 60))m $((elapsed % 60))s"
+
+  echo
+  if [ "${#FAILED_STEPS[@]}" -eq 0 ]; then
+    echo -e "  ${GREEN}${BOLD}✔  Installation complete${RESET} ${GRAY}in ${took}${RESET}"
+  else
+    echo -e "  ${YELLOW}${BOLD}⚠  Finished with ${#FAILED_STEPS[@]} failed step(s)${RESET} ${GRAY}in ${took}${RESET}"
+    for f in "${FAILED_STEPS[@]}"; do
+      echo -e "     ${RED}✖${RESET} $f"
+    done
+    echo -e "  ${GRAY}  Re-run the installer or run those steps by hand; details in the log.${RESET}"
+  fi
+  echo -e "  ${GRAY}  Log: ${RESET}$LOG_FILE"
+
+  echo -e "\n  ${AQUA}${BOLD}Next steps${RESET}"
+  command -v gh >/dev/null 2>&1 && echo -e "  ${GRAY}  •${RESET} gh auth login                 ${GRAY}GitHub (git push, Claude Code GitHub plugin)${RESET}"
+  command -v claude >/dev/null 2>&1 && echo -e "  ${GRAY}  •${RESET} claude, then /login           ${GRAY}sign in to Claude Code${RESET}"
+  command -v spotify_player >/dev/null 2>&1 && echo -e "  ${GRAY}  •${RESET} spotify_player authenticate   ${GRAY}Spotify (needs your own client_id app)${RESET}"
+  echo -e "  ${GRAY}  •${RESET} Open a new terminal           ${GRAY}to load fonts, shell and multiplexer${RESET}"
+  echo
+
+  case "$shell_choice" in
+  Fish) shell_bin="$(command -v fish || true)" ;;
+  Zsh) shell_bin="$(command -v zsh || true)" ;;
+  esac
+  if [ -n "$shell_bin" ]; then
+    read -rp "  Press [ENTER] to launch $(basename "$shell_bin")… " </dev/tty
+    exec "$shell_bin"
+  fi
 }
 
 # ════════════════════════════════════════════════════════════════
