@@ -72,11 +72,20 @@ rm "$HOME/.cache/salchipapa-dots/vault-errors/push"
 echo "vault-session-end.sh / session-log.py (sin llamar a Claude):"
 printf '{"type":"user","timestamp":"%s","message":{"content":"hola"}}\n' "$(date -u +%FT%TZ)" >"$T/t.jsonl"
 printf '{"session_id":"s1","transcript_path":"%s"}' "$T/t.jsonl" >"$T/hook.json"
-python3 "$OBS/session-log.py" "$T/hook.json" test
+python3 "$OBS/session-log.py" "$T/hook.json" test >/dev/null
 check "sesion corta: no se resume" 'grep -q "sesion corta" "$HOME/.cache/salchipapa-dots/session-log.log"'
 printf '{"session_id":"s2"}' | bash "$OBS/vault-session-end.sh" test
 for _ in $(seq 50); do compgen -G "$HOME/.cache/salchipapa-dots/session-queue/*.json" >/dev/null || break; sleep 0.2; done
 check "el hook de cierre vacia la cola y hace push" '! compgen -G "$HOME/.cache/salchipapa-dots/session-queue/*.json" >/dev/null && grep -q "\[test push\]" "$SYNC_LOG"'
+check "deja el resultado para el aviso al salir" 'grep -q "^✔ Bóveda al día en GitHub" "$HOME/.cache/salchipapa-dots/session-end.status"'
+if command -v fish >/dev/null; then
+  antes="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre --antes")"
+  printf '{"session_id":"s3"}' | bash "$OBS/vault-session-end.sh" test
+  aviso="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre $antes" 2>&1)"
+  check "fish: al salir del agente dice el resultado" 'grep -q "✔ Bóveda al día en GitHub" <<<"$aviso"'
+  aviso="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre (__vault_esperar_cierre --antes)" 2>&1)"
+  check "fish: sin sesion nueva no dice nada" '[ -z "$aviso" ]'
+fi
 
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi

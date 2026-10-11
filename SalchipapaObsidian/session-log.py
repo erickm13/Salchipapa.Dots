@@ -8,6 +8,8 @@ sesion (y como mucho lo de hoy), lo resume con `claude -p` y lo anade a daily/AA
 
 Sesiones cortas (menos de MIN_TURNS mensajes del usuario) no se resumen. El resumen pasa por el
 mismo filtro de secretos que la sincronizacion. Sale con 0 si no habia nada que hacer.
+Imprime una linea con el resultado (la usa vault-session-end.sh para avisar al cerrar el agente):
+"resumen daily/AAAA-MM-DD.md", "corta", "nada" o "sin-transcript".
 """
 import datetime as dt
 import fcntl
@@ -83,6 +85,7 @@ def main():
     transcript, sid = hook.get("transcript_path"), hook.get("session_id") or "?"
     if not transcript or not Path(transcript).is_file():
         log(f"[{agent}] sin transcript en el hook: no hay resumen")
+        print("sin-transcript")
         return 0
     if not (VAULT / ".git").is_dir():
         return 0
@@ -102,6 +105,7 @@ def main():
             msgs.append((ts, role, text))
     if sum(1 for m in msgs if m[1] == "user") < MIN_TURNS:
         log(f"[{agent}] {sid[:8]}: sesion corta, sin resumen")
+        print("corta")
         return 0
 
     convo = "\n\n".join(f"{'USUARIO' if r == 'user' else 'AGENTE'}: {t}" for _, r, t in msgs)[-MAX_CHARS:]
@@ -115,6 +119,7 @@ def main():
         return 1
     if summary == "NADA":
         log(f"[{agent}] {sid[:8]}: sin nada de sustancia")
+        print("nada")
     elif SECRETS.search(summary):
         log(f"[{agent}] {sid[:8]}: el resumen parecia contener un secreto: no se escribe")
         return 1
@@ -132,6 +137,7 @@ def main():
                 text = text.rstrip("\n") + "\n\n## Sesiones de hoy\n"
             note.write_text(text.rstrip("\n") + "\n\n" + block, encoding="utf-8")
         log(f"[{agent}] {sid[:8]}: {len(bullets)} viñetas en daily/{today}.md")
+        print(f"resumen daily/{today}.md")
 
     seen[sid] = msgs[-1][0] or seen.get(sid, "")
     STATE.mkdir(parents=True, exist_ok=True)

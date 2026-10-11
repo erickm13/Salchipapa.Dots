@@ -6,24 +6,32 @@
 # la nota diaria de hoy (session-log.py) y sube la boveda (vault-sync.sh push). El agente no espera.
 # La cola sobrevive a un apagado (WSL se apaga al cerrar la ultima terminal): lo pendiente se procesa
 # al empezar la siguiente sesion. Una entrada que falla 3 veces se descarta con un aviso (vault-errors/).
+#
+# El vaciado lanzado por un cierre deja el resultado en session-end.status (1a linea: marca en ns; 2a: el
+# mensaje). La funcion de fish __vault_esperar_cierre lo muestra al salir de claude/codex/copilot.
 HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 STATE="$HOME/.cache/salchipapa-dots"
 QUEUE="$STATE/session-queue"
+STATUS="$STATE/session-end.status"
 mkdir -p "$QUEUE"
 
-if [ "${1:-}" = "--drain" ]; then
+if [ "${1:-}" = "--drain" ] || [ "${1:-}" = "--drain-hook" ]; then
+  mode="$1"
   agent="${2:-agente}"
   # Un solo vaciado a la vez
   exec 8>"$QUEUE/.lock"
   flock -n 8 || exit 0
+  notes=() pending=0
   for f in "$QUEUE"/*.json; do
     [ -e "$f" ] || break
     name="$(basename "$f" .json)"   # <fecha>-<pid>-<agente>[.tryN]
     a="${name#*-*-}"
     a="${a%%.try*}"
-    if python3 "$HERE/session-log.py" "$f" "$a"; then
+    if result="$(python3 "$HERE/session-log.py" "$f" "$a")"; then
       rm -f "$f" "$STATE/vault-errors/session"
+      case "$result" in resumen\ *) notes+=("${result#resumen }") ;; esac
     else
+      pending=1
       tries="${name##*.try}"
       [ "$tries" = "$name" ] && tries=0
       if [ "$tries" -ge 2 ]; then
@@ -37,11 +45,24 @@ if [ "${1:-}" = "--drain" ]; then
     fi
   done
   bash "$HERE/vault-sync.sh" push "$agent"
+
+  if [ "$mode" = "--drain-hook" ]; then
+    if [ -f "$STATE/vault-errors/push" ]; then
+      msg="⚠ La bóveda no se pudo subir: $(cat "$STATE/vault-errors/push") — se reintenta al abrir la próxima sesión"
+    elif [ "$pending" -eq 1 ]; then
+      msg="⚠ No se pudo escribir el resumen de la sesión (se reintenta al abrir la próxima); bóveda subida a GitHub"
+    elif [ "${#notes[@]}" -gt 0 ]; then
+      msg="✔ Notas guardadas: resumen de la sesión en ${notes[*]} y bóveda subida a GitHub"
+    else
+      msg="✔ Bóveda al día en GitHub (sin resumen: sesión corta o agente que no entrega la conversación)"
+    fi
+    printf '%s\n%s\n' "$(date +%s%N)" "$msg" >"$STATUS.tmp" && mv "$STATUS.tmp" "$STATUS"
+  fi
   exit 0
 fi
 
 # Modo hook: guardar el JSON (stdin) y seguir en segundo plano para que el agente cierre ya
 agent="${1:-agente}"
 cat >"$QUEUE/$(date +%Y%m%d%H%M%S)-$$-$agent.json"
-setsid -f bash "$0" --drain "$agent" >/dev/null 2>&1 </dev/null
+setsid -f bash "$0" --drain-hook "$agent" >/dev/null 2>&1 </dev/null
 exit 0
