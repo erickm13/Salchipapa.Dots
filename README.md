@@ -1,5 +1,7 @@
 # Salchipapa.Dots
 
+[![CI](https://github.com/erickm13/Salchipapa.Dots/actions/workflows/ci.yml/badge.svg)](https://github.com/erickm13/Salchipapa.Dots/actions/workflows/ci.yml)
+
 <p align="center">
   <img src="images/nvimSetup.png" width="48%" alt="nvimSetup">
   <img src="images/nvimSetupAlacritty.png" width="48%" alt="Terminal Preview">
@@ -237,6 +239,17 @@ If it prints `1`, your setup is ready.
 
 ---
 
+## Tests
+
+The CI (`.github/workflows/ci.yml`) runs on every push and pull request. Both scripts also run locally:
+
+```bash
+bash tests/check.sh     # syntax + lint: bash, shellcheck, fish, python, javascript, json, workflows
+bash tests/obsidian.sh  # agent memory (SalchipapaObsidian) in a throwaway HOME: setup, sync, welcome, hooks
+```
+
+---
+
 ## Repository Structure
 
 ```
@@ -245,6 +258,7 @@ Salchipapa.Dots/
 ├── SalchipapaZsh/          → Zsh configuration (plugins, themes, aliases)
 ├── SalchipapaNvim/         → Neovim setup (LazyVim, plugins, LSP)
 ├── SalchipapaClaude/       → Claude Code hooks (validation, dangerous-command guard, secret scan)
+├── tests/                  → check.sh (syntax/lint) and obsidian.sh (agent memory), run by the CI
 ├── SalchipapaObsidian/     → Obsidian vault as shared memory of Claude Code, Codex, opencode and Copilot CLI (auto sync, session welcome, nightly daily note)
 ├── SalchipapaHerdr/        → Herdr config + keybinding guide (README.md); only config.toml is linked
 ├── SalchipapaZellij/       → Zellij layouts and configuration

@@ -10,12 +10,13 @@ jobs:
     steps:
       - name: Get release info
         id: info
+        env:
+          VERSION: ${{ github.event.release.tag_name }}
         run: |
-          VERSION=${{ github.event.release.tag_name }}
           URL="https://github.com/erickm13/Salchipapa.Dots/archive/refs/tags/${VERSION}.tar.gz"
-          SHA=$(curl -sL $URL | sha256sum | awk '{print $1}')
-          echo "version=$VERSION" >> $GITHUB_OUTPUT
-          echo "sha256=$SHA" >> $GITHUB_OUTPUT
+          SHA=$(curl -sL "$URL" | sha256sum | awk '{print $1}')
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
+          echo "sha256=$SHA" >> "$GITHUB_OUTPUT"
 
       - name: Checkout homebrew-tap
         uses: actions/checkout@v4

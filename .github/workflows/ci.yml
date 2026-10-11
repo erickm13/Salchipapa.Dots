@@ -1,0 +1,36 @@
+# CI: en cada push y pull request, sintaxis y lint de todo el repo (tests/check.sh) y pruebas de la
+# memoria de agentes en un HOME temporal (tests/obsidian.sh).
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  check:
+    name: Sintaxis y lint
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: Herramientas
+        run: |
+          sudo apt-get update -qq
+          sudo apt-get install -y -qq fish shellcheck jq
+          bash <(curl -fsSL https://raw.githubusercontent.com/rhysd/actionlint/v1.7.12/scripts/download-actionlint.bash) 1.7.12 "$RUNNER_TEMP"
+          echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
+      - name: tests/check.sh
+        run: bash tests/check.sh
+
+  obsidian:
+    name: Memoria de agentes (SalchipapaObsidian)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+      - name: tests/obsidian.sh
+        run: bash tests/obsidian.sh
