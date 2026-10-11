@@ -35,6 +35,19 @@ funcionar. La bienvenida también avisa (📋) si la última revisión semanal t
 Los agentes que no muestran la salida del hook saludan igual: `AGENTS.md` les pide que, en su
 primera respuesta, recuerden lo último que hice leyendo la diaria más reciente.
 
+## Conectar otro equipo
+En un equipo que ya tiene Salchipapa.Dots (sin reinstalar todo):
+```bash
+cd ~/Salchipapa.Dots && git pull
+[ -d ~/.config/obsidian/.git ] && git -C ~/.config/obsidian pull --rebase --autostash \
+  || gh repo clone erickm13/SalchipapaNotes ~/.config/obsidian
+python3 ~/Salchipapa.Dots/SalchipapaObsidian/setup-agents.py
+systemctl --user daemon-reload && systemctl --user enable --now obsidian-daily.timer obsidian-weekly.timer
+python3 ~/Salchipapa.Dots/SalchipapaObsidian/vault-welcome.py | jq -r .systemMessage   # comprobar
+```
+La revisión semanal basta con tenerla en un equipo (el que esté encendido los domingos):
+`systemctl --user disable --now obsidian-weekly.timer` en los demás.
+
 ## Comandos útiles
 ```bash
 tail ~/.cache/salchipapa-dots/vault-sync.log            # qué sincronizó cada agente
