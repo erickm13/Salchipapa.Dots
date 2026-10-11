@@ -11,7 +11,7 @@ caen en `inbox/`.
 
 | Archivo | Qué hace |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | Instrucciones de memoria para los agentes: dónde está la bóveda, estructura, cuándo leer y escribir, nunca secretos. Enlazado como `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md` y `~/.copilot/copilot-instructions.md` |
+| [`AGENTS.md`](AGENTS.md) | Instrucciones de memoria para los agentes (genéricas: quién es el usuario lo leen de `me.md` de su bóveda): dónde está la bóveda, estructura, cuándo leer y escribir, nunca secretos. Enlazado como `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md` y `~/.copilot/copilot-instructions.md` |
 | [`vault-start.sh`](vault-start.sh) | Hook de inicio de sesión: `vault-sync.sh start` + bienvenida |
 | [`vault-welcome.py`](vault-welcome.py) | Bienvenida: lo último que hice (diaria más reciente) y lo pendiente (`Mañana`, `Pendiente`, tareas `- [ ]` de `projects/`). Lo muestra en pantalla y se lo pasa al agente para que salude |
 | [`vault-sync.sh`](vault-sync.sh) | `start` al empezar (sube lo que quedó pendiente de una sesión cerrada de golpe + pull), `push` (commit + pull --rebase + push) al terminar. Lock entre agentes, nunca bloquea, se niega a subir secretos. Log: `~/.cache/salchipapa-dots/vault-sync.log` |
@@ -23,6 +23,12 @@ caen en `inbox/`.
 **Avisos:** si falla una sincronización, la nota diaria o la revisión semanal, queda un aviso en
 `~/.cache/salchipapa-dots/vault-errors/` que la bienvenida muestra (⚠) hasta que ese paso vuelva a
 funcionar. La bienvenida también avisa (📋) si la última revisión semanal tiene propuestas sin aplicar.
+
+## Bóveda nueva
+Si la bóveda está vacía o no usa PARA, `setup-agents.py` crea lo que falte (nunca sobrescribe):
+las carpetas PARA y, desde [`vault-template/`](vault-template), `me.md` (rellénalo: los agentes lo
+leen para saber quién eres), `templates/daily.md` y la config de Obsidian (notas nuevas en `inbox/`,
+diarias en `daily/`). El nombre del saludo sale de `git config user.name` (o `OBSIDIAN_OWNER`).
 
 ## Dónde se engancha cada agente
 | Agente | Al empezar (start + bienvenida) | Al terminar (push) |
@@ -36,8 +42,12 @@ Los agentes que no muestran la salida del hook saludan igual: `AGENTS.md` les pi
 primera respuesta, recuerden lo último que hice leyendo la diaria más reciente.
 
 ## Conectar otro equipo
-En un equipo que ya tiene Salchipapa.Dots (sin reinstalar todo):
+En un equipo que ya tiene Salchipapa.Dots (sin reinstalar todo). El instalador hace lo mismo si
+eliges login de GitHub y pones la URL de tu bóveda:
 ```bash
+gh auth login && gh auth setup-git                       # GitHub (la bóveda es privada)
+git config --global user.name "Tu Nombre"                # la bienvenida saluda con tu nombre de pila
+git config --global user.email "tu@correo"
 cd ~/Salchipapa.Dots && git pull
 [ -d ~/.config/obsidian/.git ] && git -C ~/.config/obsidian pull --rebase --autostash \
   || gh repo clone erickm13/SalchipapaNotes ~/.config/obsidian

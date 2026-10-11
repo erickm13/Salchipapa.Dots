@@ -88,6 +88,18 @@ The installer detects the distro automatically:
   smoother than a Linux terminal through WSLg), the IosevkaTerm Nerd Font for Windows if missing,
   and copies the config to the Windows home pointing at the current distro.
 
+Optional prompts during the install:
+
+- **Git & GitHub** → log in with the GitHub CLI (browser + one-time code) or with a token
+  (it goes straight to `gh`, never to the log), set your git name/email (empty = taken from your
+  GitHub account) and `gh auth setup-git`. Runs before the vault clone, so a private vault works.
+- **Spotify** → the `client_id` of your own Spotify app, saved in
+  `~/.config/salchipapa-dots/spotify-client-id` (outside the repo; `spotify_player` reads it with
+  `client_id_command`).
+- **Obsidian vault** → your vault repo URL. It becomes the shared memory of Claude Code, Codex,
+  opencode and Copilot CLI (see [`SalchipapaObsidian`](SalchipapaObsidian/README.md)); an empty
+  vault gets the PARA structure and templates.
+
 ---
 
 ## Manual Installation

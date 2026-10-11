@@ -16,7 +16,17 @@ import subprocess
 import sys
 
 DOTS = os.path.realpath(os.path.expanduser("~/Salchipapa.Dots"))
-WIN_WEZTERM = "/mnt/c/Users/mejia/.wezterm.lua"
+
+
+def win_wezterm():
+    """~/.wezterm.lua del usuario de Windows (WSL), o None fuera de WSL."""
+    try:
+        out = subprocess.run(["cmd.exe", "/c", "echo %USERPROFILE%"], capture_output=True,
+                             text=True, timeout=10, cwd="/mnt/c").stdout.strip()
+        home = subprocess.run(["wslpath", out], capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return None
+    return os.path.join(home, ".wezterm.lua") if home and os.path.isdir(home) else None
 
 
 def run(cmd):
@@ -69,9 +79,9 @@ def main():
             diags = []  # servidor de herdr no corriendo: nada que recargar
         if diags:
             fail("herdr rechazó parte de la config (" + rel + "):\n" + "\n".join(diags))
-    elif rel == os.path.join("SalchipapaWezterm", ".wezterm.lua") and os.path.isdir(os.path.dirname(WIN_WEZTERM)):
-        shutil.copyfile(path, WIN_WEZTERM)
-        print(json.dumps({"systemMessage": f"WezTerm: config copiada a {WIN_WEZTERM}"}))
+    elif rel == os.path.join("SalchipapaWezterm", ".wezterm.lua") and (dst := win_wezterm()):
+        shutil.copyfile(path, dst)
+        print(json.dumps({"systemMessage": f"WezTerm: config copiada a {dst}"}))
 
 
 if __name__ == "__main__":

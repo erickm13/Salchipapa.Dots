@@ -1,5 +1,7 @@
 theme = "dracula"
-client_id = "1fc8fbd19f44480f950aea1f7f92493b"
+# client_id de TU app de Spotify (developer.spotify.com/dashboard), guardado fuera del repo:
+#   echo <client_id> > ~/.config/salchipapa-dots/spotify-client-id   (el instalador lo pregunta)
+client_id_command = { command = "sh", args = ["-c", "cat \"$HOME/.config/salchipapa-dots/spotify-client-id\""] }
 ncspot_only_get_endpoints = [
     "me/playlists",
     "playlists/",

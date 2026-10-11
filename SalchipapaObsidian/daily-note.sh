@@ -47,7 +47,7 @@ read -r -d '' PROMPT <<EOF
 Escribe la nota diaria del $D en la bóveda de Obsidian (estás en ella: $VAULT).
 
 Fuentes:
-1. Commits de Erick ese día (abajo).
+1. Commits del usuario ese día (abajo).
 2. claude-mem: busca las observaciones y sesiones del $D (herramientas mcp de claude-mem, con
    dateStart/dateEnd de ese día) para saber qué se hizo, qué se aprendió y qué quedó pendiente.
 

@@ -3,13 +3,14 @@
 
 Toma la diaria mas reciente (Que hice hoy, Manana, Pendiente) y las tareas abiertas `- [ ]`
 de projects/. Antes avisa de fallos de sincronizacion o de los trabajos nocturnos (vault-errors/) y
-de propuestas sin aplicar de la ultima revision semanal (weekly/). Imprime JSON de hook: `systemMessage` (lo ve Erick) y `additionalContext`
+de propuestas sin aplicar de la ultima revision semanal (weekly/). Imprime JSON de hook: `systemMessage` (lo ve el usuario) y `additionalContext`
 (lo recibe el agente para saludar y retomar). Sin boveda o sin notas, no imprime nada.
 """
 import datetime as dt
 import json
 import os
 import re
+import subprocess
 import sys
 from pathlib import Path
 
@@ -17,6 +18,18 @@ VAULT = Path(os.environ.get("OBSIDIAN_VAULT", Path.home() / ".config/obsidian"))
 ERRORS = Path.home() / ".cache/salchipapa-dots/vault-errors"
 MAX_ITEMS = 4
 MAX_LEN = 90
+
+
+def owner():
+    """Nombre de pila del usuario: OBSIDIAN_OWNER, o el de `git config user.name`."""
+    name = os.environ.get("OBSIDIAN_OWNER", "")
+    if not name:
+        try:
+            name = subprocess.run(["git", "config", "--global", "user.name"],
+                                  capture_output=True, text=True, timeout=5).stdout
+        except (OSError, subprocess.SubprocessError):
+            name = ""
+    return name.split()[0] if name.split() else ""
 
 
 def sections(text):
@@ -99,7 +112,9 @@ def main():
                 tasks.append(f"{m.group(1).strip()} ({p.stem})")
 
     date = dt.date.fromisoformat(last.stem)
-    lines = alerts + [f"👋 ¡Hola Erick! Tu última sesión fue {when(date)} ({last.stem}):"]
+    name = owner()
+    hello = f"¡Hola {name}!" if name else "¡Hola!"
+    lines = alerts + [f"👋 {hello} Tu última sesión fue {when(date)} ({last.stem}):"]
     lines += [f"  • {plain(x)}" for x in done[:MAX_ITEMS]]
     if len(done) > MAX_ITEMS:
         lines.append(f"  … y {len(done) - MAX_ITEMS} cosas más (daily/{last.name})")
@@ -115,8 +130,8 @@ def main():
 def emit(msg, daily):
     context = (
         f"Memoria de la boveda de Obsidian ({VAULT}), ya sincronizada. Resumen de la ultima "
-        f"actividad de Erick{f', de daily/{daily}' if daily else ''}:\n{msg}\n\n"
-        "Erick YA VIO este resumen en pantalla (es la bienvenida de la sesion): no lo repitas "
+        f"actividad del usuario{f', de daily/{daily}' if daily else ''}:\n{msg}\n\n"
+        "El usuario YA VIO este resumen en pantalla (es la bienvenida de la sesion): no lo repitas "
         "ni lo resumas, y no lo saludes con el; atiende directamente lo que pida. Usalo como "
         "contexto, y si quiere detalle, lee la nota diaria completa. Si hay avisos ⚠, ofrece "
         "ayudar a resolverlos (detalle en ~/.cache/salchipapa-dots/*.log)."

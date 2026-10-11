@@ -384,6 +384,63 @@ setup_claude_hooks() {
   ok "Claude Code hooks: guard-bash, secret-scan, validate-dotfiles (backup: $settings.bak)."
 }
 
+# setup_github <mode> <name> <email> <token>: GitHub login through gh (browser or token) and git identity.
+# The token only reaches gh through stdin (printf is a builtin: never in ps, the log or a file of ours);
+# gh keeps it in the system keyring. `gh auth setup-git` lets git use it for HTTPS (private vault clone).
+setup_github() {
+  local mode="$1" name="$2" email="$3" token="$4" login
+  if [ "$mode" != "Git name/email only" ]; then
+    if ! command -v gh >/dev/null 2>&1; then
+      if [ "$IS_ARCH" -eq 1 ]; then
+        run_silent "github-cli..." "sudo pacman -S --needed --noconfirm github-cli"
+      else
+        run_silent "gh..." "brew install gh"
+      fi
+    fi
+    if as_user gh auth status >/dev/null 2>&1; then
+      ok "GitHub: already logged in as $(as_user gh api user -q .login 2>/dev/null)."
+    elif [ "$mode" = "Log in with a token" ]; then
+      if [ -z "$token" ]; then
+        warn "No token entered — GitHub login skipped."
+      elif printf '%s\n' "$token" | as_user gh auth login --hostname github.com --git-protocol https --with-token >>"$LOG_FILE" 2>&1; then
+        ok "GitHub: logged in with the token."
+      else
+        err "GitHub token rejected (check its scopes: repo, read:org)."
+        FAILED_STEPS+=("GitHub login (token)")
+      fi
+    else
+      # Interactive: one-time code + browser (on WSL it opens the Windows browser through wslview)
+      step "GitHub login: copy the one-time code and confirm it in the browser..."
+      if as_user gh auth login --hostname github.com --git-protocol https --web </dev/tty; then
+        ok "GitHub: logged in."
+      else
+        err "GitHub login failed or was cancelled."
+        FAILED_STEPS+=("GitHub login (browser)")
+      fi
+    fi
+    if as_user gh auth status >/dev/null 2>&1; then
+      as_user gh auth setup-git >>"$LOG_FILE" 2>&1 && ok "git uses gh for GitHub over HTTPS."
+      # Identity from the GitHub account when left empty (private email → GitHub's noreply address)
+      login="$(as_user gh api user -q .login 2>/dev/null)"
+      [ -n "$name" ] || [ -n "$(as_user git config --global user.name)" ] ||
+        name="$(as_user gh api user -q '.name // .login' 2>/dev/null)"
+      [ -n "$email" ] || [ -n "$(as_user git config --global user.email)" ] ||
+        email="$(as_user gh api user -q '.email // empty' 2>/dev/null)"
+      [ -n "$email" ] || [ -n "$(as_user git config --global user.email)" ] || [ -z "$login" ] ||
+        email="$(as_user gh api user -q .id 2>/dev/null)+$login@users.noreply.github.com"
+    fi
+  fi
+  [ -n "$name" ] && as_user git config --global user.name "$name"
+  [ -n "$email" ] && as_user git config --global user.email "$email"
+  name="$(as_user git config --global user.name)"
+  email="$(as_user git config --global user.email)"
+  if [ -n "$name" ] && [ -n "$email" ]; then
+    ok "Git identity: $name <$email>"
+  else
+    warn "Git identity incomplete — set it with: git config --global user.name/user.email"
+  fi
+}
+
 # Obsidian vault as shared memory of Claude Code / Codex / opencode / Copilot CLI (SalchipapaObsidian):
 # instructions, session hooks (sync + welcome), opencode plugin and the nightly daily-note timer.
 setup_agent_memory() {
@@ -634,6 +691,39 @@ accion_install() {
   term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Alacritty" "Wezterm" "Skip")
   cli_choice=$(pick_option "CLIs to install:" "All (Gemini + Angular + Claude Code)" "Gemini CLI" "Angular CLI" "Claude Code" "Skip")
 
+  # Git & GitHub: asked before the vault, which is usually a private repo
+  local git_choice git_name="" git_email="" gh_token="" spotify_id="" cur
+  git_choice=$(pick_option "Git & GitHub (needed to clone a private vault):" \
+    "Log in with GitHub CLI (browser)" "Log in with a token" "Git name/email only" "Skip")
+  if [ "$git_choice" != "Skip" ]; then
+    if [ "$git_choice" = "Git name/email only" ]; then
+      echo -e "  ${GRAY}Empty = keep the current value.${RESET}"
+    else
+      echo -e "  ${GRAY}Empty = keep the current value, or take it from your GitHub account.${RESET}"
+    fi
+    cur="$(as_user git config --global user.name 2>/dev/null || true)"
+    printf "  ${BOLD}Name${RESET}${GRAY} [%s]:${RESET} " "$cur" >&2
+    read -r git_name </dev/tty
+    cur="$(as_user git config --global user.email 2>/dev/null || true)"
+    printf "  ${BOLD}Email${RESET}${GRAY} [%s]:${RESET} " "$cur" >&2
+    read -r git_email </dev/tty
+  fi
+  if [ "$git_choice" = "Log in with a token" ]; then
+    echo -e "  ${GRAY}Classic token with scopes: repo, read:org, workflow (github.com/settings/tokens).${RESET}"
+    echo -e "  ${GRAY}It goes straight to gh (system keyring): not saved by this installer nor written to the log.${RESET}"
+    printf "  ${BOLD}Token${RESET}${GRAY} (hidden):${RESET} " >&2
+    read -rs gh_token </dev/tty
+    echo >&2
+  fi
+
+  # spotify_player reads the client_id of your own Spotify app from a file outside the repo
+  if [ ! -s "$HOME_DIR/.config/salchipapa-dots/spotify-client-id" ]; then
+    echo -e "\n  ${AQUA}${BOLD}Spotify${RESET}"
+    echo -e "  ${GRAY}client_id of your app at developer.spotify.com/dashboard, or leave empty to skip.${RESET}"
+    printf "  ${BOLD}client_id:${RESET} " >&2
+    read -r spotify_id </dev/tty
+  fi
+
   echo -e "\n  ${AQUA}${BOLD}Obsidian vault${RESET}"
   echo -e "  ${GRAY}Enter your vault repo URL (SSH or HTTPS), or leave empty to skip.${RESET}"
   printf "  ${BOLD}URL:${RESET} " >&2
@@ -646,6 +736,8 @@ accion_install() {
   echo -e "  ${YELLOW}  Multiplexer:${RESET}  $mux_choice"
   echo -e "  ${YELLOW}  Terminal:${RESET}     $term_choice"
   echo -e "  ${YELLOW}  CLIs:${RESET}         $cli_choice"
+  echo -e "  ${YELLOW}  Git/GitHub:${RESET}   $git_choice"
+  echo -e "  ${YELLOW}  Vault:${RESET}        ${vault_url:-Skip}"
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}"
   # Explicit answer required: an empty Enter used to count as "yes"
   while true; do
@@ -674,6 +766,7 @@ accion_install() {
   # System + Core Tools (+ Homebrew on Debian), Shell, Multiplexer, Terminal, CLIs, Symlinks, Neovim (+ WSL)
   SECTION_TOTAL=$((IS_ARCH == 1 ? 8 : 9))
   is_wsl && SECTION_TOTAL=$((SECTION_TOTAL + 1))
+  [ "$git_choice" != "Skip" ] && SECTION_TOTAL=$((SECTION_TOTAL + 1))
 
   local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
 
@@ -809,6 +902,14 @@ accion_install() {
   ok "CLIs done."
   section_end
 
+  # ── Git & GitHub (before the vault clone) ──────────────────
+  if [ "$git_choice" != "Skip" ]; then
+    section "Git & GitHub"
+    setup_github "$git_choice" "$git_name" "$git_email" "$gh_token"
+    section_end
+  fi
+  gh_token=""
+
   # ── Common symlinks ────────────────────────────────────────
   section "Config Symlinks"
   ensure_dir "$HOME_DIR/.config"
@@ -828,6 +929,10 @@ accion_install() {
   step "spotify_player..."
   symlink_force "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
   ok "spotify_player linked."
+  if [ -n "$spotify_id" ]; then
+    printf '%s\n' "$spotify_id" | write_as_user "$HOME_DIR/.config/salchipapa-dots/spotify-client-id"
+    ok "Spotify client_id saved (~/.config/salchipapa-dots/spotify-client-id)."
+  fi
 
   step "yt-x..."
   symlink_force "$DOTS_DIR/SalchipapaYtx" "$HOME_DIR/.config/yt-x"
@@ -887,9 +992,14 @@ show_summary() {
   echo -e "  ${GRAY}  Log: ${RESET}$LOG_FILE"
 
   echo -e "\n  ${AQUA}${BOLD}Next steps${RESET}"
-  command -v gh >/dev/null 2>&1 && echo -e "  ${GRAY}  •${RESET} gh auth login                 ${GRAY}GitHub (git push, Claude Code GitHub plugin)${RESET}"
+  command -v gh >/dev/null 2>&1 && ! as_user gh auth status >/dev/null 2>&1 &&
+    echo -e "  ${GRAY}  •${RESET} gh auth login && gh auth setup-git   ${GRAY}GitHub (git push, Claude Code GitHub plugin)${RESET}"
   command -v claude >/dev/null 2>&1 && echo -e "  ${GRAY}  •${RESET} claude, then /login           ${GRAY}sign in to Claude Code${RESET}"
-  command -v spotify_player >/dev/null 2>&1 && echo -e "  ${GRAY}  •${RESET} spotify_player authenticate   ${GRAY}Spotify (needs your own client_id app)${RESET}"
+  if command -v spotify_player >/dev/null 2>&1; then
+    [ -s "$HOME_DIR/.config/salchipapa-dots/spotify-client-id" ] ||
+      echo -e "  ${GRAY}  •${RESET} echo <client_id> > ~/.config/salchipapa-dots/spotify-client-id   ${GRAY}your Spotify app${RESET}"
+    echo -e "  ${GRAY}  •${RESET} spotify_player authenticate   ${GRAY}Spotify login${RESET}"
+  fi
   echo -e "  ${GRAY}  •${RESET} Open a new terminal           ${GRAY}to load fonts, shell and multiplexer${RESET}"
   echo
 
