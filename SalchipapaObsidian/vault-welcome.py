@@ -2,7 +2,8 @@
 """vault-welcome.py — bienvenida al empezar una sesion de un agente, leida de la boveda.
 
 Toma la diaria mas reciente (Que hice hoy, Manana, Pendiente) y las tareas abiertas `- [ ]`
-de projects/. Imprime JSON de hook: `systemMessage` (lo ve Erick) y `additionalContext`
+de projects/. Antes avisa de fallos de sincronizacion o de los trabajos nocturnos (vault-errors/) y
+de propuestas sin aplicar de la ultima revision semanal (weekly/). Imprime JSON de hook: `systemMessage` (lo ve Erick) y `additionalContext`
 (lo recibe el agente para saludar y retomar). Sin boveda o sin notas, no imprime nada.
 """
 import datetime as dt
@@ -13,6 +14,7 @@ import sys
 from pathlib import Path
 
 VAULT = Path(os.environ.get("OBSIDIAN_VAULT", Path.home() / ".config/obsidian"))
+ERRORS = Path.home() / ".cache/salchipapa-dots/vault-errors"
 MAX_ITEMS = 4
 MAX_LEN = 90
 
@@ -50,10 +52,36 @@ def when(date):
     return {0: "hoy", 1: "ayer"}.get(days, f"hace {days} dias")
 
 
+def warnings():
+    """Avisos de vault-errors/ (sincronizacion, diaria, semanal)."""
+    if not ERRORS.is_dir():
+        return []
+    return [f"⚠ {f.read_text(encoding='utf-8').strip()}" for f in sorted(ERRORS.iterdir()) if f.is_file()]
+
+
+def weekly():
+    """Linea de aviso si la ultima revision semanal tiene propuestas `- [ ]` sin aplicar."""
+    notes = sorted((VAULT / "weekly").glob("*-W*.md"))
+    if not notes:
+        return None
+    text = notes[-1].read_text(encoding="utf-8")
+    m = re.search(r"^## Propuestas\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    n = len(re.findall(r"^\s*- \[ \]", m.group(1), re.M)) if m else 0
+    if not n:
+        return None
+    return (f"📋 Revisión semanal {notes[-1].stem}: {n} propuesta{'s' if n > 1 else ''} para ordenar "
+            f"la bóveda. Dile a un agente \"aplica la revisión semanal\".")
+
+
 def main():
     notes = sorted(p for p in (VAULT / "daily").glob("*.md")
                    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p.stem))
+    alerts = warnings()
+    review = weekly()
+    if not notes and not alerts and not review:
+        return
     if not notes:
+        emit("\n".join(alerts + ([review] if review else [])), "")
         return
     last = notes[-1]
     secs = sections(last.read_text(encoding="utf-8"))
@@ -71,7 +99,7 @@ def main():
                 tasks.append(f"{m.group(1).strip()} ({p.stem})")
 
     date = dt.date.fromisoformat(last.stem)
-    lines = [f"👋 ¡Hola Erick! Tu última sesión fue {when(date)} ({last.stem}):"]
+    lines = alerts + [f"👋 ¡Hola Erick! Tu última sesión fue {when(date)} ({last.stem}):"]
     lines += [f"  • {plain(x)}" for x in done[:MAX_ITEMS]]
     if len(done) > MAX_ITEMS:
         lines.append(f"  … y {len(done) - MAX_ITEMS} cosas más (daily/{last.name})")
@@ -79,14 +107,19 @@ def main():
     if todo:
         lines.append("📌 Pendiente:")
         lines += [f"  • {plain(x)}" for x in todo[:MAX_ITEMS]]
-    msg = "\n".join(lines)
+    if review:
+        lines.append(review)
+    emit("\n".join(lines), last.name)
 
+
+def emit(msg, daily):
     context = (
         f"Memoria de la boveda de Obsidian ({VAULT}), ya sincronizada. Resumen de la ultima "
-        f"actividad de Erick, de daily/{last.name}:\n{msg}\n\n"
+        f"actividad de Erick{f', de daily/{daily}' if daily else ''}:\n{msg}\n\n"
         "Erick YA VIO este resumen en pantalla (es la bienvenida de la sesion): no lo repitas "
         "ni lo resumas, y no lo saludes con el; atiende directamente lo que pida. Usalo como "
-        "contexto, y si quiere detalle, lee la nota diaria completa."
+        "contexto, y si quiere detalle, lee la nota diaria completa. Si hay avisos ⚠, ofrece "
+        "ayudar a resolverlos (detalle en ~/.cache/salchipapa-dots/*.log)."
     )
     print(json.dumps({
         "systemMessage": msg,

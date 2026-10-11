@@ -5,17 +5,22 @@
 #   push  -> commit de lo que haya cambiado + pull --rebase + push (al terminar una sesion)
 #   start -> push de lo que quedo pendiente (sesion cerrada de golpe) + pull (al empezar)
 #
-# Nunca bloquea al agente: cualquier fallo se anota en el log y sale con 0.
+# Nunca bloquea al agente: cualquier fallo se anota en el log y sale con 0. Ademas deja un aviso en
+# vault-errors/ (lo muestra la bienvenida) que se borra solo cuando ese paso vuelve a funcionar.
 # Un lock evita que dos agentes sincronicen a la vez. No sube nada que parezca un secreto.
 set -u
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/.config/obsidian}"
 LOG="$HOME/.cache/salchipapa-dots/vault-sync.log"
+ERRORS="$HOME/.cache/salchipapa-dots/vault-errors"
 mode="${1:-}"
 agent="${2:-agente}"
 
 mkdir -p "$(dirname "$LOG")"
 log() { printf '%s [%s %s] %s\n' "$(date '+%F %T')" "$agent" "$mode" "$*" >>"$LOG"; }
+# fail <paso> <mensaje> deja el aviso; ok_step <paso> lo quita
+fail() { mkdir -p "$ERRORS"; printf '%s (%s, %s)\n' "$2" "$agent" "$(date '+%F %H:%M')" >"$ERRORS/$1"; log "$2"; }
+ok_step() { rm -f "$ERRORS/$1"; }
 
 [ -d "$VAULT/.git" ] || exit 0
 cd "$VAULT" || exit 0
@@ -29,9 +34,10 @@ SECRETS='gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|AIza[0-9A-Za-z_
 pull() {
   if ! out=$(git pull --rebase --autostash -q 2>&1); then
     git rebase --abort >/dev/null 2>&1
-    log "pull falló (¿conflicto?), boveda sin cambios: $out"
+    fail pull "No se pudo bajar la bóveda (¿conflicto o sin red?): $(printf '%s' "$out" | tail -1)"
     return 1
   fi
+  ok_step pull
   log "pull ok"
 }
 
@@ -40,15 +46,21 @@ push() {
     git add -A
     if git diff --cached -U0 | grep -E '^\+' | grep -qE "$SECRETS"; then
       git reset -q
-      log "NO se sube: hay algo que parece un secreto en los cambios. Revisar a mano."
+      fail push "No se subió la bóveda: hay algo que parece un secreto en los cambios. Revísalo a mano."
       return 1
     fi
     git commit -q -m "auto ($agent): $(date '+%F %H:%M')" && log "commit: $(git log -1 --format=%h) $(git diff --stat HEAD~1 HEAD | tail -1)"
   fi
   if [ -n "$(git log --oneline '@{u}..HEAD' 2>/dev/null)" ]; then
     pull || return 1
-    if out=$(git push -q 2>&1); then log "push ok"; else log "push falló: $out"; fi
+    if out=$(git push -q 2>&1); then
+      ok_step push
+      log "push ok"
+    else
+      fail push "No se pudo subir la bóveda: $(printf '%s' "$out" | tail -1)"
+    fi
   else
+    ok_step push
     log "sin cambios que subir"
   fi
 }
