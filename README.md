@@ -22,7 +22,7 @@ It configures your shell, editor, multiplexer, and a curated set of CLI utilitie
 | Terminal    | Kitty, Alacritty, WezTerm                  |
 | Prompt      | Starship                                   |
 | CLI tools   | zoxide, atuin, fzf, carapace, fd, eza, bat |
-| AI agents   | Claude Code, Codex, opencode, Gemini CLI   |
+| AI agents   | Claude Code, Codex, opencode, Copilot CLI, Gemini CLI (you pick) |
 
 There are three ways to install: **Homebrew tap** (easiest), the **install script**, or **manual setup**.
 
@@ -69,7 +69,6 @@ chmod +x install.sh
 The script provides an interactive menu with:
 
 - **Install** → complete setup (packages, shell, nvim, zellij, symlinks, Lazy sync)
-- **Install CLIs + Lazy sync** → installs `gemini` and `ng` separately, then runs Lazy sync
 
 > The script requires sudo privileges for package installation.
 
@@ -90,10 +89,16 @@ The installer detects the distro automatically:
 
 Optional prompts during the install:
 
+- **AI agents & dev CLIs** (pick several, e.g. `1 3 4`, `a` = all): Claude Code (native installer),
+  Codex and opencode (pacman on Arch, npm elsewhere), Copilot CLI, Gemini CLI, Angular CLI.
+- **Configs to link** (pick several): Neovim (+ Lazy sync), Starship, Fastfetch, Claude Code hooks.
+  Each one **replaces** the existing config, so leave out what your desktop already manages
+  (e.g. caelestia's starship and fastfetch).
+- **Extras** (pick several): spotify_player and yt-x (package + config; yt-x also brings mpv and yt-dlp).
 - **Git & GitHub** → log in with the GitHub CLI (browser + one-time code) or with a token
   (it goes straight to `gh`, never to the log), set your git name/email (empty = taken from your
   GitHub account) and `gh auth setup-git`. Runs before the vault clone, so a private vault works.
-- **Spotify** → the `client_id` of your own Spotify app, saved in
+- **Spotify** (only if you picked spotify_player) → the `client_id` of your own Spotify app, saved in
   `~/.config/salchipapa-dots/spotify-client-id` (outside the repo; `spotify_player` reads it with
   `client_id_command`).
 - **Obsidian vault** → your vault repo URL. It becomes the shared memory of Claude Code, Codex,
