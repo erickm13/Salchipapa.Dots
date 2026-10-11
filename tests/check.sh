@@ -3,7 +3,7 @@
 # puede correr a mano: bash tests/check.sh. Herramientas: shellcheck, fish, python3, node, jq,
 # actionlint (las que falten se saltan con un aviso, salvo en el CI).
 set -uo pipefail
-cd "$(dirname "$0")/.."
+cd "$(dirname "$0")/.." || exit 1
 fails=0
 pass() { printf '  ✔ %s\n' "$1"; }
 fail() { printf '  ✖ %s\n' "$1"; fails=$((fails + 1)); }
@@ -21,7 +21,8 @@ for f in $(files '*.sh'); do bash -n "$f" 2>/dev/null || fail "bash -n $f"; done
 echo "shellcheck:"
 if need shellcheck; then
   # SC2034 (variables de color/opciones sin usar) y SC1090 (source dinamico de nvm) son conocidos
-  if out="$(shellcheck -S warning -e SC2034,SC1090 $(files '*.sh') 2>&1)"; then
+  mapfile -t sh_files < <(files '*.sh')
+  if out="$(shellcheck -S warning -e SC2034,SC1090 "${sh_files[@]}" 2>&1)"; then
     pass "sin avisos"
   else
     printf '%s\n' "$out" | head -40
