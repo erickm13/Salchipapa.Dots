@@ -223,6 +223,7 @@ Salchipapa.Dots/
 ├── SalchipapaZsh/          → Zsh configuration (plugins, themes, aliases)
 ├── SalchipapaNvim/         → Neovim setup (LazyVim, plugins, LSP)
 ├── SalchipapaClaude/       → Claude Code hooks (validation, dangerous-command guard, secret scan)
+├── SalchipapaObsidian/     → Obsidian vault as shared memory of Claude Code, Codex, opencode and Copilot CLI (auto sync, session welcome, nightly daily note)
 ├── SalchipapaHerdr/        → Herdr config + keybinding guide (README.md); only config.toml is linked
 ├── SalchipapaZellij/       → Zellij layouts and configuration
 ├── SalchipapaKitty/        → Kitty terminal configuration

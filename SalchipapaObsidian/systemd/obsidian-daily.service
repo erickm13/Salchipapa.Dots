@@ -1,0 +1,12 @@
+[Unit]
+Description=Nota diaria de Obsidian escrita por Claude Code (commits + claude-mem)
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=oneshot
+# claude (instalador nativo) vive en ~/.local/bin; gh, git, jq en /usr/bin
+Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
+ExecStart=/usr/bin/bash %h/Salchipapa.Dots/SalchipapaObsidian/daily-note.sh
+TimeoutStartSec=15min
+Nice=10
