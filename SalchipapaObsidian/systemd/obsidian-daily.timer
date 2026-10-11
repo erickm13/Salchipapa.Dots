@@ -1,0 +1,11 @@
+[Unit]
+Description=Nota diaria de Obsidian cada noche a las 23:30
+
+[Timer]
+OnCalendar=*-*-* 23:30:00
+# Si WSL estaba apagado a las 23:30, corre al volver a encenderse (daily-note.sh escribe la del dia que falto)
+Persistent=true
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

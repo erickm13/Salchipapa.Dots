@@ -384,6 +384,28 @@ setup_claude_hooks() {
   ok "Claude Code hooks: guard-bash, secret-scan, validate-dotfiles (backup: $settings.bak)."
 }
 
+# Obsidian vault as shared memory of Claude Code / Codex / opencode / Copilot CLI (SalchipapaObsidian):
+# instructions, session hooks (sync + welcome), opencode plugin and the nightly daily-note timer.
+setup_agent_memory() {
+  if ! command -v python3 >/dev/null 2>&1; then
+    warn "Agent memory skipped (needs python3)."
+    return 0
+  fi
+  step "Agent memory (Obsidian)..."
+  if as_user python3 "$DOTS_DIR/SalchipapaObsidian/setup-agents.py" >>"$LOG_FILE" 2>&1; then
+    ok "Agents share the vault: sync on session start/end + welcome."
+  else
+    err "Agent memory setup failed (see $LOG_FILE)."
+    return 0
+  fi
+  if as_user systemctl --user daemon-reload >/dev/null 2>&1 &&
+    as_user systemctl --user enable --now obsidian-daily.timer >/dev/null 2>&1; then
+    ok "Nightly daily note: obsidian-daily.timer (23:30)."
+  else
+    warn "Enable the daily note later: systemctl --user enable --now obsidian-daily.timer"
+  fi
+}
+
 setup_herdr() {
   # Official installer: release binary to ~/.local/bin with SHA-256 check (updates: `herdr update`)
   if ! as_user sh -c 'command -v herdr || test -x "$HOME/.local/bin/herdr"' >/dev/null 2>&1; then
@@ -825,6 +847,9 @@ accion_install() {
     ok "Obsidian vault ready at ~/.config/obsidian."
   else
     warn "Obsidian vault skipped."
+  fi
+  if [ -d "$HOME_DIR/.config/obsidian/.git" ]; then
+    setup_agent_memory
   fi
   section_end
 
