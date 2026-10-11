@@ -6,12 +6,6 @@
 #fi
 
 
- export NVM_DIR="$HOME/.nvm"
-  [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/nvm.sh"  # This loads nvm
-  [ -s "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm" ] && \. "/home/linuxbrew/.linuxbrew/opt/nvm/etc/bash_completion.d/nvm"  # This loads nvm bash_completion
-  [ -s "/usr/share/nvm/init-nvm.sh" ] && \. "/usr/share/nvm/init-nvm.sh"  # Arch (pacman nvm)
-
-
 
 export ZSH="$HOME/.oh-my-zsh"
 ZSH_THEME="nanotech"
@@ -54,6 +48,9 @@ fi
 # Usar la variable BREW_BIN donde se necesite
 
 [ -x "$BREW_BIN/brew" ] && eval "$($BREW_BIN/brew shellenv)"
+
+# Node y CLIs de npm con mise (despues de brew shellenv: en Debian mise viene de Homebrew)
+command -v mise >/dev/null && eval "$(mise activate zsh)"
 
 # Plugins: Homebrew (share/<plugin>) o Arch/pacman (/usr/share/zsh/plugins/<plugin>)
 for plugin_file in \

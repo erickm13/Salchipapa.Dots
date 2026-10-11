@@ -17,7 +17,7 @@ sudo ./install.sh
 
 The installer is interactive. It:
 1. Prompts for shell choice (Fish or Zsh), multiplexer (Zellij or Tmux), and terminal emulator (Kitty, Alacritty or Wezterm).
-2. Installs system packages and core tools: on Debian via `apt` + Homebrew, on Arch via `pacman` (plus `yay` and the `carapace` release binary). Distro is detected with `command -v pacman` (`IS_ARCH`).
+2. Installs system packages and core tools: on Debian via `apt` + Homebrew, on Arch via `pacman` (plus `yay` and the `carapace` release binary). Distro is detected with `command -v pacman` (`IS_ARCH`). Node is not a system package on either distro: it comes from **mise** (`mise use -g node@lts` as the target user), and the npm CLIs too (`mise use -g npm:<pkg>`, no sudo).
 3. Creates symlinks from this repo into `~/.config/`.
 4. Syncs Neovim plugins: `nvim --headless '+Lazy! sync' +qa`
 
@@ -43,7 +43,7 @@ Entry point: `SalchipapaNvim/nvim/init.lua` → loads `config.nodejs` then `conf
 - `lua/config/` — core configuration (keymaps, options, autocmds, lazy bootstrap, Node.js path setup)
 - `lua/plugins/` — per-plugin LazyVim specs (AI tools: copilot, avante, gemini, code-companion, claude-code; editor tools: fzf-lua, oil, obsidian, nvim-dap, blink, dial, etc.)
 
-The `lua/config/nodejs.lua` module resolves the Node.js binary path (via nvm) before plugins load.
+The `lua/config/nodejs.lua` module resolves the Node.js binary path (mise's global Node first, then Volta/nvm/system) before plugins load.
 
 Sync plugins headlessly: `nvim --headless '+Lazy! sync' +qa`
 
