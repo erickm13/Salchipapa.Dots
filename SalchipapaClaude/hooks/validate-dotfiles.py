@@ -15,7 +15,8 @@ import shutil
 import subprocess
 import sys
 
-DOTS = os.path.realpath(os.path.expanduser("~/Salchipapa.Dots"))
+# El repo es donde vive este hook (SalchipapaClaude/hooks/), este donde este clonado
+DOTS = os.path.dirname(os.path.dirname(os.path.dirname(os.path.realpath(__file__))))
 
 
 def win_wezterm():

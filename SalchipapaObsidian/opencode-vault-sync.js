@@ -2,10 +2,12 @@
 // session.created -> vault-sync.sh start (sube lo pendiente + pull)   session.idle (termino de responder) -> vault-sync.sh push
 // El script nunca falla hacia afuera y usa un lock, asi que llamarlo seguido es seguro.
 import { spawn } from "node:child_process";
-import { homedir } from "node:os";
-import { join } from "node:path";
+import { realpathSync } from "node:fs";
+import { dirname, join } from "node:path";
+import { fileURLToPath } from "node:url";
 
-const SCRIPT = join(homedir(), "Salchipapa.Dots", "SalchipapaObsidian", "vault-sync.sh");
+// Este archivo esta enlazado en ~/.config/opencode/plugins: el script vive junto al original del repo
+const SCRIPT = join(dirname(realpathSync(fileURLToPath(import.meta.url))), "vault-sync.sh");
 const childSessions = new Set();
 
 function sync(mode) {

@@ -7,6 +7,7 @@ Wants=network-online.target
 Type=oneshot
 # claude (instalador nativo) vive en ~/.local/bin; gh, git, jq en /usr/bin
 Environment=PATH=%h/.local/bin:/usr/local/bin:/usr/bin:/bin
-ExecStart=/usr/bin/bash %h/Salchipapa.Dots/SalchipapaObsidian/daily-note.sh
+# setup-agents.py instala esta unidad con @DIR@ cambiado por la ruta real de SalchipapaObsidian
+ExecStart=/usr/bin/bash @DIR@/daily-note.sh
 TimeoutStartSec=15min
 Nice=10

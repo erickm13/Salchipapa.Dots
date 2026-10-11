@@ -62,7 +62,7 @@ def pick(secs, *names):
 
 def when(date):
     days = (dt.date.today() - date).days
-    return {0: "hoy", 1: "ayer"}.get(days, f"hace {days} dias")
+    return {0: "hoy", 1: "ayer"}.get(days, f"hace {days} días")
 
 
 def warnings():
@@ -114,7 +114,7 @@ def main():
     date = dt.date.fromisoformat(last.stem)
     name = owner()
     hello = f"¡Hola {name}!" if name else "¡Hola!"
-    lines = alerts + [f"👋 {hello} Tu última sesión fue {when(date)} ({last.stem}):"]
+    lines = alerts + [f"👋 {hello} Tu última nota diaria es de {when(date)} ({last.stem}):"]
     lines += [f"  • {plain(x)}" for x in done[:MAX_ITEMS]]
     if len(done) > MAX_ITEMS:
         lines.append(f"  … y {len(done) - MAX_ITEMS} cosas más (daily/{last.name})")

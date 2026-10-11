@@ -2,7 +2,7 @@
 """setup-agents.py — conecta los agentes a la boveda de Obsidian (memoria compartida).
 
 Idempotente: se puede correr las veces que haga falta. Lo llama install.sh, o a mano:
-    python3 ~/Salchipapa.Dots/SalchipapaObsidian/setup-agents.py
+    python3 <repo>/SalchipapaObsidian/setup-agents.py   (el repo puede estar en cualquier ruta)
 
 - Enlaza AGENTS.md como instrucciones globales de Claude Code, Codex, opencode y Copilot CLI
   (si ya hay un archivo propio, lo respalda como .bak-vault).
@@ -10,7 +10,8 @@ Idempotente: se puede correr las veces que haga falta. Lo llama install.sh, o a 
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
 - Si la boveda no tiene la estructura PARA, crea las carpetas y plantillas que falten
   (vault-template/: me.md, templates/daily.md, config de notas nuevas y diarias). Nunca sobrescribe.
-- Enlaza el plugin de opencode y las unidades systemd de la nota diaria y la revision semanal.
+- Enlaza el plugin de opencode y los timers systemd de la nota diaria y la revision semanal; sus
+  servicios se escriben con la ruta real del repo (@DIR@), para que funcione clonado en cualquier sitio.
 """
 import json
 import shutil
@@ -36,6 +37,18 @@ def link(src, dst):
         print(f"  respaldo: {dst}.bak-vault")
     dst.symlink_to(src)
     print(f"  enlace: {dst} -> {src}")
+
+
+def render_unit(src, dst):
+    """Unidad systemd con @DIR@ -> ruta de SalchipapaObsidian (reemplaza un enlace antiguo)."""
+    dst.parent.mkdir(parents=True, exist_ok=True)
+    text = src.read_text().replace("@DIR@", str(HERE))
+    if dst.is_symlink():
+        dst.unlink()
+    elif dst.exists() and dst.read_text() == text:
+        return
+    dst.write_text(text)
+    print(f"  unidad: {dst} ({HERE})")
 
 
 def load(path):
@@ -143,7 +156,11 @@ def main():
     print("Nota diaria y revision semanal (systemd):")
     for unit in ("obsidian-daily.service", "obsidian-daily.timer",
                  "obsidian-weekly.service", "obsidian-weekly.timer"):
-        link(HERE / "systemd" / unit, HOME / ".config/systemd/user" / unit)
+        src, dst = HERE / "systemd" / unit, HOME / ".config/systemd/user" / unit
+        if unit.endswith(".service"):
+            render_unit(src, dst)
+        else:
+            link(src, dst)
 
 
 if __name__ == "__main__":
