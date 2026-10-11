@@ -2,7 +2,7 @@
 # weekly-review.sh [AAAA-MM-DD] — revision semanal de la boveda (Building a Second Brain) con Claude Code.
 # Lo lanza cada domingo obsidian-weekly.timer. Escribe weekly/AAAA-Wnn.md con el resumen de la semana
 # y PROPUESTAS (inbox a clasificar, proyectos a archivar) como tareas `- [ ]`: no mueve nada solo.
-# Erick las aplica diciendole a un agente "aplica la revision semanal".
+# El usuario las aplica diciendole a un agente "aplica la revision semanal".
 #
 # Semana: lunes a domingo. Sin fecha: la que termina hoy si es domingo; si no, la anterior
 # (el timer es Persistent: si WSL estaba apagado el domingo, corre al volver).

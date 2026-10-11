@@ -8,6 +8,8 @@ Idempotente: se puede correr las veces que haga falta. Lo llama install.sh, o a 
   (si ya hay un archivo propio, lo respalda como .bak-vault).
 - Anade los hooks de inicio (vault-start.sh) y fin (vault-sync.sh push) de cada agente,
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
+- Si la boveda no tiene la estructura PARA, crea las carpetas y plantillas que falten
+  (vault-template/: me.md, templates/daily.md, config de notas nuevas y diarias). Nunca sobrescribe.
 - Enlaza el plugin de opencode y las unidades systemd de la nota diaria y la revision semanal.
 """
 import json
@@ -16,6 +18,8 @@ from pathlib import Path
 
 HOME = Path.home()
 HERE = Path(__file__).resolve().parent
+VAULT = HOME / ".config/obsidian"
+PARA = ["projects", "areas", "resources", "archive", "inbox", "daily", "weekly", "templates"]
 START = f"bash {HERE}/vault-start.sh"
 PULL = f"bash {HERE}/vault-sync.sh pull"
 PUSH = f"setsid -f bash {HERE}/vault-sync.sh push {{}} >/dev/null 2>&1"
@@ -98,7 +102,30 @@ def copilot():
     save(p, s)
 
 
+def scaffold():
+    """Estructura PARA y plantillas en la boveda: solo lo que falte."""
+    if not (VAULT / ".git").is_dir():
+        print(f"  sin boveda en {VAULT}: se omite")
+        return
+    for d in PARA:
+        path = VAULT / d
+        if not path.exists():
+            path.mkdir(parents=True)
+            (path / ".gitkeep").touch()  # git no sube carpetas vacias
+            print(f"  carpeta: {d}/")
+    template = HERE / "vault-template"
+    for src in sorted(p for p in template.rglob("*") if p.is_file()):
+        dst = VAULT / src.relative_to(template)
+        if not dst.exists():
+            dst.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(src, dst)
+            print(f"  plantilla: {dst.relative_to(VAULT)}")
+
+
 def main():
+    print("Boveda (PARA):")
+    scaffold()
+
     agents = HERE / "AGENTS.md"
     print("Instrucciones de memoria:")
     for dst in [".claude/CLAUDE.md", ".codex/AGENTS.md", ".config/opencode/AGENTS.md",
