@@ -2,7 +2,8 @@
 """vault-welcome.py — bienvenida al empezar una sesion de un agente, leida de la boveda.
 
 Toma la diaria mas reciente (Que hice hoy, Manana, Pendiente) y las tareas abiertas `- [ ]`
-de projects/. Antes avisa de fallos de sincronizacion o de los trabajos nocturnos (vault-errors/) y
+de projects/. Si la de hoy aun no esta consolidada pero tiene "## Sesiones de hoy" (los resumenes que
+escribe vault-session-end.sh al cerrar cada sesion, en cualquier equipo), muestra esas sesiones. Antes avisa de fallos de sincronizacion o de los trabajos nocturnos (vault-errors/) y
 de propuestas sin aplicar de la ultima revision semanal (weekly/). Imprime JSON de hook: `systemMessage` (lo ve el usuario) y `additionalContext`
 (lo recibe el agente para saludar y retomar). Sin boveda o sin notas, no imprime nada.
 """
@@ -52,6 +53,18 @@ def plain(s):
     return s if len(s) <= MAX_LEN else s[:MAX_LEN - 1].rstrip(" ,;:") + "…"
 
 
+def sessions(text):
+    """[(titulo "HH:MM · agente · equipo", [viñetas])] de la seccion "## Sesiones de hoy"."""
+    m = re.search(r"^## Sesiones de hoy\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    if not m:
+        return []
+    out = []
+    for block in re.split(r"^### ", m.group(1), flags=re.M)[1:]:
+        lines = block.strip().splitlines()
+        out.append((lines[0].strip(), [l.strip()[2:] for l in lines[1:] if l.strip().startswith("- ")]))
+    return out
+
+
 def pick(secs, *names):
     for name in names:
         for title, items in secs.items():
@@ -97,10 +110,15 @@ def main():
         emit("\n".join(alerts + ([review] if review else [])), "")
         return
     last = notes[-1]
-    secs = sections(last.read_text(encoding="utf-8"))
+    text = last.read_text(encoding="utf-8")
+    secs = sections(text)
     done = pick(secs, "qué hice", "que hice")
     nxt = pick(secs, "mañana", "manana")
     pending = pick(secs, "pendiente", "problemas")
+    sess = sessions(text)
+    # Lo pendiente de las sesiones de hoy (la mas reciente primero) va antes que el resto
+    pending = [b.split(":", 1)[1].strip() for _, bullets in reversed(sess)
+               for b in bullets if b.lower().startswith("pendiente:")] + pending
 
     # Tareas abiertas de los proyectos que no esten ya en la diaria
     seen = {plain(x).lower() for x in nxt + pending}
@@ -114,10 +132,20 @@ def main():
     date = dt.date.fromisoformat(last.stem)
     name = owner()
     hello = f"¡Hola {name}!" if name else "¡Hola!"
-    lines = alerts + [f"👋 {hello} Tu última nota diaria es de {when(date)} ({last.stem}):"]
-    lines += [f"  • {plain(x)}" for x in done[:MAX_ITEMS]]
-    if len(done) > MAX_ITEMS:
-        lines.append(f"  … y {len(done) - MAX_ITEMS} cosas más (daily/{last.name})")
+    if sess and not done:
+        # Dia en curso: las ultimas sesiones (de cualquier equipo)
+        lines = alerts + [f"👋 {hello} Hoy llevas {len(sess)} {'sesiones' if len(sess) > 1 else 'sesión'}; lo último:"]
+        for title, bullets in sess[-2:]:
+            lines.append(f"  ▸ {title}")
+            lines += [f"    • {plain(b)}" for b in bullets
+                      if not b.lower().startswith(("pendiente:", "decidido:"))][:3]
+        if len(sess) > 2:
+            lines.append(f"  … y {len(sess) - 2} {'sesiones' if len(sess) > 3 else 'sesión'} antes (daily/{last.name})")
+    else:
+        lines = alerts + [f"👋 {hello} Tu última nota diaria es de {when(date)} ({last.stem}):"]
+        lines += [f"  • {plain(x)}" for x in done[:MAX_ITEMS]]
+        if len(done) > MAX_ITEMS:
+            lines.append(f"  … y {len(done) - MAX_ITEMS} cosas más (daily/{last.name})")
     todo = nxt + pending + tasks
     if todo:
         lines.append("📌 Pendiente:")
