@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-set -euo pipefail
+# -E: the ERR trap below also fires inside functions
+set -Eeuo pipefail
 
 # ════════════════════════════════════════════════════════════════
 #   Salchipapa.Dots — Auto Config Installer
@@ -15,7 +16,10 @@ if [ -d "$BREW_SHARE" ]; then
   # Homebrew: the formula only ships the script, the configs live in a clone (default ~/Salchipapa.Dots)
   DOTS_DIR="${SALCHIPAPA_DOTS:-$HOME_DIR/Salchipapa.Dots}"
   if [ ! -d "$DOTS_DIR/.git" ]; then
-    git clone https://github.com/erickm13/Salchipapa.Dots.git "$DOTS_DIR"
+    if ! git clone https://github.com/erickm13/Salchipapa.Dots.git "$DOTS_DIR"; then
+      echo "✖ Could not clone Salchipapa.Dots into $DOTS_DIR (network? permissions?)." >&2
+      exit 1
+    fi
   fi
 else
   # Run from a clone: use that clone, wherever it is
@@ -77,6 +81,45 @@ symlink_force() {
   ln -s "$src" "$dst"
 }
 
+# link_config <label> <src> <dst>: symlink_force + check, with ✔/✖ (a failure goes to the summary)
+link_config() {
+  local label="$1" src="$2" dst="$3"
+  if [ ! -e "$src" ]; then
+    err "$label: $src not found in the repo"
+    FAILED_STEPS+=("$label (missing in repo)")
+    return 0
+  fi
+  if mkdir -p "$(dirname "$dst")" && symlink_force "$src" "$dst" 2>>"$LOG_FILE" &&
+    [ "$(readlink "$dst")" = "$src" ]; then
+    ok "$label linked → ${dst/#$HOME_DIR/\~}"
+  else
+    err "$label: could not link ${dst/#$HOME_DIR/\~}"
+    FAILED_STEPS+=("$label (link)")
+  fi
+}
+
+# try_step <label> <command...>: runs a short visible command, ✔ or ✖ (failure goes to the summary)
+try_step() {
+  local label="$1"
+  shift
+  if "$@" >>"$LOG_FILE" 2>&1; then
+    ok "$label"
+  else
+    err "$label failed (exit $?) — see the log"
+    FAILED_STEPS+=("$label")
+  fi
+}
+
+# section_result <failures-before> <message>: ✔ message, or ⚠ with the new failures of the section
+section_result() {
+  local before="$1" msg="$2" n=$((${#FAILED_STEPS[@]} - $1))
+  if [ "$n" -eq 0 ]; then
+    ok "$msg"
+  else
+    warn "$n step(s) failed in this section — listed in the final summary."
+  fi
+}
+
 # Install packages with pacman on Arch, brew elsewhere
 pkg_install() {
   if [ "$IS_ARCH" -eq 1 ]; then
@@ -102,12 +145,13 @@ install_yay() {
     warn "yay can't be built as root — create a normal user to use it."
     return 0
   fi
-  local tmp
-  tmp="$(as_user mktemp -d)"
-  as_user git clone --depth=1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin"
-  (cd "$tmp/yay-bin" && as_user makepkg --noconfirm)
-  sudo pacman -U --noconfirm "$tmp"/yay-bin/yay-bin-*.pkg.tar.zst
+  local tmp rc=0
+  tmp="$(as_user mktemp -d)" || return 1
+  as_user git clone --depth=1 https://aur.archlinux.org/yay-bin.git "$tmp/yay-bin" &&
+    (cd "$tmp/yay-bin" && as_user makepkg --noconfirm) &&
+    sudo pacman -U --noconfirm "$tmp"/yay-bin/yay-bin-*.pkg.tar.zst || rc=$?
   rm -rf "$tmp"
+  return "$rc"
 }
 
 # Arch: carapace isn't in the official repos, install the release binary
@@ -167,6 +211,26 @@ step() { echo -e "${BLUE}  │  ${GRAY}$1${RESET}"; }
 ok() { echo -e "${GREEN}  │  ✔ ${RESET}$1"; }
 warn() { echo -e "${YELLOW}  │  ⚠ ${RESET}$1"; }
 err() { echo -e "${RED}  │  ✖ ${RESET}$1"; }
+
+# Safety net: if something still aborts the script (set -e), say what failed, where, and where the
+# log is. ERR only remembers the last failing command (it also fires for failures that are handled,
+# e.g. inside $(...)); the message is printed on EXIT, and only when the script really ends with an error.
+LAST_ERR_LINE="" LAST_ERR_CMD=""
+trap 'LAST_ERR_LINE=$LINENO LAST_ERR_CMD=$BASH_COMMAND' ERR
+on_exit() {
+  local rc=$?
+  [ "$rc" -eq 0 ] && return
+  echo >&2
+  if [ "$rc" -eq 130 ]; then
+    echo -e "${YELLOW}${BOLD}  ⚠ Install interrupted (Ctrl+C).${RESET}" >&2
+  else
+    echo -e "${RED}${BOLD}  ✖ The install stopped with an unexpected error (exit $rc)${RESET}" >&2
+    [ -n "$LAST_ERR_CMD" ] && echo -e "${RED}    install.sh:$LAST_ERR_LINE: $LAST_ERR_CMD${RESET}" >&2
+  fi
+  [ "${LOG_FILE:-/dev/null}" != /dev/null ] && echo -e "${GRAY}    Log: $LOG_FILE${RESET}" >&2
+  echo -e "${GRAY}    Re-run the installer once the cause is fixed (finished steps are skipped or redone safely).${RESET}" >&2
+}
+trap on_exit EXIT
 
 # spinner <pid> <label> <start-seconds>: one line with the label and elapsed time, redrawn in place
 spinner() {
@@ -294,23 +358,27 @@ setup_fish() {
   local brew_fish="$brew_prefix/bin/fish"
   [ "$IS_ARCH" -eq 1 ] && brew_fish="/usr/bin/fish"
 
-  step "Installing fish..."
-  pkg_install fish
+  local before=${#FAILED_STEPS[@]}
+  run_silent "Installing fish..." "pkg_install fish"
+  if [ ! -x "$brew_fish" ]; then
+    err "fish not found at $brew_fish — skipping the rest of the fish setup."
+    FAILED_STEPS+=("fish setup")
+    return 0
+  fi
 
   if ! grep -qxF "$brew_fish" /etc/shells; then
-    step "Adding fish to /etc/shells..."
-    echo "$brew_fish" | sudo tee -a /etc/shells >/dev/null
+    try_step "fish added to /etc/shells" sh -c "echo '$brew_fish' | sudo tee -a /etc/shells"
   fi
-  step "Setting fish as default shell..."
-  sudo chsh -s "$brew_fish" "$TARGET_USER"
+  try_step "fish is the default shell" sudo chsh -s "$brew_fish" "$TARGET_USER"
 
-  ensure_dir "$HOME_DIR/.config"
-  step "Linking fish config..."
-  symlink_force "$DOTS_DIR/SalchipapaFish/fish" "$HOME_DIR/.config/fish"
-  ok "fish config linked."
+  link_config "fish config" "$DOTS_DIR/SalchipapaFish/fish" "$HOME_DIR/.config/fish"
+  run_silent "Fisher + plugins (nvm.fish, fzf.fish, pj)..." "install_fisher '$brew_fish'"
+  section_result "$before" "Fish ready."
+}
 
-  step "Installing Fisher + plugins..."
-  sudo -u "$TARGET_USER" -H "$brew_fish" --no-config -c '
+# Fisher and the plugins of fish_plugins, as the target user; fails if any plugin fails to install
+install_fisher() {
+  sudo -u "$TARGET_USER" -H "$1" --no-config -c '
     if test -f ~/.config/fish/functions/fisher.fish
       source ~/.config/fish/functions/fisher.fish
     else
@@ -325,10 +393,8 @@ setup_fish() {
           ~/.config/fish/conf.d/nvm.fish \
           ~/.config/fish/functions/pj.fish \
           ~/.config/fish/completions/pj.fish
-    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj >/dev/null 2>&1
+    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
   '
-
-  ok "Fish ready."
 }
 
 setup_zsh() {
@@ -340,14 +406,11 @@ setup_zsh() {
     "pkg_install zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions"
 
   if ! grep -qxF "$brew_zsh" /etc/shells; then
-    step "Adding zsh to /etc/shells..."
-    echo "$brew_zsh" | sudo tee -a /etc/shells >/dev/null
+    try_step "zsh added to /etc/shells" sh -c "echo '$brew_zsh' | sudo tee -a /etc/shells"
   fi
   run_silent "Setting zsh as default shell..." "sudo chsh -s '$brew_zsh' '$TARGET_USER'"
 
-  step "Linking .zshrc..."
-  symlink_force "$DOTS_DIR/SalchipapaZsh/.zshrc" "$HOME_DIR/.zshrc"
-  ok ".zshrc linked."
+  link_config ".zshrc" "$DOTS_DIR/SalchipapaZsh/.zshrc" "$HOME_DIR/.zshrc"
 
   run_silent "Installing Oh My Zsh (KEEP_ZSHRC)..." \
     'export RUNZSH=no CHSH=no KEEP_ZSHRC=yes; sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
@@ -385,28 +448,25 @@ setup_zsh() {
 # ════════════════════════════════════════════════════════════════
 
 setup_zellij() {
+  local before=${#FAILED_STEPS[@]}
   run_silent "Installing zellij..." "pkg_install zellij"
-  ensure_dir "$HOME_DIR/.config"
-  step "Linking zellij config..."
-  symlink_force "$DOTS_DIR/SalchipapaZellij/zellij" "$HOME_DIR/.config/zellij"
-  ok "Zellij ready."
+  link_config "zellij config" "$DOTS_DIR/SalchipapaZellij/zellij" "$HOME_DIR/.config/zellij"
+  section_result "$before" "Zellij ready."
 }
 
 setup_tmux() {
+  local before=${#FAILED_STEPS[@]}
   run_silent "Installing tmux..." "pkg_install tmux"
-  step "Linking tmux config..."
-  symlink_force "$DOTS_DIR/SalchipapaTmux" "$HOME_DIR/.config/tmux"
-  ok "tmux config linked."
+  link_config "tmux config" "$DOTS_DIR/SalchipapaTmux" "$HOME_DIR/.config/tmux"
 
   if [ ! -d "$HOME_DIR/.tmux/plugins/tpm" ]; then
-    run_silent "Installing TPM..." \
+    run_silent "Installing TPM (then <prefix>+I inside tmux loads the plugins)..." \
       "git clone --depth=1 https://github.com/tmux-plugins/tpm '$HOME_DIR/.tmux/plugins/tpm'"
-    ok "TPM installed. Press <prefix>+I inside tmux to load plugins."
   else
-    warn "TPM already installed."
+    ok "TPM already installed."
   fi
 
-  ok "Tmux ready."
+  section_result "$before" "Tmux ready."
 }
 
 # Claude Code hooks from SalchipapaClaude/hooks, merged into ~/.claude/settings.json:
@@ -420,12 +480,17 @@ setup_claude_hooks() {
   as_user mkdir -p "$HOME_DIR/.claude"
   [ -s "$settings" ] || printf '{}\n' | write_as_user "$settings"
   if ! jq empty "$settings" 2>/dev/null; then
-    warn "$settings is not valid JSON — Claude Code hooks skipped."
+    err "$settings is not valid JSON — Claude Code hooks skipped (fix the file and re-run)."
+    FAILED_STEPS+=("Claude Code hooks (invalid settings.json)")
     return 0
   fi
-  as_user cp "$settings" "$settings.bak"
+  if ! as_user cp "$settings" "$settings.bak"; then
+    err "Could not back up $settings — Claude Code hooks skipped."
+    FAILED_STEPS+=("Claude Code hooks")
+    return 0
+  fi
   tmp="$(mktemp)"
-  jq --arg guard "python3 $hooks_dir/guard-bash.py" \
+  if jq --arg guard "python3 $hooks_dir/guard-bash.py" \
     --arg secrets "python3 $hooks_dir/secret-scan.py" \
     --arg validate "python3 $hooks_dir/validate-dotfiles.py" '
     def addhook(ev; m; h):
@@ -437,9 +502,14 @@ setup_claude_hooks() {
     | addhook("PreToolUse"; "Bash"; {type: "command", command: $guard, timeout: 10, statusMessage: "Revisando comando peligroso..."})
     | addhook("PreToolUse"; "Bash"; {type: "command", command: $secrets, timeout: 20, statusMessage: "Buscando secretos antes de subir..."})
     | addhook("PostToolUse"; "Edit|Write"; {type: "command", command: $validate, timeout: 30, statusMessage: "Validando dotfiles..."})
-  ' "$settings" >"$tmp" && write_as_user "$settings" <"$tmp"
+  ' "$settings" >"$tmp" 2>>"$LOG_FILE" && write_as_user "$settings" <"$tmp" && jq empty "$settings" 2>/dev/null; then
+    ok "Claude Code hooks: guard-bash, secret-scan, validate-dotfiles (backup: $settings.bak)."
+  else
+    err "Claude Code hooks could not be added — your settings.json is unchanged (backup: $settings.bak)."
+    as_user cp "$settings.bak" "$settings" 2>/dev/null || true
+    FAILED_STEPS+=("Claude Code hooks")
+  fi
   rm -f "$tmp"
-  ok "Claude Code hooks: guard-bash, secret-scan, validate-dotfiles (backup: $settings.bak)."
 }
 
 # setup_github <mode> <name> <email> <token>: GitHub login through gh (browser or token) and git identity.
@@ -456,7 +526,7 @@ setup_github() {
       fi
     fi
     if as_user gh auth status >/dev/null 2>&1; then
-      ok "GitHub: already logged in as $(as_user gh api user -q .login 2>/dev/null)."
+      ok "GitHub: already logged in as $(as_user gh api user -q .login 2>/dev/null || echo '?')."
     elif [ "$mode" = "Log in with a token" ]; then
       if [ -z "$token" ]; then
         warn "No token entered — GitHub login skipped."
@@ -477,21 +547,27 @@ setup_github() {
       fi
     fi
     if as_user gh auth status >/dev/null 2>&1; then
-      as_user gh auth setup-git >>"$LOG_FILE" 2>&1 && ok "git uses gh for GitHub over HTTPS."
+      try_step "git uses gh for GitHub over HTTPS" as_user gh auth setup-git
       # Identity from the GitHub account when left empty (private email → GitHub's noreply address)
-      login="$(as_user gh api user -q .login 2>/dev/null)"
-      [ -n "$name" ] || [ -n "$(as_user git config --global user.name)" ] ||
-        name="$(as_user gh api user -q '.name // .login' 2>/dev/null)"
-      [ -n "$email" ] || [ -n "$(as_user git config --global user.email)" ] ||
-        email="$(as_user gh api user -q '.email // empty' 2>/dev/null)"
-      [ -n "$email" ] || [ -n "$(as_user git config --global user.email)" ] || [ -z "$login" ] ||
-        email="$(as_user gh api user -q .id 2>/dev/null)+$login@users.noreply.github.com"
+      login="$(as_user gh api user -q .login 2>/dev/null || true)"
+      [ -n "$name" ] || [ -n "$(as_user git config --global user.name || true)" ] ||
+        name="$(as_user gh api user -q '.name // .login' 2>/dev/null || true)"
+      [ -n "$email" ] || [ -n "$(as_user git config --global user.email || true)" ] ||
+        email="$(as_user gh api user -q '.email // empty' 2>/dev/null || true)"
+      [ -n "$email" ] || [ -n "$(as_user git config --global user.email || true)" ] || [ -z "$login" ] ||
+        email="$(as_user gh api user -q .id 2>/dev/null || true)+$login@users.noreply.github.com"
     fi
   fi
-  [ -n "$name" ] && as_user git config --global user.name "$name"
-  [ -n "$email" ] && as_user git config --global user.email "$email"
-  name="$(as_user git config --global user.name)"
-  email="$(as_user git config --global user.email)"
+  if [ -n "$name" ] && ! as_user git config --global user.name "$name"; then
+    err "Could not set git user.name"
+    FAILED_STEPS+=("git user.name")
+  fi
+  if [ -n "$email" ] && ! as_user git config --global user.email "$email"; then
+    err "Could not set git user.email"
+    FAILED_STEPS+=("git user.email")
+  fi
+  name="$(as_user git config --global user.name || true)"
+  email="$(as_user git config --global user.email || true)"
   if [ -n "$name" ] && [ -n "$email" ]; then
     ok "Git identity: $name <$email>"
   else
@@ -506,18 +582,16 @@ setup_agent_memory() {
     warn "Agent memory skipped (needs python3)."
     return 0
   fi
-  step "Agent memory (Obsidian)..."
-  if as_user python3 "$DOTS_DIR/SalchipapaObsidian/setup-agents.py" >>"$LOG_FILE" 2>&1; then
-    ok "Agents share the vault: sync on session start/end + welcome."
+  # setup-agents.py links instructions, hooks, plugin and timers and reports each step (✔/⚠/✖)
+  step "Agent memory (Obsidian):"
+  local rc=0
+  as_user python3 "$DOTS_DIR/SalchipapaObsidian/setup-agents.py" 2>&1 | tee -a "$LOG_FILE" |
+    sed "s/^/${BLUE}  │  ${RESET}  /" || rc=$?
+  if [ "$rc" -eq 0 ]; then
+    ok "Agents share the vault: sync on session start/end, welcome, daily note and weekly review."
   else
-    err "Agent memory setup failed (see $LOG_FILE)."
-    return 0
-  fi
-  if as_user systemctl --user daemon-reload >/dev/null 2>&1 &&
-    as_user systemctl --user enable --now obsidian-daily.timer obsidian-weekly.timer >/dev/null 2>&1; then
-    ok "Daily note (23:30) and weekly review (Sun 20:00) timers enabled."
-  else
-    warn "Enable them later: systemctl --user enable --now obsidian-daily.timer obsidian-weekly.timer"
+    err "Agent memory: some steps failed (above). Fix them and re-run: python3 $DOTS_DIR/SalchipapaObsidian/setup-agents.py"
+    FAILED_STEPS+=("Agent memory (setup-agents.py)")
   fi
 }
 
@@ -528,21 +602,27 @@ setup_herdr() {
   else
     warn "herdr already installed — skipping (update with: herdr update)."
   fi
+  local before=${#FAILED_STEPS[@]}
   # Only link config.toml: ~/.config/herdr also holds herdr's sockets, logs and session state
   as_user mkdir -p "$HOME_DIR/.config/herdr"
-  step "Linking herdr config..."
-  symlink_force "$DOTS_DIR/SalchipapaHerdr/config.toml" "$HOME_DIR/.config/herdr/config.toml"
+  link_config "herdr config" "$DOTS_DIR/SalchipapaHerdr/config.toml" "$HOME_DIR/.config/herdr/config.toml"
   # Agent integrations: better state detection and native session restore
-  local herdr_bin="$HOME_DIR/.local/bin/herdr" target
+  local herdr_bin="$HOME_DIR/.local/bin/herdr" target done_list=()
   [ -x "$herdr_bin" ] || herdr_bin="$(command -v herdr || true)"
   if [ -n "$herdr_bin" ]; then
     for target in claude codex opencode copilot; do
-      as_user "$herdr_bin" integration install "$target" >/dev/null 2>&1 ||
+      if as_user "$herdr_bin" integration install "$target" >>"$LOG_FILE" 2>&1; then
+        done_list+=("$target")
+      else
         warn "herdr integration for $target failed — run: herdr integration install $target"
+      fi
     done
-    ok "herdr integrations: claude, codex, opencode, copilot."
+    [ "${#done_list[@]}" -gt 0 ] && ok "herdr integrations: ${done_list[*]}."
+  else
+    err "herdr binary not found after the install."
+    FAILED_STEPS+=("herdr")
   fi
-  ok "Herdr ready."
+  section_result "$before" "Herdr ready."
 }
 
 # ════════════════════════════════════════════════════════════════
@@ -550,11 +630,10 @@ setup_herdr() {
 # ════════════════════════════════════════════════════════════════
 
 setup_alacritty() {
-  [ "$IS_ARCH" -eq 1 ] && run_silent "Installing alacritty..." "pkg_install alacritty"
-  ensure_dir "$HOME_DIR/.config"
-  step "Linking alacritty config..."
-  symlink_force "$DOTS_DIR/SalchipapaAlacritty" "$HOME_DIR/.config/alacritty"
-  ok "Alacritty config linked."
+  if [ "$IS_ARCH" -eq 1 ]; then
+    run_silent "Installing alacritty..." "pkg_install alacritty"
+  fi
+  link_config "alacritty config" "$DOTS_DIR/SalchipapaAlacritty" "$HOME_DIR/.config/alacritty"
 }
 
 setup_wezterm() {
@@ -562,10 +641,10 @@ setup_wezterm() {
     setup_wezterm_windows
     return
   fi
-  [ "$IS_ARCH" -eq 1 ] && run_silent "Installing wezterm..." "pkg_install wezterm"
-  step "Linking .wezterm.lua..."
-  symlink_force "$DOTS_DIR/SalchipapaWezterm/.wezterm.lua" "$HOME_DIR/.wezterm.lua"
-  ok "Wezterm config linked."
+  if [ "$IS_ARCH" -eq 1 ]; then
+    run_silent "Installing wezterm..." "pkg_install wezterm"
+  fi
+  link_config ".wezterm.lua" "$DOTS_DIR/SalchipapaWezterm/.wezterm.lua" "$HOME_DIR/.wezterm.lua"
 }
 
 # WSL: WezTerm runs natively on Windows (much smoother than a Linux terminal through WSLg) and
@@ -573,13 +652,15 @@ setup_wezterm() {
 # from \\wsl.localhost made WezTerm crash.
 setup_wezterm_windows() {
   local winhome distro fontdir
-  winhome="$(win_home)"
+  if ! winhome="$(win_home)" || [ ! -d "$winhome" ]; then
+    err "Could not find the Windows home (cmd.exe / wslpath) — WezTerm for Windows skipped."
+    FAILED_STEPS+=("WezTerm (Windows)")
+    return 0
+  fi
   distro="${WSL_DISTRO_NAME:-archlinux}"
 
-  step "Windows: WezTerm (winget)..."
-  (cd /mnt/c && powershell.exe -NoProfile -Command \
-    "winget install --id wez.wezterm --exact --source winget --silent --accept-package-agreements --accept-source-agreements" \
-    >/dev/null 2>&1) || true
+  run_silent "Windows: WezTerm (winget)..." "cd /mnt/c && powershell.exe -NoProfile -Command \
+    'winget install --id wez.wezterm --exact --source winget --silent --accept-package-agreements --accept-source-agreements; if (\$LASTEXITCODE -notin 0,-1978335189,-1978335135) { exit \$LASTEXITCODE }'"
 
   # WezTerm is a Windows app: it can't see Linux fonts. Per-user install, no admin needed.
   fontdir="$winhome/AppData/Local/Microsoft/Windows/Fonts"
@@ -604,18 +685,20 @@ setup_wezterm_windows() {
   fi
 
   # Copy the config, pointing default_prog at this distro (the repo file says "archlinux")
-  step "Windows: .wezterm.lua (distro: $distro)..."
-  sed "s/\"-d\", \"archlinux\"/\"-d\", \"$distro\"/" "$DOTS_DIR/SalchipapaWezterm/.wezterm.lua" \
-    >"$winhome/.wezterm.lua"
-  ok "WezTerm ready (Windows). Edit the repo file and re-run, or copy it to $(wslpath -w "$winhome")\\.wezterm.lua"
+  if sed "s/\"-d\", \"archlinux\"/\"-d\", \"$distro\"/" "$DOTS_DIR/SalchipapaWezterm/.wezterm.lua" \
+    >"$winhome/.wezterm.lua" 2>>"$LOG_FILE"; then
+    ok "Windows: .wezterm.lua copied (distro: $distro) → $(wslpath -w "$winhome" 2>/dev/null || echo "$winhome")\\.wezterm.lua"
+  else
+    err "Windows: could not write $winhome/.wezterm.lua"
+    FAILED_STEPS+=("WezTerm config (Windows)")
+  fi
 }
 
 setup_kitty() {
-  [ "$IS_ARCH" -eq 1 ] && run_silent "Installing kitty..." "pkg_install kitty"
-  ensure_dir "$HOME_DIR/.config"
-  step "Linking kitty config..."
-  symlink_force "$DOTS_DIR/SalchipapaKitty" "$HOME_DIR/.config/kitty"
-  ok "Kitty config linked."
+  if [ "$IS_ARCH" -eq 1 ]; then
+    run_silent "Installing kitty..." "pkg_install kitty"
+  fi
+  link_config "kitty config" "$DOTS_DIR/SalchipapaKitty" "$HOME_DIR/.config/kitty"
 }
 
 # ════════════════════════════════════════════════════════════════
@@ -631,30 +714,46 @@ write_as_user() {
   as_user tee "$dst" >/dev/null
 }
 
+# win32yank.exe (latest release) into /usr/local/bin
+install_win32yank() {
+  local tmp url rc=0
+  tmp="$(mktemp -d)"
+  url="$(curl -fsSL https://api.github.com/repos/equalsraf/win32yank/releases/latest |
+    grep -oE '"browser_download_url": "[^"]*x64\.zip"' | cut -d'"' -f4)" &&
+    curl -fsSL "$url" -o "$tmp/win32yank.zip" &&
+    unzip -o -q "$tmp/win32yank.zip" -d "$tmp" &&
+    sudo install -m755 "$tmp/win32yank.exe" /usr/local/bin/win32yank.exe || rc=$?
+  rm -rf "$tmp"
+  return "$rc"
+}
+
 # Windows home as a WSL path, e.g. /mnt/c/Users/name
 win_home() {
   wslpath "$(cd /mnt/c && cmd.exe /c 'echo %USERPROFILE%' 2>/dev/null | tr -d '\r')"
 }
 
 setup_wsl() {
-  local winhome
-  winhome="$(win_home)"
+  local winhome before=${#FAILED_STEPS[@]}
+  if ! winhome="$(win_home)" || [ ! -d "$winhome" ]; then
+    err "Could not find the Windows home (cmd.exe / wslpath) — Windows-side steps skipped."
+    FAILED_STEPS+=("WSL: Windows home")
+    winhome=""
+  fi
 
   # ── Windows: mpv + yt-dlp (yt-x plays through the Windows mpv: GPU decoding, 4K)
-  step "Windows: mpv + yt-dlp (winget)..."
-  (cd /mnt/c && powershell.exe -NoProfile -Command \
-    "winget install --id shinchiro.mpv --exact --source winget --silent --accept-package-agreements --accept-source-agreements; \
-     winget install --id yt-dlp.yt-dlp --exact --source winget --silent --accept-package-agreements --accept-source-agreements" \
-    >/dev/null 2>&1) || true
+  if [ -n "$winhome" ]; then
+    run_silent "Windows: mpv + yt-dlp (winget)..." "cd /mnt/c && powershell.exe -NoProfile -Command \
+      'foreach (\$id in \"shinchiro.mpv\",\"yt-dlp.yt-dlp\") { winget install --id \$id --exact --source winget --silent --accept-package-agreements --accept-source-agreements; if (\$LASTEXITCODE -notin 0,-1978335189,-1978335135) { exit \$LASTEXITCODE } }'"
+  fi
 
   # winget's PATH changes aren't visible until WSL restarts, so point mpv at yt-dlp.exe directly
-  local ytdlp mpv_conf="$winhome/AppData/Roaming/mpv/mpv.conf"
-  ytdlp="$(find "$winhome/AppData/Local/Microsoft/WinGet/Packages" -maxdepth 2 -path '*yt-dlp.yt-dlp_*' -name yt-dlp.exe 2>/dev/null | head -1)"
-  if [ -f "$mpv_conf" ]; then
-    warn "Windows mpv.conf already exists — left untouched."
-  elif [ -n "$ytdlp" ]; then
-    mkdir -p "$(dirname "$mpv_conf")"
-    cat >"$mpv_conf" <<EOF
+  local ytdlp="" mpv_conf="$winhome/AppData/Roaming/mpv/mpv.conf"
+  [ -n "$winhome" ] && ytdlp="$(find "$winhome/AppData/Local/Microsoft/WinGet/Packages" -maxdepth 2 -path '*yt-dlp.yt-dlp_*' -name yt-dlp.exe 2>/dev/null | head -1 || true)"
+  if [ -z "$winhome" ]; then
+    :
+  elif [ -f "$mpv_conf" ]; then
+    ok "Windows mpv.conf already exists — left untouched."
+  elif [ -n "$ytdlp" ] && mkdir -p "$(dirname "$mpv_conf")" && cat >"$mpv_conf" <<EOF
 # mpv de Windows (lo usa yt-x desde WSL para ver en 4K con la GPU)
 
 # Decodificacion por GPU
@@ -664,50 +763,56 @@ vo=gpu-next
 # yt-dlp instalado con winget
 script-opts=ytdl_hook-ytdl_path=$(wslpath -w "$ytdlp")
 EOF
-    ok "Windows mpv configured."
+  then
+    ok "Windows mpv configured (GPU decoding, yt-dlp)."
   else
-    warn "yt-dlp.exe not found — Windows mpv may not open YouTube links."
+    warn "Windows mpv.conf not written (yt-dlp.exe not found?) — Windows mpv may not open YouTube links."
   fi
 
   # ── win32yank: Neovim clipboard (lazy.lua uses it under WSL)
   if ! command -v win32yank.exe >/dev/null 2>&1; then
-    step "win32yank (Neovim clipboard)..."
-    local tmp url
-    tmp="$(mktemp -d)"
-    url="$(curl -fsSL https://api.github.com/repos/equalsraf/win32yank/releases/latest |
-      grep -oE '"browser_download_url": "[^"]*x64\.zip"' | cut -d'"' -f4)"
-    curl -fsSL "$url" -o "$tmp/win32yank.zip" &&
-      unzip -o -q "$tmp/win32yank.zip" -d "$tmp" &&
-      sudo install -m755 "$tmp/win32yank.exe" /usr/local/bin/win32yank.exe
-    rm -rf "$tmp"
+    run_silent "win32yank (Neovim clipboard)..." "install_win32yank"
+  else
+    ok "win32yank already installed."
   fi
 
   # ── wslu: wslview opens links in the Windows browser (gh auth, etc.)
-  if ! command -v wslview >/dev/null 2>&1; then
-    step "wslu (wslview)..."
-    if [ "$IS_ARCH" -eq 1 ]; then
-      command -v yay >/dev/null 2>&1 && as_user yay -S --needed --noconfirm wslu || warn "wslu skipped (needs yay)."
+  if command -v wslview >/dev/null 2>&1; then
+    ok "wslu (wslview) already installed."
+  elif [ "$IS_ARCH" -eq 1 ]; then
+    if command -v yay >/dev/null 2>&1; then
+      step "wslu (AUR)..."
+      if as_user yay -S --needed --noconfirm wslu; then
+        ok "wslu installed."
+      else
+        err "wslu failed — install it later with: yay -S wslu"
+        FAILED_STEPS+=("wslu")
+      fi
     else
-      sudo apt-get install -y wslu >/dev/null 2>&1 || warn "wslu not available via apt."
+      warn "wslu skipped (needs yay)."
     fi
+  else
+    run_silent "wslu (wslview)..." "sudo apt-get install -y wslu"
   fi
 
   # ── kitty: render with the GPU through D3D12 instead of llvmpipe
   local kitty_bin
   kitty_bin="$(type -ap kitty 2>/dev/null | grep -v '^/usr/local/bin/kitty$' | head -1 || true)"
   if [ -n "$kitty_bin" ] && [ ! -e /usr/local/bin/kitty ]; then
-    step "kitty GPU wrapper (D3D12)..."
-    printf '#!/bin/sh\n# Usa la GPU via D3D12 (WSL) en vez de renderizado por software (llvmpipe)\nexport GALLIUM_DRIVER=d3d12\nexec %s "$@"\n' "$kitty_bin" |
-      sudo tee /usr/local/bin/kitty >/dev/null
-    sudo chmod +x /usr/local/bin/kitty
+    if printf '#!/bin/sh\n# Usa la GPU via D3D12 (WSL) en vez de renderizado por software (llvmpipe)\nexport GALLIUM_DRIVER=d3d12\nexec %s "$@"\n' "$kitty_bin" |
+      sudo tee /usr/local/bin/kitty >/dev/null && sudo chmod +x /usr/local/bin/kitty; then
+      ok "kitty GPU wrapper (D3D12) → /usr/local/bin/kitty"
+    else
+      err "kitty GPU wrapper could not be written"
+      FAILED_STEPS+=("kitty GPU wrapper")
+    fi
   fi
 
   # ── mpv: every `mpv` call (yt-x, yazi, terminal) goes to the Windows mpv.
   # WSLg has no hardware decoding and can't show 1080p60 smoothly; the Windows
   # mpv decodes on the GPU. Linux file paths are translated to \\wsl.localhost\...
   if [ -x "/mnt/c/Program Files/MPV Player/mpv.exe" ] && [ ! -e /usr/local/bin/mpv ]; then
-    step "mpv -> Windows mpv wrapper..."
-    sudo tee /usr/local/bin/mpv >/dev/null <<'EOF'
+    if sudo tee /usr/local/bin/mpv >/dev/null <<'EOF'
 #!/bin/sh
 # mpv en WSL -> mpv de Windows (decodificacion por GPU, 4K).
 # Traduce las rutas de archivos de Linux a rutas de Windows (\\wsl.localhost\...).
@@ -729,10 +834,15 @@ for arg in "$@"; do
 done
 exec "$win_mpv" "$@"
 EOF
-    sudo chmod +x /usr/local/bin/mpv
+    then
+      sudo chmod +x /usr/local/bin/mpv && ok "mpv wrapper → Windows mpv (/usr/local/bin/mpv)"
+    else
+      err "mpv wrapper could not be written"
+      FAILED_STEPS+=("mpv wrapper")
+    fi
   fi
 
-  ok "WSL extras ready."
+  section_result "$before" "WSL extras ready."
 }
 
 # ════════════════════════════════════════════════════════════════
@@ -845,16 +955,29 @@ accion_install() {
   if [ "$IS_ARCH" -eq 1 ]; then
     # ── System (Arch) ────────────────────────────────────────
     section "System — Arch Linux"
+    local before=${#FAILED_STEPS[@]}
     run_silent "pacman -Syu..." "sudo pacman -Syu --noconfirm"
     run_silent "base-devel, curl, git, ca-certificates, unzip..." \
       "sudo pacman -S --needed --noconfirm base-devel curl git ca-certificates unzip"
-    step "yay (AUR helper)..."
-    install_yay
-    ok "System packages ready."
+    if command -v yay >/dev/null 2>&1; then
+      ok "yay already installed."
+    elif [ "$TARGET_USER" = "root" ]; then
+      warn "yay can't be built as root — create a normal user to use it (AUR packages will be skipped)."
+    else
+      step "yay (AUR helper, builds from the AUR)..."
+      if install_yay >>"$LOG_FILE" 2>&1; then
+        ok "yay installed."
+      else
+        err "yay could not be built — AUR packages will be skipped (see the log)."
+        FAILED_STEPS+=("yay")
+      fi
+    fi
+    section_result "$before" "System packages ready."
     section_end
 
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
+    before=${#FAILED_STEPS[@]}
     run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, fonts..." \
       "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
     picked spotify_player "${extra_choices[@]}" &&
@@ -867,23 +990,30 @@ accion_install() {
       local aur=(asm-lsp)
       picked yt-x "${extra_choices[@]}" && aur+=(yt-x-git gum)
       step "${aur[*]} (AUR)..."
-      as_user yay -S --needed --noconfirm "${aur[@]}" || warn "AUR packages failed — install them later with: yay -S ${aur[*]}"
+      if as_user yay -S --needed --noconfirm "${aur[@]}"; then
+        ok "AUR: ${aur[*]}"
+      else
+        err "AUR packages failed — install them later with: yay -S ${aur[*]}"
+        FAILED_STEPS+=("AUR: ${aur[*]}")
+      fi
     else
-      warn "AUR packages skipped (need yay): asm-lsp$(picked yt-x "${extra_choices[@]}" && echo ", yt-x")."
+      warn "AUR packages skipped (need yay): asm-lsp$(picked yt-x "${extra_choices[@]}" && echo ", yt-x" || true)."
     fi
-    ok "Core tools installed."
+    section_result "$before" "Core tools installed."
     section_end
   else
     # ── System (Debian) ──────────────────────────────────────
     section "System"
+    local before=${#FAILED_STEPS[@]}
     run_silent "apt update & upgrade..." "sudo apt-get update -y && sudo apt-get upgrade -y"
     run_silent "build-essential, curl, git, ca-certificates, unzip..." \
       "sudo apt-get install -y build-essential curl git ca-certificates unzip"
-    ok "System packages ready."
+    section_result "$before" "System packages ready."
     section_end
 
     # ── Homebrew ─────────────────────────────────────────────
     section "Homebrew"
+    before=${#FAILED_STEPS[@]}
     if ! command -v brew >/dev/null 2>&1; then
       run_silent "Installing Homebrew..." \
         'NONINTERACTIVE=1 /bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"'
@@ -893,20 +1023,26 @@ accion_install() {
     touch "$HOME_DIR/.bashrc"
     append_unique_line "" "$HOME_DIR/.bashrc"
     append_unique_line 'eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"' "$HOME_DIR/.bashrc"
-    eval "$("$brew_prefix/bin/brew" shellenv)"
-    run_silent "brew update..." "brew update"
-    ok "Homebrew ready."
+    if [ -x "$brew_prefix/bin/brew" ]; then
+      eval "$("$brew_prefix/bin/brew" shellenv)"
+      run_silent "brew update..." "brew update"
+    else
+      err "Homebrew not found at $brew_prefix — the brew packages below will fail."
+      FAILED_STEPS+=("Homebrew")
+    fi
+    section_result "$before" "Homebrew ready."
     section_end
 
     # ── Core packages ────────────────────────────────────────
     section "Core Tools"
+    before=${#FAILED_STEPS[@]}
     run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
       "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi jq"
     picked spotify_player "${extra_choices[@]}" &&
       run_silent "spotify_player..." "brew install spotify_player"
     picked yt-x "${extra_choices[@]}" &&
       warn "yt-x: no package here — install it by hand (github.com/Benexl/yt-x); its config gets linked."
-    ok "Core tools installed."
+    section_result "$before" "Core tools installed."
     section_end
   fi
 
@@ -955,17 +1091,15 @@ accion_install() {
   '
 
   install_npm_cli() {
-    local pkg="$1"
-    step "Installing $pkg..."
     # pacman's npm uses a global prefix under /usr, which needs root
     if [ "$IS_ARCH" -eq 1 ]; then
-      sudo npm i -g "$pkg"
+      run_silent "$1 (npm)..." "sudo npm i -g '$1'"
     else
-      npm i -g "$pkg"
+      run_silent "$1 (npm)..." "npm i -g '$1'"
     fi
   }
 
-  local cli
+  local cli before=${#FAILED_STEPS[@]}
   for cli in "${cli_choices[@]}"; do
     case "$cli" in
     "Claude Code")
@@ -998,7 +1132,7 @@ accion_install() {
   if [ "${#cli_choices[@]}" -eq 0 ]; then
     ok "Skipped."
   else
-    ok "CLIs done."
+    section_result "$before" "CLIs installed: $cli_list."
   fi
   section_end
 
@@ -1011,42 +1145,27 @@ accion_install() {
   gh_token=""
 
   # ── Common symlinks ────────────────────────────────────────
-  section "Config Symlinks"
+  section "Config Symlinks & Obsidian"
+  before=${#FAILED_STEPS[@]}
   ensure_dir "$HOME_DIR/.config"
 
-  if picked Neovim "${cfg_choices[@]}"; then
-    step "Neovim..."
-    symlink_force "$DOTS_DIR/SalchipapaNvim/nvim" "$HOME_DIR/.config/nvim"
-    ok "Neovim linked."
-  fi
-
-  if picked Starship "${cfg_choices[@]}"; then
-    step "Starship..."
-    symlink_force "$DOTS_DIR/starship.toml" "$HOME_DIR/.config/starship.toml"
-    ok "Starship linked."
-  fi
-
-  if picked Fastfetch "${cfg_choices[@]}"; then
-    step "Fastfetch..."
-    symlink_force "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
-    ok "Fastfetch linked."
-  fi
+  picked Neovim "${cfg_choices[@]}" && link_config "Neovim" "$DOTS_DIR/SalchipapaNvim/nvim" "$HOME_DIR/.config/nvim"
+  picked Starship "${cfg_choices[@]}" && link_config "Starship" "$DOTS_DIR/starship.toml" "$HOME_DIR/.config/starship.toml"
+  picked Fastfetch "${cfg_choices[@]}" && link_config "Fastfetch" "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
 
   if picked spotify_player "${extra_choices[@]}"; then
-    step "spotify_player..."
-    symlink_force "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
-    ok "spotify_player linked."
+    link_config "spotify_player" "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
     if [ -n "$spotify_id" ]; then
-      printf '%s\n' "$spotify_id" | write_as_user "$HOME_DIR/.config/salchipapa-dots/spotify-client-id"
-      ok "Spotify client_id saved (~/.config/salchipapa-dots/spotify-client-id)."
+      if printf '%s\n' "$spotify_id" | write_as_user "$HOME_DIR/.config/salchipapa-dots/spotify-client-id"; then
+        ok "Spotify client_id saved (~/.config/salchipapa-dots/spotify-client-id)."
+      else
+        err "Could not save the Spotify client_id."
+        FAILED_STEPS+=("Spotify client_id")
+      fi
     fi
   fi
 
-  if picked yt-x "${extra_choices[@]}"; then
-    step "yt-x..."
-    symlink_force "$DOTS_DIR/SalchipapaYtx" "$HOME_DIR/.config/yt-x"
-    ok "yt-x linked."
-  fi
+  picked yt-x "${extra_choices[@]}" && link_config "yt-x" "$DOTS_DIR/SalchipapaYtx" "$HOME_DIR/.config/yt-x"
 
   if picked "Claude Code hooks" "${cfg_choices[@]}"; then
     step "Claude Code hooks..."
@@ -1055,26 +1174,29 @@ accion_install() {
 
   # ── Obsidian vault ─────────────────────────────────────────
   if [ -n "$vault_url" ]; then
-    step "Obsidian vault..."
-    if [ ! -d "$HOME_DIR/.config/obsidian/.git" ]; then
-      sudo -u "$TARGET_USER" git clone "$vault_url" "$HOME_DIR/.config/obsidian"
+    if [ -d "$HOME_DIR/.config/obsidian/.git" ]; then
+      ok "Obsidian vault already at ~/.config/obsidian (not cloned again)."
     else
-      warn "Obsidian vault already exists — skipping clone."
+      # GIT_TERMINAL_PROMPT=0: a private repo without GitHub login fails fast instead of waiting
+      # for a password in the background
+      run_silent "Cloning the Obsidian vault..." \
+        "as_user env GIT_TERMINAL_PROMPT=0 git clone '$vault_url' '$HOME_DIR/.config/obsidian'"
+      [ -d "$HOME_DIR/.config/obsidian/.git" ] ||
+        warn "Vault not cloned: check the URL and that GitHub is logged in (gh auth login && gh auth setup-git)."
     fi
-    ok "Obsidian vault ready at ~/.config/obsidian."
   else
-    warn "Obsidian vault skipped."
+    ok "Obsidian vault: skipped."
   fi
   if [ -d "$HOME_DIR/.config/obsidian/.git" ]; then
     setup_agent_memory
   fi
+  section_result "$before" "Configs linked."
   section_end
 
   # ── Neovim Lazy sync ───────────────────────────────────────
   if picked Neovim "${cfg_choices[@]}"; then
     section "Neovim"
-    run_silent "Running Lazy sync..." "sudo -u '$TARGET_USER' nvim --headless '+Lazy! sync' +qa"
-    ok "Lazy sync done."
+    run_silent "Neovim plugins (Lazy sync)..." "sudo -u '$TARGET_USER' nvim --headless '+Lazy! sync' +qa"
     section_end
   fi
 
