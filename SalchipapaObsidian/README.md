@@ -53,7 +53,8 @@ En GitHub Actions corren una sola vez, a su hora, aunque todos tus equipos esté
    ```
 2. Copia [`github-actions/daily-note.yml`](github-actions/daily-note.yml) y
    [`github-actions/weekly-review.yml`](github-actions/weekly-review.yml) a `<bóveda>/.github/workflows/`
-   (ajusta `TZ` y el `cron` a tu zona horaria).
+   (ajusta `TZ` y el `cron` a tu zona horaria). Bajan los scripts de `erickm13/Salchipapa.Dots`; si usas
+   un fork, crea en la bóveda la variable de Actions `SALCHIPAPA_DOTS_REPO` = `<usuario>/<fork>`.
 3. En cada equipo: `setup-agents.py` ve los workflows y **desactiva** los timers locales.
 
 En la nube no hay claude-mem (es local): la diaria se hace con `## Sesiones de hoy` y tus commits

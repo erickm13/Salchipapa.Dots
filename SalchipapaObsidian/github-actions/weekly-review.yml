@@ -34,7 +34,8 @@ jobs:
       - name: Scripts (Salchipapa.Dots)
         uses: actions/checkout@v4
         with:
-          repository: erickm13/Salchipapa.Dots
+          # Tu fork: variable del repo SALCHIPAPA_DOTS_REPO (Settings → Secrets and variables → Variables)
+          repository: ${{ vars.SALCHIPAPA_DOTS_REPO || 'erickm13/Salchipapa.Dots' }}
           path: dots
       - name: Claude Code
         run: |

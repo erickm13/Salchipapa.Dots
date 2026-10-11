@@ -6,6 +6,8 @@ on:
 
 jobs:
   update-tap:
+    # Solo en el repo original: un fork no tiene el tap ni el secret TAP_GITHUB_TOKEN
+    if: github.repository == 'erickm13/Salchipapa.Dots'
     runs-on: ubuntu-latest
     steps:
       - name: Get release info
