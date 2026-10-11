@@ -167,14 +167,15 @@ install_carapace_bin() {
   rm -rf "$tmp"
 }
 
-load_nvm_brew() {
-  export NVM_DIR="$HOME_DIR/.nvm"
-  mkdir -p "$NVM_DIR"
-  local f
-  for f in "$(brew --prefix)/opt/nvm/nvm.sh" "$(brew --prefix nvm)/nvm.sh"; do
-    [ -s "$f" ] && . "$f" && return 0
-  done
-  return 1
+# mise manages Node and the npm CLIs per user: binary from pacman (Arch) or Homebrew (Debian).
+# Full path: `sudo -u` (as_user) uses secure_path, which has no Homebrew.
+mise_bin() {
+  command -v mise 2>/dev/null || echo "${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}/bin/mise"
+}
+
+# Node LTS with mise as the target user (~/.config/mise/config.toml: node = "lts")
+install_node_mise() {
+  as_user env MISE_YES=1 "$(mise_bin)" use -g node@lts
 }
 
 # ════════════════════════════════════════════════════════════════
@@ -372,7 +373,7 @@ setup_fish() {
   try_step "fish is the default shell" sudo chsh -s "$brew_fish" "$TARGET_USER"
 
   link_config "fish config" "$DOTS_DIR/SalchipapaFish/fish" "$HOME_DIR/.config/fish"
-  run_silent "Fisher + plugins (nvm.fish, fzf.fish, pj)..." "install_fisher '$brew_fish'"
+  run_silent "Fisher + plugins (fzf.fish, pj)..." "install_fisher '$brew_fish'"
   section_result "$before" "Fish ready."
 }
 
@@ -391,9 +392,14 @@ install_fisher() {
           ~/.config/fish/functions/_nvm_list.fish \
           ~/.config/fish/completions/nvm.fish \
           ~/.config/fish/conf.d/nvm.fish \
+          ~/.config/fish/functions/nvm.fish \
           ~/.config/fish/functions/pj.fish \
           ~/.config/fish/completions/pj.fish
-    fisher install jorgebucaran/nvm.fish patrickf1/fzf.fish oh-my-fish/plugin-pj
+    # nvm.fish was replaced by mise: drop it from fisher without `fisher remove`, which would
+    # also delete the Node versions it installed (~/.local/share/nvm)
+    set -U _fisher_plugins (string match -v -- jorgebucaran/nvm.fish $_fisher_plugins)
+    set -e _fisher_jorgebucaran_2F_nvm_2E_fish_files
+    fisher install patrickf1/fzf.fish oh-my-fish/plugin-pj
   '
 }
 
@@ -415,30 +421,9 @@ setup_zsh() {
   run_silent "Installing Oh My Zsh (KEEP_ZSHRC)..." \
     'export RUNZSH=no CHSH=no KEEP_ZSHRC=yes; sh -c "$(curl -fsSL https://raw.githubusercontent.com/ohmyzsh/ohmyzsh/master/tools/install.sh)"'
 
-  # Arch: Node comes from pacman (nodejs/npm); .zshrc loads the nvm package if present
-  if [ "$IS_ARCH" -eq 1 ]; then
-    ok "Zsh ready."
-    return
-  fi
-
-  if ! brew list nvm >/dev/null 2>&1; then
-    run_silent "Installing nvm via brew..." "brew install nvm"
-  fi
-
-  local bashrc="$HOME_DIR/.bashrc" zshrc="$HOME_DIR/.zshrc"
-  for rc in "$bashrc" "$zshrc"; do
-    touch "$rc"
-    append_unique_line 'export NVM_DIR="$HOME/.nvm"' "$rc"
-    append_unique_line '[ -s "$(brew --prefix)/opt/nvm/nvm.sh" ] && . "$(brew --prefix)/opt/nvm/nvm.sh"' "$rc"
-    append_unique_line '[ -s "$(brew --prefix nvm)/nvm.sh" ] && . "$(brew --prefix nvm)/nvm.sh"' "$rc"
-    append_unique_line 'nvm use default >/dev/null 2>&1' "$rc"
-  done
-
-  if load_nvm_brew; then
-    run_silent "Installing Node LTS..." "nvm install --lts && nvm alias default 'lts/*' && nvm use default"
-  else
-    warn "Could not load nvm. Re-run the installer after restarting the shell."
-  fi
+  # Node comes from mise (Core Tools); .zshrc activates it. bash too, after brew shellenv
+  touch "$HOME_DIR/.bashrc"
+  append_unique_line 'command -v mise >/dev/null && eval "$(mise activate bash)"' "$HOME_DIR/.bashrc"
 
   ok "Zsh ready."
 }
@@ -978,8 +963,9 @@ accion_install() {
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
     before=${#FAILED_STEPS[@]}
-    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
+    run_silent "neovim, mise, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim mise starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
+    run_silent "Node LTS (mise)..." "install_node_mise"
     picked spotify_player "${extra_choices[@]}" &&
       run_silent "spotify-player..." "sudo pacman -S --needed --noconfirm spotify-player"
     picked yt-x "${extra_choices[@]}" &&
@@ -1036,8 +1022,9 @@ accion_install() {
     # ── Core packages ────────────────────────────────────────
     section "Core Tools"
     before=${#FAILED_STEPS[@]}
-    run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
-      "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi jq"
+    run_silent "gcc, nvim, mise, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
+      "brew install gcc nvim mise starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi jq"
+    run_silent "Node LTS (mise)..." "install_node_mise"
     picked spotify_player "${extra_choices[@]}" &&
       run_silent "spotify_player..." "brew install spotify_player"
     picked yt-x "${extra_choices[@]}" &&
@@ -1080,23 +1067,10 @@ accion_install() {
   local brew_fish_cli="$brew_prefix/bin/fish"
   local brew_zsh_cli="$brew_prefix/bin/zsh"
 
-  local NVM_ZSH_BOOT='
-    export NVM_DIR="$HOME/.nvm"; mkdir -p "$NVM_DIR"
-    for f in "$(brew --prefix)/opt/nvm/nvm.sh" "$(brew --prefix nvm)/nvm.sh"; do
-      [ -s "$f" ] && . "$f" && break
-    done
-    nvm install --lts >/dev/null 2>&1 || true
-    nvm alias default "lts/*" >/dev/null 2>&1 || true
-    nvm use default >/dev/null 2>&1 || true
-  '
-
+  # npm CLIs through mise (as the user, no sudo): they live outside Node's global prefix, so a
+  # Node upgrade doesn't lose them
   install_npm_cli() {
-    # pacman's npm uses a global prefix under /usr, which needs root
-    if [ "$IS_ARCH" -eq 1 ]; then
-      run_silent "$1 (npm)..." "sudo npm i -g '$1'"
-    else
-      run_silent "$1 (npm)..." "npm i -g '$1'"
-    fi
+    run_silent "$1 (mise npm)..." "as_user env MISE_YES=1 '$(mise_bin)' use -g 'npm:$1'"
   }
 
   local cli before=${#FAILED_STEPS[@]}
@@ -1196,7 +1170,9 @@ accion_install() {
   # ── Neovim Lazy sync ───────────────────────────────────────
   if picked Neovim "${cfg_choices[@]}"; then
     section "Neovim"
-    run_silent "Neovim plugins (Lazy sync)..." "sudo -u '$TARGET_USER' nvim --headless '+Lazy! sync' +qa"
+    # mise exec: Mason and the plugins find the user's Node (mise isn't activated in this shell)
+    run_silent "Neovim plugins (Lazy sync)..." \
+      "sudo -u '$TARGET_USER' -H '$(mise_bin)' exec -- nvim --headless '+Lazy! sync' +qa"
     section_end
   fi
 
@@ -1308,12 +1284,25 @@ accion_uninstall() {
     ok "Removed ~/.config/obsidian"
   fi
 
+  # Before brew removes mise: only the tools this installer put in the global mise config
+  local mise
+  mise="$(mise_bin)"
+  if [ -x "$mise" ]; then
+    step "Removing Node and the npm CLIs from mise..."
+    local tool
+    for tool in npm:@google/gemini-cli npm:@angular/cli npm:@openai/codex npm:opencode-ai \
+      npm:@github/copilot node; do
+      as_user "$mise" unuse -g "$tool" >/dev/null 2>&1 || true
+    done
+    ok "mise tools removed."
+  fi
+
   if command -v brew &>/dev/null; then
     local brew_pkgs=(
       fish zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions
       zellij tmux alacritty
       gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi
-      nvm
+      mise nvm
     )
     step "Uninstalling brew packages..."
     for pkg in "${brew_pkgs[@]}"; do
@@ -1326,6 +1315,7 @@ accion_uninstall() {
       ok "Removed /home/linuxbrew/.linuxbrew/etc/fish"
     fi
 
+    # npm CLIs of installs from before mise
     step "Uninstalling npm CLIs..."
     npm uninstall -g @google/gemini-cli @angular/cli @anthropic-ai/claude-code @openai/codex opencode-ai @github/copilot 2>/dev/null || true
     ok "npm CLIs removed."

@@ -22,7 +22,7 @@ nvim/.session/
 SalchipapaFish/fish/completions/
 SalchipapaFish/fish/conf.d/fzf.fish
 SalchipapaFish/fish/functions/_fzf*
-# Archivos generados por nvm
+# Archivos generados por nvm.fish (ya no se instala: Node viene de mise)
 SalchipapaFish/fish/conf.d/nvm.fish
 SalchipapaFish/fish/functions/nvm.fish
 SalchipapaFish/fish/functions/_nvm*

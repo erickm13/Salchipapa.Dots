@@ -11,6 +11,7 @@ local function get_system_node()
     "/opt/homebrew/bin/node", -- Homebrew on Apple Silicon
     "/usr/local/bin/node", -- Homebrew on Intel Mac or standard install
     vim.fn.expand("~/.volta/bin/node"), -- Volta's global Node
+    vim.fn.expand("~/.local/share/mise/installs/node/*/bin/node"), -- mise global Node (Salchipapa.Dots)
     vim.fn.expand("~/.local/share/nvm/v*/bin/node"), -- nvm.fish (fish shell)
     vim.fn.expand("~/.nvm/versions/node/*/bin/node"), -- NVM default version
     vim.fn.expand("~/.nix-profile/bin/node"), -- Nix
@@ -77,7 +78,9 @@ local function setup_nodejs()
             print("✓ Node.js for Neovim: " .. node_path .. " (v" .. version .. ")")
 
             -- Detect which manager is being used
-            if node_path:match("%.volta/") then
+            if node_path:match("/mise/") then
+              print("  Using mise-managed Node.js")
+            elseif node_path:match("%.volta/") then
               print("  Using Volta-managed Node.js")
             elseif node_path:match("%.nvm/") then
               print("  Using NVM-managed Node.js")
@@ -97,7 +100,9 @@ local function setup_nodejs()
             .. version
             .. " is too old. Neovim requires v18+ (v22+ recommended).\n\n"
 
-          if node_path:match("/homebrew/") then
+          if node_path:match("/mise/") then
+            upgrade_msg = upgrade_msg .. "To upgrade with mise:\n  mise use -g node@lts"
+          elseif node_path:match("/homebrew/") then
             upgrade_msg = upgrade_msg .. "To upgrade with Homebrew:\n  brew upgrade node"
           elseif node_path:match("%.volta/") then
             upgrade_msg = upgrade_msg .. "To upgrade with Volta:\n  volta install node@latest"
@@ -129,7 +134,7 @@ local function setup_nodejs()
   end
 
   vim.notify(
-    "⚠️  Node.js not found! Some plugins may not work correctly.\nInstall Node.js with:\n  nvm install lts",
+    "⚠️  Node.js not found! Some plugins may not work correctly.\nInstall Node.js with:\n  mise use -g node@lts",
     vim.log.levels.ERROR
   )
   return false, nil
@@ -197,7 +202,9 @@ function M.info()
   print("Node.js for Neovim: " .. vim.g.node_host_prog .. " (v" .. version .. ")")
 
   -- Detect source
-  if vim.g.node_host_prog:match("%.volta/") then
+  if vim.g.node_host_prog:match("/mise/") then
+    print("Source: mise-managed")
+  elseif vim.g.node_host_prog:match("%.volta/") then
     print("Source: Volta-managed")
   elseif vim.g.node_host_prog:match("%.nvm/") then
     print("Source: NVM-managed")

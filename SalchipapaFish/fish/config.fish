@@ -76,6 +76,11 @@ if test $IS_TERMUX -eq 0; and set -q BREW_BIN; and test -f $BREW_BIN
     eval ($BREW_BIN shellenv)
 end
 
+# Node y CLIs de npm con mise (despues de brew shellenv: en Debian mise viene de Homebrew)
+if type -q mise
+    mise activate fish | source
+end
+
 # Abrir herdr al abrir kitty, WezTerm o Ghostty. Solo en esas terminales (no en VS Code, Windows Terminal ni
 # SSH) y nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q, o exit en el ultimo panel) se
 # cierra la ventana; si herdr falla al arrancar (dura menos de 2 s) se queda en esta fish.

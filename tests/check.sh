@@ -20,7 +20,7 @@ for f in $(files '*.sh'); do bash -n "$f" 2>/dev/null || fail "bash -n $f"; done
 
 echo "shellcheck:"
 if need shellcheck; then
-  # SC2034 (variables de color/opciones sin usar) y SC1090 (source dinamico de nvm) son conocidos
+  # SC2034 (variables de color/opciones sin usar) y SC1090 (source dinamico) son conocidos
   mapfile -t sh_files < <(files '*.sh')
   if out="$(shellcheck -S warning -e SC2034,SC1090 "${sh_files[@]}" 2>&1)"; then
     pass "sin avisos"

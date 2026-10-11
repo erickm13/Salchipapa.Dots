@@ -98,6 +98,8 @@ Optional prompts during the install:
 
 - **AI agents & dev CLIs** (pick several, e.g. `1 3 4`, `a` = all): Claude Code (native installer),
   Codex and opencode (pacman on Arch, npm elsewhere), Copilot CLI, Gemini CLI, Angular CLI.
+  The npm ones are installed with **mise** (`mise use -g npm:<pkg>`), as your user and without sudo,
+  so upgrading Node doesn't lose them.
 - **Configs to link** (pick several): Neovim (+ Lazy sync), Starship, Fastfetch, Claude Code hooks.
   Each one **replaces** the existing config, so leave out what your desktop already manages
   (e.g. caelestia's starship and fastfetch).
@@ -138,15 +140,15 @@ eval "$(/home/linuxbrew/.linuxbrew/bin/brew shellenv)"
 ### 3. Install dependencies via Homebrew
 
 ```bash
-brew install gcc nvim zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions carapace fzf zoxide atuin zellij fd eza bat nvm
+brew install gcc nvim zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions carapace fzf zoxide atuin zellij fd eza bat mise
 ```
 
 ### 4. Install Node.js and CLI tools
 
 ```bash
-nvm install node
-npm install -g @google/gemini-cli
-npm install -g @angular/cli
+mise use -g node@lts
+mise use -g npm:@google/gemini-cli npm:@angular/cli
+echo 'eval "$(mise activate zsh)"' >> ~/.zshrc   # fish: `mise activate fish | source` (already in SalchipapaFish)
 ```
 
 ### 5. Set Zsh as your default shell
@@ -208,7 +210,8 @@ Salchipapa.Dots includes AI-ready tools for Neovim and Node.js environments:
 
 - **Gemini CLI** → official Google AI command-line interface
 - **nvim-gemini plugin** → integrates Gemini into Neovim
-- **Node.js + NVM** → required runtime environment
+- **Node.js + mise** → required runtime environment (`mise use -g node@lts`; per-project versions
+  from `mise.toml`, `.nvmrc` or `.node-version`)
 
 To verify Gemini installation:
 
