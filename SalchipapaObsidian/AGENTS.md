@@ -25,7 +25,7 @@ Las notas se ordenan por **qué tan accionables son**, no por tema:
 |---|---|---|
 | `projects/` | **Projects** | Esfuerzos **con meta y final**, activos ahora. Un archivo por proyecto con su objetivo y su lista **Estado** (`- [ ]`). Hoy: `Salchipapa.Dots` |
 | `areas/<area>/` | **Areas** | **Responsabilidades** que Erick mantiene sin fecha de fin: `qa` (trabajo), `universidad` |
-| `resources/<tema>/` | **Resources** | Temas que **consulta**: `terminal` (herdr, kitty/WezTerm, fish, spotify_player, yt-x), `ia` (Claude Code, Codex, opencode, skills), `linux`, `neovim`, `programacion` |
+| `resources/<tema>/` | **Resources** | Temas que **consulta**: `terminal` (herdr, kitty/WezTerm, fish, spotify_player, yt-x), `ia` (Claude Code, Codex, opencode, skills), `obsidian` (esta bóveda: sincronización en WSL/Windows/iPhone), `linux`, `neovim`, `programacion` |
 | `archive/` | **Archives** | Proyectos terminados y áreas o recursos inactivos (p. ej. `homebrew-tap-setup`) |
 | `inbox/` | Captura | Ideas y notas sueltas sin clasificar todavía |
 | `daily/` | Diario | Notas diarias (las escribe el trabajo nocturno) |
