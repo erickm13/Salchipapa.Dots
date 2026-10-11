@@ -38,3 +38,6 @@ SalchipapaFish/fish/functions/fzf*
 # Historial de yt-x
 SalchipapaYtx/recent.json
 SalchipapaYtx/my/
+
+# Python
+__pycache__/
