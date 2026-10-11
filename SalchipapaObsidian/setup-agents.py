@@ -8,7 +8,7 @@ Idempotente: se puede correr las veces que haga falta. Lo llama install.sh, o a 
   (si ya hay un archivo propio, lo respalda como .bak-vault).
 - Anade los hooks de inicio (vault-start.sh) y fin (vault-sync.sh push) de cada agente,
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
-- Enlaza el plugin de opencode y las unidades systemd de la nota diaria.
+- Enlaza el plugin de opencode y las unidades systemd de la nota diaria y la revision semanal.
 """
 import json
 import shutil
@@ -113,8 +113,9 @@ def main():
         except (OSError, ValueError) as e:
             print(f"  ! {fn.__name__}: {e} (se omite)")
 
-    print("Nota diaria (systemd):")
-    for unit in ("obsidian-daily.service", "obsidian-daily.timer"):
+    print("Nota diaria y revision semanal (systemd):")
+    for unit in ("obsidian-daily.service", "obsidian-daily.timer",
+                 "obsidian-weekly.service", "obsidian-weekly.timer"):
         link(HERE / "systemd" / unit, HOME / ".config/systemd/user" / unit)
 
 

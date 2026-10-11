@@ -399,10 +399,10 @@ setup_agent_memory() {
     return 0
   fi
   if as_user systemctl --user daemon-reload >/dev/null 2>&1 &&
-    as_user systemctl --user enable --now obsidian-daily.timer >/dev/null 2>&1; then
-    ok "Nightly daily note: obsidian-daily.timer (23:30)."
+    as_user systemctl --user enable --now obsidian-daily.timer obsidian-weekly.timer >/dev/null 2>&1; then
+    ok "Daily note (23:30) and weekly review (Sun 20:00) timers enabled."
   else
-    warn "Enable the daily note later: systemctl --user enable --now obsidian-daily.timer"
+    warn "Enable them later: systemctl --user enable --now obsidian-daily.timer obsidian-weekly.timer"
   fi
 }
 

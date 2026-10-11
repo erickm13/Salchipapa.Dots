@@ -29,6 +29,7 @@ Las notas se ordenan por **qué tan accionables son**, no por tema:
 | `archive/` | **Archives** | Proyectos terminados y áreas o recursos inactivos (p. ej. `homebrew-tap-setup`) |
 | `inbox/` | Captura | Ideas y notas sueltas sin clasificar todavía |
 | `daily/` | Diario | Notas diarias (las escribe el trabajo nocturno) |
+| `weekly/` | Revisión semanal | `AAAA-Wnn.md`: resumen de la semana y **Propuestas** para ordenar la bóveda (las escribe un trabajo cada domingo) |
 | `templates/` | — | Plantillas (`daily.md`) |
 | `me.md` | — | Quién es Erick: estudios, trabajo (QA), stack |
 
@@ -58,6 +59,16 @@ Ciclo de vida:
 - Un tema de `resources/` nuevo → carpeta `resources/<tema>/` con su hub.
 - Nunca guardes conocimiento de referencia en `projects/` ni proyectos en `resources/`.
 
+## Revisión semanal
+Cada domingo un trabajo automático escribe `weekly/AAAA-Wnn.md` con propuestas `- [ ]` (mover
+notas de `inbox/`, archivar proyectos, borrar notas vacías). **No las apliques por tu cuenta.**
+Cuando Erick diga *"aplica la revisión semanal"* (o similar):
+1. Abre la `weekly/` más reciente y aplica cada propuesta `- [ ]` de **Propuestas**: mueve la nota,
+   enlázala desde el hub de su destino, y si es un proyecto archivado, quítalo de `me.md`.
+2. Marca cada una `[x]` al terminarla. Si Erick descarta alguna, márcala `[x]` con *(descartada)*.
+3. Al final, dile en una línea qué moviste.
+Solo esa vez puedes mover o borrar las notas que nombran las propuestas.
+
 No escribas: conversación del día, pasos intermedios, intentos fallidos sin conclusión ni nada que
 ya esté en la nota.
 
@@ -71,5 +82,6 @@ ya esté en la nota.
 ## Nunca
 - Secretos: tokens, claves de API, contraseñas, nada de `.env`. Si hace falta mencionarlos:
   "token de GitHub (revocado)", nunca su valor. La sincronización se niega a subir lo que parezca un secreto.
-- Borrar notas, moverlas (salvo archivar un proyecto que Erick dio por terminado) o cambiar
+- Borrar notas, moverlas (salvo archivar un proyecto que Erick dio por terminado o aplicar la
+  revisión semanal cuando la pide) o cambiar
   `.obsidian/`, sin que Erick lo pida.

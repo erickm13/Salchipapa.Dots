@@ -1,0 +1,11 @@
+[Unit]
+Description=Revision semanal de Obsidian cada domingo a las 20:00
+
+[Timer]
+OnCalendar=Sun *-*-* 20:00:00
+# Si WSL estaba apagado el domingo, corre al volver (weekly-review.sh revisa la semana que falto)
+Persistent=true
+RandomizedDelaySec=2min
+
+[Install]
+WantedBy=timers.target

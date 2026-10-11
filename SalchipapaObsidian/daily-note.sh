@@ -12,6 +12,7 @@ STATE="$HOME/.cache/salchipapa-dots"
 LOG="$STATE/daily-note.log"
 mkdir -p "$STATE"
 log() { printf '%s %s\n' "$(date '+%F %T')" "$*" >>"$LOG"; }
+fail() { mkdir -p "$STATE/vault-errors"; printf '%s\n' "$1" >"$STATE/vault-errors/daily"; log "$1"; }
 
 if [ -n "${1:-}" ]; then
   D="$1"
@@ -23,7 +24,7 @@ fi
 
 [ -d "$VAULT/.git" ] || { log "$D: no hay boveda en $VAULT"; exit 0; }
 CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
-[ -x "$CLAUDE" ] || { log "$D: claude no encontrado"; exit 0; }
+[ -x "$CLAUDE" ] || { fail "La nota diaria del $D no se escribió: no se encontró claude."; exit 0; }
 if [ -z "${1:-}" ] && grep -qxF "$D" "$STATE/daily-note.done" 2>/dev/null; then
   log "$D: ya generada, se omite"
   exit 0
@@ -72,7 +73,10 @@ rc=$?
 log "$D: claude rc=$rc: $(printf '%s' "$out" | tail -c 300 | tr '\n' ' ')"
 
 if [ "$rc" -eq 0 ]; then
+  rm -f "$STATE/vault-errors/daily"
   echo "$D" >>"$STATE/daily-note.done"
   bash "$HERE/vault-sync.sh" push nocturno
+else
+  fail "La nota diaria del $D falló (claude rc=$rc). Detalle: $LOG"
 fi
 exit 0
