@@ -318,6 +318,39 @@ setup_tmux() {
   ok "Tmux ready."
 }
 
+# Claude Code hooks from SalchipapaClaude/hooks, merged into ~/.claude/settings.json:
+# only missing hooks are added (matched by command), existing settings are kept.
+setup_claude_hooks() {
+  local settings="$HOME_DIR/.claude/settings.json" hooks_dir="$DOTS_DIR/SalchipapaClaude/hooks" tmp
+  if ! command -v jq >/dev/null 2>&1 || ! command -v python3 >/dev/null 2>&1; then
+    warn "Claude Code hooks skipped (need jq and python3)."
+    return 0
+  fi
+  as_user mkdir -p "$HOME_DIR/.claude"
+  [ -s "$settings" ] || printf '{}\n' | write_as_user "$settings"
+  if ! jq empty "$settings" 2>/dev/null; then
+    warn "$settings is not valid JSON — Claude Code hooks skipped."
+    return 0
+  fi
+  as_user cp "$settings" "$settings.bak"
+  tmp="$(mktemp)"
+  jq --arg guard "python3 $hooks_dir/guard-bash.py" \
+    --arg secrets "python3 $hooks_dir/secret-scan.py" \
+    --arg validate "python3 $hooks_dir/validate-dotfiles.py" '
+    def addhook(ev; m; h):
+      .hooks[ev] = ((.hooks[ev] // []) as $arr
+        | if any($arr[]?.hooks[]?; .command == h.command) then $arr
+          elif any($arr[]?; .matcher == m) then $arr | map(if .matcher == m then .hooks += [h] else . end)
+          else $arr + [{matcher: m, hooks: [h]}] end);
+    .hooks //= {}
+    | addhook("PreToolUse"; "Bash"; {type: "command", command: $guard, timeout: 10, statusMessage: "Revisando comando peligroso..."})
+    | addhook("PreToolUse"; "Bash"; {type: "command", command: $secrets, timeout: 20, statusMessage: "Buscando secretos antes de subir..."})
+    | addhook("PostToolUse"; "Edit|Write"; {type: "command", command: $validate, timeout: 30, statusMessage: "Validando dotfiles..."})
+  ' "$settings" >"$tmp" && write_as_user "$settings" <"$tmp"
+  rm -f "$tmp"
+  ok "Claude Code hooks: guard-bash, secret-scan, validate-dotfiles (backup: $settings.bak)."
+}
+
 setup_herdr() {
   # Official installer: release binary to ~/.local/bin with SHA-256 check (updates: `herdr update`)
   if ! as_user sh -c 'command -v herdr || test -x "$HOME/.local/bin/herdr"' >/dev/null 2>&1; then
@@ -726,6 +759,9 @@ accion_install() {
   step "yt-x..."
   symlink_force "$DOTS_DIR/SalchipapaYtx" "$HOME_DIR/.config/yt-x"
   ok "yt-x linked."
+
+  step "Claude Code hooks..."
+  setup_claude_hooks
 
   # ── Obsidian vault ─────────────────────────────────────────
   if [ -n "$vault_url" ]; then

@@ -222,6 +222,7 @@ Salchipapa.Dots/
 ├── install.sh              → Installer with interactive menu
 ├── SalchipapaZsh/          → Zsh configuration (plugins, themes, aliases)
 ├── SalchipapaNvim/         → Neovim setup (LazyVim, plugins, LSP)
+├── SalchipapaClaude/       → Claude Code hooks (validation, dangerous-command guard, secret scan)
 ├── SalchipapaHerdr/        → Herdr config + keybinding guide (README.md); only config.toml is linked
 ├── SalchipapaZellij/       → Zellij layouts and configuration
 ├── SalchipapaKitty/        → Kitty terminal configuration
