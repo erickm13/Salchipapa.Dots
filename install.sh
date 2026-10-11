@@ -227,6 +227,62 @@ pick_option() {
   done
 }
 
+# picked <option-prefix> <choices...>: true if one of the choices starts with the prefix
+picked() {
+  local want="$1" c
+  shift
+  for c in "$@"; do [[ "$c" == "$want"* ]] && return 0; done
+  return 1
+}
+
+# join_list <items...>: "a, b, c" (or "Skip" when empty)
+join_list() {
+  local s
+  s="$(printf '%s, ' "$@")"
+  s="${s%, }"
+  echo "${s:-Skip}"
+}
+
+# ── pick_multi: several choices ("1 3 4", "a" = all, Enter = none); one per line to stdout ──
+pick_multi() {
+  local prompt="$1"
+  shift
+  local options=("$@") i n
+
+  echo -e "\n  ${AQUA}${BOLD}$prompt${RESET}" >&2
+  echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}" >&2
+  for i in "${!options[@]}"; do
+    echo -e "  ${YELLOW}${BOLD}  $((i + 1)))${RESET}  ${options[$i]}" >&2
+  done
+  echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}" >&2
+
+  local input ok_input
+  while true; do
+    printf "  ${ORANGE}▶${RESET}${GRAY} Select (e.g. 1 3, a = all, Enter = none): ${RESET}" >&2
+    read -r input
+    input="${input//,/ }"
+    if [ -z "$input" ]; then
+      return
+    elif [ "${input,,}" = "a" ]; then
+      printf '%s\n' "${options[@]}"
+      return
+    fi
+    ok_input=1
+    for n in $input; do
+      if ! [[ "$n" =~ ^[0-9]+$ ]] || [ "$n" -lt 1 ] || [ "$n" -gt "${#options[@]}" ]; then
+        ok_input=0
+      fi
+    done
+    if [ "$ok_input" -eq 1 ]; then
+      for i in "${!options[@]}"; do
+        [[ " $input " == *" $((i + 1)) "* ]] && echo "${options[$i]}"
+      done
+      return
+    fi
+    echo -e "  ${RED}  Invalid option, try again.${RESET}" >&2
+  done
+}
+
 # ════════════════════════════════════════════════════════════════
 #   Setup: Shell
 # ════════════════════════════════════════════════════════════════
@@ -316,7 +372,7 @@ setup_zsh() {
   if load_nvm_brew; then
     run_silent "Installing Node LTS..." "nvm install --lts && nvm alias default 'lts/*' && nvm use default"
   else
-    warn "Could not load nvm. Run option 'Install CLIs + Lazy sync' after restarting shell."
+    warn "Could not load nvm. Re-run the installer after restarting the shell."
   fi
 
   ok "Zsh ready."
@@ -478,11 +534,11 @@ setup_herdr() {
   local herdr_bin="$HOME_DIR/.local/bin/herdr" target
   [ -x "$herdr_bin" ] || herdr_bin="$(command -v herdr || true)"
   if [ -n "$herdr_bin" ]; then
-    for target in claude codex opencode; do
+    for target in claude codex opencode copilot; do
       as_user "$herdr_bin" integration install "$target" >/dev/null 2>&1 ||
         warn "herdr integration for $target failed — run: herdr integration install $target"
     done
-    ok "herdr integrations: claude, codex, opencode."
+    ok "herdr integrations: claude, codex, opencode, copilot."
   fi
   ok "Herdr ready."
 }
@@ -685,11 +741,22 @@ accion_install() {
   show_header
 
   # ── Ask configuration ──────────────────────────────────────
-  local shell_choice mux_choice term_choice cli_gemini cli_angular cli_claude
+  local shell_choice mux_choice term_choice cli_list
+  local -a cli_choices
   shell_choice=$(pick_option "Default shell:" "Fish" "Zsh" "Skip")
   mux_choice=$(pick_option "Terminal multiplexer:" "Herdr" "Zellij" "Tmux" "Skip")
   term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Alacritty" "Wezterm" "Skip")
-  cli_choice=$(pick_option "CLIs to install:" "All (Gemini + Angular + Claude Code)" "Gemini CLI" "Angular CLI" "Claude Code" "Skip")
+  mapfile -t cli_choices < <(pick_multi "AI agents & dev CLIs:" \
+    "Claude Code" "Codex" "opencode" "Copilot CLI" "Gemini CLI" "Angular CLI")
+  cli_list="$(join_list "${cli_choices[@]}")"
+
+  # Each config REPLACES what is there (rm -rf + symlink): leave out what your desktop already
+  # manages (e.g. caelestia ships its own starship and fastfetch)
+  local -a cfg_choices extra_choices
+  mapfile -t cfg_choices < <(pick_multi "Configs to link (each one replaces the existing config):" \
+    "Neovim (LazyVim + Lazy sync)" "Starship prompt" "Fastfetch" "Claude Code hooks")
+  mapfile -t extra_choices < <(pick_multi "Extras:" \
+    "spotify_player (Spotify in the terminal)" "yt-x (YouTube in the terminal)")
 
   # Git & GitHub: asked before the vault, which is usually a private repo
   local git_choice git_name="" git_email="" gh_token="" spotify_id="" cur
@@ -717,7 +784,7 @@ accion_install() {
   fi
 
   # spotify_player reads the client_id of your own Spotify app from a file outside the repo
-  if [ ! -s "$HOME_DIR/.config/salchipapa-dots/spotify-client-id" ]; then
+  if picked spotify_player "${extra_choices[@]}" && [ ! -s "$HOME_DIR/.config/salchipapa-dots/spotify-client-id" ]; then
     echo -e "\n  ${AQUA}${BOLD}Spotify${RESET}"
     echo -e "  ${GRAY}client_id of your app at developer.spotify.com/dashboard, or leave empty to skip.${RESET}"
     printf "  ${BOLD}client_id:${RESET} " >&2
@@ -735,7 +802,9 @@ accion_install() {
   echo -e "  ${YELLOW}  Shell:${RESET}        $shell_choice"
   echo -e "  ${YELLOW}  Multiplexer:${RESET}  $mux_choice"
   echo -e "  ${YELLOW}  Terminal:${RESET}     $term_choice"
-  echo -e "  ${YELLOW}  CLIs:${RESET}         $cli_choice"
+  echo -e "  ${YELLOW}  CLIs:${RESET}         $cli_list"
+  echo -e "  ${YELLOW}  Configs:${RESET}      $(join_list "${cfg_choices[@]}")"
+  echo -e "  ${YELLOW}  Extras:${RESET}       $(join_list "${extra_choices[@]}")"
   echo -e "  ${YELLOW}  Git/GitHub:${RESET}   $git_choice"
   echo -e "  ${YELLOW}  Vault:${RESET}        ${vault_url:-Skip}"
   echo -e "  ${GRAY}  ──────────────────────────────────────${RESET}"
@@ -767,6 +836,7 @@ accion_install() {
   SECTION_TOTAL=$((IS_ARCH == 1 ? 8 : 9))
   is_wsl && SECTION_TOTAL=$((SECTION_TOTAL + 1))
   [ "$git_choice" != "Skip" ] && SECTION_TOTAL=$((SECTION_TOTAL + 1))
+  picked Neovim "${cfg_choices[@]}" || SECTION_TOTAL=$((SECTION_TOTAL - 1))
 
   local brew_prefix="${HOMEBREW_PREFIX:-/home/linuxbrew/.linuxbrew}"
 
@@ -783,15 +853,21 @@ accion_install() {
 
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
-    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, spotify-player, mpv, codex, opencode, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji spotify-player jq python mpv openai-codex opencode"
+    run_silent "neovim, node, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim nodejs npm starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
+    picked spotify_player "${extra_choices[@]}" &&
+      run_silent "spotify-player..." "sudo pacman -S --needed --noconfirm spotify-player"
+    picked yt-x "${extra_choices[@]}" &&
+      run_silent "mpv, yt-dlp (for yt-x)..." "sudo pacman -S --needed --noconfirm mpv yt-dlp"
     run_silent "carapace (GitHub release)..." "install_carapace_bin"
     if command -v yay >/dev/null 2>&1; then
       # Not silent: yay may ask for the user's sudo password
-      step "asm-lsp, yt-x-git, gum (AUR)..."
-      as_user yay -S --needed --noconfirm asm-lsp yt-x-git gum || warn "AUR packages failed — install them later with: yay -S asm-lsp yt-x-git gum"
+      local aur=(asm-lsp)
+      picked yt-x "${extra_choices[@]}" && aur+=(yt-x-git gum)
+      step "${aur[*]} (AUR)..."
+      as_user yay -S --needed --noconfirm "${aur[@]}" || warn "AUR packages failed — install them later with: yay -S ${aur[*]}"
     else
-      warn "asm-lsp and yt-x skipped (need yay)."
+      warn "AUR packages skipped (need yay): asm-lsp$(picked yt-x "${extra_choices[@]}" && echo ", yt-x")."
     fi
     ok "Core tools installed."
     section_end
@@ -824,6 +900,10 @@ accion_install() {
     section "Core Tools"
     run_silent "gcc, nvim, node, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
       "brew install gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi jq"
+    picked spotify_player "${extra_choices[@]}" &&
+      run_silent "spotify_player..." "brew install spotify_player"
+    picked yt-x "${extra_choices[@]}" &&
+      warn "yt-x: no package here — install it by hand (github.com/Benexl/yt-x); its config gets linked."
     ok "Core tools installed."
     section_end
   fi
@@ -883,23 +963,41 @@ accion_install() {
     fi
   }
 
-  case "$cli_choice" in
-    "All (Gemini + Angular + Claude Code)")
-      install_npm_cli "@google/gemini-cli"
-      install_npm_cli "@angular/cli"
-      install_npm_cli "@anthropic-ai/claude-code"
-      # On Arch, codex and opencode already come from pacman (Core Tools)
-      if [ "$IS_ARCH" -eq 0 ]; then
+  local cli
+  for cli in "${cli_choices[@]}"; do
+    case "$cli" in
+    "Claude Code")
+      # Official native installer (~/.local/bin/claude, auto-updates); skipped if already there
+      if as_user sh -c 'command -v claude || test -x "$HOME/.local/bin/claude"' >/dev/null 2>&1; then
+        ok "Claude Code already installed."
+      else
+        run_silent "Claude Code (native installer)..." "as_user bash -c 'curl -fsSL https://claude.ai/install.sh | bash'"
+      fi
+      ;;
+    "Codex")
+      if [ "$IS_ARCH" -eq 1 ]; then
+        run_silent "Codex (pacman)..." "sudo pacman -S --needed --noconfirm openai-codex"
+      else
         install_npm_cli "@openai/codex"
+      fi
+      ;;
+    "opencode")
+      if [ "$IS_ARCH" -eq 1 ]; then
+        run_silent "opencode (pacman)..." "sudo pacman -S --needed --noconfirm opencode"
+      else
         install_npm_cli "opencode-ai"
       fi
       ;;
-    "Gemini CLI")   install_npm_cli "@google/gemini-cli" ;;
-    "Angular CLI")  install_npm_cli "@angular/cli" ;;
-    "Claude Code")  install_npm_cli "@anthropic-ai/claude-code" ;;
-    "Skip")         ok "Skipped." ;;
-  esac
-  ok "CLIs done."
+    "Copilot CLI") install_npm_cli "@github/copilot" ;;
+    "Gemini CLI") install_npm_cli "@google/gemini-cli" ;;
+    "Angular CLI") install_npm_cli "@angular/cli" ;;
+    esac
+  done
+  if [ "${#cli_choices[@]}" -eq 0 ]; then
+    ok "Skipped."
+  else
+    ok "CLIs done."
+  fi
   section_end
 
   # ── Git & GitHub (before the vault clone) ──────────────────
@@ -914,32 +1012,44 @@ accion_install() {
   section "Config Symlinks"
   ensure_dir "$HOME_DIR/.config"
 
-  step "Neovim..."
-  symlink_force "$DOTS_DIR/SalchipapaNvim/nvim" "$HOME_DIR/.config/nvim"
-  ok "Neovim linked."
-
-  step "Starship..."
-  symlink_force "$DOTS_DIR/starship.toml" "$HOME_DIR/.config/starship.toml"
-  ok "Starship linked."
-
-  step "Fastfetch..."
-  symlink_force "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
-  ok "Fastfetch linked."
-
-  step "spotify_player..."
-  symlink_force "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
-  ok "spotify_player linked."
-  if [ -n "$spotify_id" ]; then
-    printf '%s\n' "$spotify_id" | write_as_user "$HOME_DIR/.config/salchipapa-dots/spotify-client-id"
-    ok "Spotify client_id saved (~/.config/salchipapa-dots/spotify-client-id)."
+  if picked Neovim "${cfg_choices[@]}"; then
+    step "Neovim..."
+    symlink_force "$DOTS_DIR/SalchipapaNvim/nvim" "$HOME_DIR/.config/nvim"
+    ok "Neovim linked."
   fi
 
-  step "yt-x..."
-  symlink_force "$DOTS_DIR/SalchipapaYtx" "$HOME_DIR/.config/yt-x"
-  ok "yt-x linked."
+  if picked Starship "${cfg_choices[@]}"; then
+    step "Starship..."
+    symlink_force "$DOTS_DIR/starship.toml" "$HOME_DIR/.config/starship.toml"
+    ok "Starship linked."
+  fi
 
-  step "Claude Code hooks..."
-  setup_claude_hooks
+  if picked Fastfetch "${cfg_choices[@]}"; then
+    step "Fastfetch..."
+    symlink_force "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
+    ok "Fastfetch linked."
+  fi
+
+  if picked spotify_player "${extra_choices[@]}"; then
+    step "spotify_player..."
+    symlink_force "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
+    ok "spotify_player linked."
+    if [ -n "$spotify_id" ]; then
+      printf '%s\n' "$spotify_id" | write_as_user "$HOME_DIR/.config/salchipapa-dots/spotify-client-id"
+      ok "Spotify client_id saved (~/.config/salchipapa-dots/spotify-client-id)."
+    fi
+  fi
+
+  if picked yt-x "${extra_choices[@]}"; then
+    step "yt-x..."
+    symlink_force "$DOTS_DIR/SalchipapaYtx" "$HOME_DIR/.config/yt-x"
+    ok "yt-x linked."
+  fi
+
+  if picked "Claude Code hooks" "${cfg_choices[@]}"; then
+    step "Claude Code hooks..."
+    setup_claude_hooks
+  fi
 
   # ── Obsidian vault ─────────────────────────────────────────
   if [ -n "$vault_url" ]; then
@@ -959,10 +1069,12 @@ accion_install() {
   section_end
 
   # ── Neovim Lazy sync ───────────────────────────────────────
-  section "Neovim"
-  run_silent "Running Lazy sync..." "sudo -u '$TARGET_USER' nvim --headless '+Lazy! sync' +qa"
-  ok "Lazy sync done."
-  section_end
+  if picked Neovim "${cfg_choices[@]}"; then
+    section "Neovim"
+    run_silent "Running Lazy sync..." "sudo -u '$TARGET_USER' nvim --headless '+Lazy! sync' +qa"
+    ok "Lazy sync done."
+    section_end
+  fi
 
   # ── WSL extras ─────────────────────────────────────────────
   if is_wsl; then
@@ -1091,7 +1203,7 @@ accion_uninstall() {
     fi
 
     step "Uninstalling npm CLIs..."
-    npm uninstall -g @google/gemini-cli @angular/cli @anthropic-ai/claude-code 2>/dev/null || true
+    npm uninstall -g @google/gemini-cli @angular/cli @anthropic-ai/claude-code @openai/codex opencode-ai @github/copilot 2>/dev/null || true
     ok "npm CLIs removed."
 
     brew uninstall salchipapa-dots 2>/dev/null && ok "Removed salchipapa-dots formula." || true
