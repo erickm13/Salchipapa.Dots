@@ -75,7 +75,8 @@ printf '{"session_id":"s1","transcript_path":"%s"}' "$T/t.jsonl" >"$T/hook.json"
 python3 "$OBS/session-log.py" "$T/hook.json" test >/dev/null
 check "sesion corta: no se resume" 'grep -q "sesion corta" "$HOME/.cache/salchipapa-dots/session-log.log"'
 printf '{"session_id":"s2"}' | bash "$OBS/vault-session-end.sh" test
-for _ in $(seq 50); do compgen -G "$HOME/.cache/salchipapa-dots/session-queue/*.json" >/dev/null || break; sleep 0.2; done
+# Se procesa en segundo plano: esperar al resultado, que se escribe al final (tras el push)
+for _ in $(seq 100); do [ -f "$HOME/.cache/salchipapa-dots/session-end.status" ] && break; sleep 0.2; done
 check "el hook de cierre vacia la cola y hace push" '! compgen -G "$HOME/.cache/salchipapa-dots/session-queue/*.json" >/dev/null && grep -q "\[test push\]" "$SYNC_LOG"'
 check "deja el resultado para el aviso al salir" 'grep -q "^✔ Bóveda al día en GitHub" "$HOME/.cache/salchipapa-dots/session-end.status"'
 if command -v fish >/dev/null; then
