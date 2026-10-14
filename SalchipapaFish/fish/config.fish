@@ -81,10 +81,10 @@ if type -q mise
     mise activate fish | source
 end
 
-# Abrir herdr al abrir kitty, WezTerm o Ghostty. Solo en esas terminales (no en VS Code, Windows Terminal ni
-# SSH) y nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q, o exit en el ultimo panel) se
-# cierra la ventana; si herdr falla al arrancar (dura menos de 2 s) se queda en esta fish.
-if status is-interactive; and begin; set -q KITTY_WINDOW_ID; or contains -- "$TERM_PROGRAM" WezTerm ghostty; end
+# Abrir herdr al abrir WezTerm. Solo en esa terminal (ya NO en kitty ni Ghostty), nunca en VS Code,
+# Windows Terminal ni SSH, y nunca dentro de herdr o zellij. Al salir de herdr (Ctrl+g q, o exit en
+# el ultimo panel) se cierra la ventana; si herdr falla al arrancar (dura menos de 2 s) se queda en esta fish.
+if status is-interactive; and contains -- "$TERM_PROGRAM" WezTerm
     and not set -q HERDR_ENV; and not set -q ZELLIJ
     and type -q herdr
     set -l herdr_inicio (date +%s)
@@ -131,7 +131,13 @@ for _ in range(50):
         break
     time.sleep(0.02)'
         end
-        fastfetch
+        # foot solo soporta sixel (no el protocolo de kitty) -> forzar sixel ahi, que con el
+        # fastfetch de pacman + imagemagick sale nitido. kitty/ghostty: 'auto' usa su protocolo nativo.
+        if string match -qr '^foot' -- "$TERM"
+            fastfetch --logo-type sixel
+        else
+            fastfetch
+        end
     end
 end
 
