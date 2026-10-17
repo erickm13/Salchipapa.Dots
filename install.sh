@@ -98,6 +98,18 @@ link_config() {
   fi
 }
 
+# skip_worktree <ruta-relativa-en-el-repo>: el archivo se versiona con una paleta
+# por defecto (para que Dots funcione sola), pero apply-colors.sh de Salchipapa-Shell
+# lo sobrescribe con los colores del fondo en vivo. skip-worktree evita que ese
+# theming dinámico ensucie el working tree. Solo aplica si Dots es un clon git.
+skip_worktree() {
+  local rel="$1"
+  [ -d "$DOTS_DIR/.git" ] || return 0
+  if as_user git -C "$DOTS_DIR" update-index --skip-worktree "$rel" 2>>"$LOG_FILE"; then
+    ok "skip-worktree: $rel (colores los gestiona Salchipapa-Shell)"
+  fi
+}
+
 # try_step <label> <command...>: runs a short visible command, ✔ or ✖ (failure goes to the summary)
 try_step() {
   local label="$1"
@@ -684,6 +696,15 @@ setup_kitty() {
     run_silent "Installing kitty..." "pkg_install kitty"
   fi
   link_config "kitty config" "$DOTS_DIR/SalchipapaKitty" "$HOME_DIR/.config/kitty"
+  skip_worktree "SalchipapaKitty/salchipapa-colors.conf"
+}
+
+setup_foot() {
+  if [ "$IS_ARCH" -eq 1 ]; then
+    run_silent "Installing foot..." "pkg_install foot"
+  fi
+  link_config "foot config" "$DOTS_DIR/SalchipapaFoot" "$HOME_DIR/.config/foot"
+  skip_worktree "SalchipapaFoot/salchipapa-colors.ini"
 }
 
 # ════════════════════════════════════════════════════════════════
@@ -842,7 +863,7 @@ accion_install() {
   local -a cli_choices
   shell_choice=$(pick_option "Default shell:" "Fish" "Zsh" "Skip")
   mux_choice=$(pick_option "Terminal multiplexer:" "Herdr" "Zellij" "Tmux" "Skip")
-  term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Alacritty" "Wezterm" "Skip")
+  term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Foot" "Alacritty" "Wezterm" "Skip")
   mapfile -t cli_choices < <(pick_multi "AI agents & dev CLIs:" \
     "Claude Code" "Codex" "opencode" "Copilot CLI" "Gemini CLI" "Angular CLI")
   cli_list="$(join_list "${cli_choices[@]}")"
@@ -1056,6 +1077,7 @@ accion_install() {
   section "Terminal — $term_choice"
   case "$term_choice" in
   Kitty) setup_kitty ;;
+  Foot) setup_foot ;;
   Alacritty) setup_alacritty ;;
   Wezterm) setup_wezterm ;;
   Skip) ok "Skipped." ;;
