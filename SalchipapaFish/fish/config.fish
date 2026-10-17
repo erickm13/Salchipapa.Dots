@@ -131,13 +131,9 @@ for _ in range(50):
         break
     time.sleep(0.02)'
         end
-        # foot solo soporta sixel (no el protocolo de kitty) -> forzar sixel ahi, que con el
-        # fastfetch de pacman + imagemagick sale nitido. kitty/ghostty: 'auto' usa su protocolo nativo.
-        if string match -qr '^foot' -- "$TERM"
-            fastfetch --logo-type sixel
-        else
-            fastfetch
-        end
+        # La funcion fastfetch (functions/fastfetch.fish) elige el protocolo de imagen segun el
+        # terminal (herdr->kitty, foot->sixel, kitty/ghostty->auto). Asi arranque y manual son iguales.
+        fastfetch
     end
 end
 
@@ -258,24 +254,25 @@ alias win="z /mnt/c/Users/Salchipapa"
 # set -g fish_pager_color_completion $foreground
 # set -g fish_pager_color_description $comment
 
-# Solarized Osaka theme
-set -l foreground 839395
-set -l selection 073642
-set -l comment 586e75
-set -l red db302d
-set -l orange c94c16
-set -l yellow b28500
-set -l green 849900
-set -l blue 268bd3
-set -l cyan 29a298
-set -l magenta d23681
+# Resaltado de sintaxis con nombres ANSI -> sigue la paleta del terminal (tematizada con el
+# fondo por apply-colors.sh). Para colores fijos Solarized, volver a poner los hex.
+set -l foreground normal
+set -l selection brblack
+set -l comment brblack
+set -l red red
+set -l orange bryellow
+set -l yellow yellow
+set -l green green
+set -l blue blue
+set -l cyan cyan
+set -l magenta magenta
 
 # Syntax Highlighting Colors
 set -g fish_color_normal $foreground
 set -g fish_color_command $blue
 set -g fish_color_keyword $magenta
 set -g fish_color_quote $green
-set -g fish_color_redirection 9eabac
+set -g fish_color_redirection $foreground
 set -g fish_color_end $cyan
 set -g fish_color_error $red
 set -g fish_color_param $foreground

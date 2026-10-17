@@ -20,10 +20,38 @@ $time\
 add_newline = true
 command_timeout = 5600000
 scan_timeout = 500
-palette = "solarized_osaka"
+palette = "salchipapa"
 
 [fill]
 symbol = ' '
+
+# Paleta DINÁMICA: nombres ANSI (no hex) -> el prompt sigue la paleta del terminal, que
+# apply-colors.sh tematiza con el fondo (igual que yazi). Para colores fijos: palette = "solarized_osaka".
+[palettes.salchipapa]
+text = "white"
+subtext1 = "white"
+subtext0 = "bright-black"
+rosewater = "white"
+red = "red"
+maroon = "red"
+green = "green"
+yellow = "yellow"
+peach = "bright-yellow"
+blue = "blue"
+lavender = "blue"
+mauve = "purple"
+flamingo = "purple"
+pink = "bright-purple"
+teal = "cyan"
+overlay0 = "bright-black"
+overlay1 = "black"
+overlay2 = "black"
+surface0 = "black"
+surface1 = "black"
+surface2 = "black"
+base = "none"
+mantle = "black"
+crust = "black"
 
 [palettes.catppuccin_mocha]
 rosewater = "#f5e0dc"
