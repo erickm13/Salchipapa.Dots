@@ -699,6 +699,15 @@ setup_kitty() {
   skip_worktree "SalchipapaKitty/salchipapa-colors.conf"
 }
 
+setup_ghostty() {
+  if [ "$IS_ARCH" -eq 1 ]; then
+    run_silent "Installing ghostty..." "pkg_install ghostty"
+  else
+    warn "Ghostty is not in apt/Homebrew for Linux: install it by hand (ghostty.org)."
+  fi
+  link_config "ghostty config" "$DOTS_DIR/SalchipapaGhostty" "$HOME_DIR/.config/ghostty"
+}
+
 setup_foot() {
   if [ "$IS_ARCH" -eq 1 ]; then
     run_silent "Installing foot..." "pkg_install foot"
@@ -863,7 +872,7 @@ accion_install() {
   local -a cli_choices
   shell_choice=$(pick_option "Default shell:" "Fish" "Zsh" "Skip")
   mux_choice=$(pick_option "Terminal multiplexer:" "Herdr" "Zellij" "Tmux" "Skip")
-  term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Foot" "Alacritty" "Wezterm" "Skip")
+  term_choice=$(pick_option "Terminal emulator config:" "Kitty" "Foot" "Ghostty" "Alacritty" "Wezterm" "Skip")
   mapfile -t cli_choices < <(pick_multi "AI agents & dev CLIs:" \
     "Claude Code" "Codex" "opencode" "Copilot CLI" "Gemini CLI" "Angular CLI")
   cli_list="$(join_list "${cli_choices[@]}")"
@@ -1078,6 +1087,7 @@ accion_install() {
   case "$term_choice" in
   Kitty) setup_kitty ;;
   Foot) setup_foot ;;
+  Ghostty) setup_ghostty ;;
   Alacritty) setup_alacritty ;;
   Wezterm) setup_wezterm ;;
   Skip) ok "Skipped." ;;

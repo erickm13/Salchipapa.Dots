@@ -21,7 +21,7 @@ It configures your shell, editor, multiplexer, and a curated set of CLI utilitie
 | Shell       | Fish, Zsh                                  |
 | Multiplexer | Herdr, Zellij, Tmux                        |
 | Editor      | Neovim (LazyVim)                           |
-| Terminal    | Kitty, Alacritty, WezTerm                  |
+| Terminal    | Kitty, Foot, Ghostty, Alacritty, WezTerm   |
 | Prompt      | Starship                                   |
 | CLI tools   | zoxide, atuin, fzf, carapace, fd, eza, bat |
 | AI agents   | Claude Code, Codex, opencode, Copilot CLI, Gemini CLI (you pick) |
@@ -266,6 +266,7 @@ Salchipapa.Dots/
 ├── SalchipapaHerdr/        → Herdr config + keybinding guide (README.md); only config.toml is linked
 ├── SalchipapaZellij/       → Zellij layouts and configuration
 ├── SalchipapaKitty/        → Kitty terminal configuration
+├── SalchipapaGhostty/      → Ghostty terminal configuration (themes and shaders)
 ├── SalchipapaAlacritty/    → Alacritty terminal configuration
 ├── SalchipapaWezterm/      → WezTerm terminal configuration
 ├── SalchipapaTmux/         → Tmux configuration (alternative to Zellij)

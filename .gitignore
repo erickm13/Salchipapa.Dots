@@ -41,3 +41,7 @@ SalchipapaYtx/my/
 
 # Python
 __pycache__/
+
+# Ghostty: respaldo viejo y ajustes locales de Claude (no van al repo)
+SalchipapaGhostty/config.bak
+SalchipapaGhostty/.claude/
