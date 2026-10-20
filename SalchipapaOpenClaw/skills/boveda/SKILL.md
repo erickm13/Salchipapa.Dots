@@ -1,6 +1,6 @@
 ---
 name: boveda
-description: Bóveda de Obsidian del usuario (su memoria y segundo cerebro, un LLM Wiki). Úsalo para guardar lo que manda (enlaces, archivos, ideas), para el ingest de las fuentes de raw/ y para responder preguntas sobre sus notas, proyectos o lo que ha hecho.
+description: Bóveda de Obsidian del usuario (su memoria y segundo cerebro, un LLM Wiki). Úsalo para guardar lo que manda (enlaces, archivos, ideas), para el ingest de las fuentes de raw/, para responder preguntas sobre sus notas, proyectos o lo que ha hecho, y para revisar la salud de la bóveda ("salud", "health check", "¿cómo está mi bóveda?").
 metadata: { "openclaw": { "requires": { "bins": ["git", "python3", "flock"] } } }
 ---
 
@@ -31,8 +31,13 @@ para deshacer un cambio tuyo en `raw/`.
    - **Idea o nota suya** (texto sin enlace) → `inbox/AAAA-MM-DD-HHMM-<slug>.md` con su texto literal.
      Se clasifica en la revisión semanal.
    Si el archivo ya existe, usa otro nombre: **nunca** sobrescribas nada de `raw/`.
-3. `push` y contesta en una línea qué guardaste y dónde. Lo de `raw/` se integra en el ingest de la
-   noche; si el usuario pide que sea ya, haz el ingest de esa fuente.
+3. `push` y contesta con este formato, en una línea:
+   - Fuente en `raw/`: `✔ Guardado: raw/web/2026-10-20-ejemplo.md · ⏳ pendiente de ingest (esta noche) · ¿Lo ingiero ahora?`
+   - Idea en `inbox/`: `✔ Guardado: inbox/2026-10-20-1530-ejemplo.md · se clasifica en la revisión semanal`
+   - Si el push falló: `⚠ Guardado aquí pero no subido: <motivo de vault-errors/push>`
+4. Si responde que sí (o pidió el ingest al mandarlo), haz el **Ingest** de esa fuente sola y contesta
+   `✔ Ingerido: raw/… → [[pagina-a]], [[pagina-b]]` (o `✔ Ingerido: raw/… → sin cambios en la wiki`).
+   Si no contesta, se integra sola en el ingest de la noche.
 
 ## Ingest (fuentes de `raw/` → la wiki)
 1. `pull`. Pendientes: `pendientes` de `vault-lint.py --json` (las que no están en `log.md`). Como
@@ -50,6 +55,29 @@ para deshacer un cambio tuyo en `raw/`.
 5. Responde en 2-3 líneas: cuántas fuentes, qué páginas cambiaron y cuántas quedan pendientes.
 
 Solo hechos que estén en las fuentes; nada de conversación ni pasos intermedios.
+
+## Salud ("salud de la bóveda", "health check", "¿cómo está mi bóveda?")
+Solo lectura: no corrijas nada aquí; si el usuario quiere arreglar algo, hazlo después, aparte.
+1. `pull`. Si falló, ese es el primer punto del informe.
+2. `python3 $DOTS/vault-lint.py --json`:
+   - `graves`: problemas que hacen fallar *Verificar bóveda* (frontmatter roto, secreto, `raw/` modificado).
+   - `avisos`: cuántos y los 2-3 primeros.
+   - `pendientes`: fuentes de `raw/` sin ingerir. Una sesión de `raw/sesiones/` se ingiere la noche
+     siguiente; si alguna tiene **más de un día** (fecha del nombre), el ingest nocturno está fallando.
+   - `info`: notas en `inbox/` por clasificar.
+3. Errores de subida en este servidor: archivos de `~/.cache/salchipapa-dots/vault-errors/` (su texto).
+4. Último ingest y último lint: `grep "^## \[" ~/.config/obsidian/log.md | grep -E " (ingest|lint) " | tail -2`.
+5. Revisión semanal: en la `weekly/AAAA-Wnn.md` más reciente, cuántas `- [ ]` quedan en `## Propuestas`.
+6. Responde en 5-6 líneas, una por punto, con ✔ o ⚠, y al final una línea con lo más urgente
+   (o `Todo en orden`). Ejemplo:
+   ```
+   ✔ Sincronizada con GitHub
+   ✔ Sin problemas graves · ⚠ 3 avisos (frontmatter de [[x]], …)
+   ⚠ 2 fuentes sin ingerir, 1 de hace 3 días: el ingest nocturno falla
+   ✔ inbox/ vacía · último ingest 2026-10-20
+   ⚠ Revisión semanal 2026-W43: 4 propuestas sin aplicar
+   Lo más urgente: revisar el ingest nocturno.
+   ```
 
 ## Consulta (preguntas sobre la bóveda)
 1. `pull`. Lee `index.md` primero (una línea por página) y luego las páginas relevantes. Para lo que

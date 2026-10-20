@@ -222,6 +222,7 @@ echo "SalchipapaOpenClaw (skill boveda):"
 SKILL="$REPO/SalchipapaOpenClaw/skills/boveda/SKILL.md"
 check "frontmatter con name y description" 'sed -n "2,4p" "$SKILL" | grep -q "^name: boveda$" && sed -n "2,4p" "$SKILL" | grep -q "^description: ."'
 check "los scripts que usa existen" '(for s in $(grep -o "\$DOTS/[a-z-]*\.\(sh\|py\)" "$SKILL" | sort -u); do [ -f "$OBS/${s#\$DOTS/}" ] || exit 1; done)'
+check "skill: captura con estado del ingest y sección Salud" 'grep -q "⏳ pendiente de ingest" "$SKILL" && grep -q "^## Salud" "$SKILL" && grep -q "vault-lint.py --json" "$SKILL"'
 check "vault-lint.py --json da las fuentes pendientes" 'OBSIDIAN_VAULT="$OBSIDIAN_VAULT" python3 "$OBS/vault-lint.py" --json | python3 -c "import json,sys; assert isinstance(json.load(sys.stdin)[\"pendientes\"], list)"'
 
 echo "raw/: enlaces de las conversaciones:"
