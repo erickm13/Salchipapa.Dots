@@ -165,6 +165,8 @@ Reglas:
   Mañana, Notas rápidas; tablas de bugs resueltos y enlaces [[nota]] si aplican.
 - Si daily/$D.md ya existe, compleméntala sin borrar lo que haya, y conserva "## Sesiones de hoy"
   tal cual al final de la nota.
+- Un "Pendiente: X" de "## Sesiones de hoy" con un "Resuelto: X" en una sesión posterior ya está
+  hecho: no lo pongas en Mañana, Pendiente ni Problemas / Blockers.
 - Concreto y en español. Solo hechos de las fuentes: no inventes.
 - Nunca escribas secretos (tokens, claves, contraseñas).
 - No toques otras notas. No ejecutes git (la sincronización es automática).

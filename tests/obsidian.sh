@@ -254,6 +254,25 @@ echo "No se pudo bajar la bóveda (prueba)" >"$T/limpia-home/.cache/salchipapa-d
 out="$(HOME="$T/limpia-home" OBSIDIAN_VAULT="$T/limpia" python3 "$LINT" --salud)"
 check "un fallo de sincronización sale con ⚠ y como lo más urgente" 'grep -q "^⚠ No se pudo bajar la bóveda (prueba)" <<<"$out" && grep -q "^Lo más urgente: No se pudo bajar" <<<"$out"'
 
+echo "Pendientes resueltos en una sesión posterior (Resuelto: <texto exacto>):"
+printf '# %s\n\n## Sesiones de hoy\n\n### 09:10 · claude · pc\n- Algo\n- Pendiente: ejecutar `install.sh` en el VPS\n- Pendiente: probar el linter\n\n### 10:20 · codex · pc\n- Otra cosa\n- Resuelto: ejecutar `install.sh` en el VPS.\n- Resuelto: ya probé el linter\n' "$D" >"$OBSIDIAN_VAULT/daily/$D.md"
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "la bienvenida oculta el pendiente con un Resuelto exacto posterior" '! grep -q "install.sh en el VPS" <<<"$msg"'
+check "un Resuelto parafraseado no tacha nada (fallo seguro)" 'grep -q "probar el linter" <<<"$msg"'
+check "las viñetas Resuelto no salen como lo que se hizo" '! grep -q "ya probé el linter" <<<"$msg"'
+printf '#!/bin/sh\ncat >/dev/null\nprintf "%%s" "$2" >"%s"\nprintf -- "- Lo probé\\n- Resuelto: probar el linter\\n"\n' "$T/prompt8" >"$T/claude-resuelto"
+chmod +x "$T/claude-resuelto"
+{
+  printf '{"type":"user","timestamp":"%s","message":{"content":"ya probé el linter"}}\n' "$NOW"
+  printf '{"type":"user","timestamp":"%s","message":{"content":"gracias"}}\n' "$NOW"
+} >"$T/t8.jsonl"
+printf '{"session_id":"res8","transcript_path":"%s"}' "$T/t8.jsonl" >"$T/hook8.json"
+CLAUDE_BIN="$T/claude-resuelto" python3 "$OBS/session-log.py" "$T/hook8.json" test >/dev/null
+check "el resumidor recibe solo los pendientes abiertos de hoy" 'grep -q "probar el linter" "$T/prompt8" && ! grep -q "install.sh en el VPS" "$T/prompt8"'
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "tras su Resuelto, el pendiente ya no sale en la bienvenida" '! grep -q "probar el linter" <<<"$msg"'
+check "la diaria de la noche no pasa lo resuelto a Mañana" 'grep -q "Resuelto: X" "$OBS/daily-note.sh"'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
 [ "$fails" -eq 0 ]

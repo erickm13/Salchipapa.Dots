@@ -53,6 +53,34 @@ al abrir un agente en otro equipo se sepa qué se hizo. Responde SOLO con viñet
 - luego, si las hay, una viñeta "Decidido: ..." y una "Pendiente: ...".
 Nunca incluyas secretos (tokens, claves, contraseñas): si aparecen, di solo que se mencionaron.
 Si en la conversación no se hizo nada de sustancia, responde exactamente: NADA"""
+# Lo que quedo pendiente en sesiones anteriores de hoy: si esta lo resolvio, el resumen lo dice con el
+# texto exacto y la bienvenida (y la diaria de la noche) dejan de mostrarlo. Parafraseado no se tacha.
+RESOLVED = """
+
+Pendientes de sesiones anteriores de hoy (uno por línea):
+{}
+Si en esta conversación quedó resuelto por completo alguno (el usuario dice que ya lo hizo, o se hizo
+aquí), añade una viñeta "Resuelto: " seguida del texto de ese pendiente copiado tal cual, carácter por
+carácter, sin cambiarlo ni resumirlo; una por pendiente. Si solo se resolvió una parte, no lo pongas."""
+
+
+def norm(s):
+    return " ".join(s.split()).rstrip(".")
+
+
+def open_pending(text):
+    """Los "Pendiente: ..." de "## Sesiones de hoy" que ningun "Resuelto: ..." posterior cerro.
+    La misma regla que vault-welcome.py."""
+    m = re.search(r"^## Sesiones de hoy\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
+    out = []
+    for line in (m.group(1) if m else "").splitlines():
+        b = line.strip()[2:].strip() if line.strip().startswith("- ") else ""
+        key, _, rest = b.partition(":")
+        if key.lower() == "pendiente" and rest.strip():
+            out.append(rest.strip())
+        elif key.lower() == "resuelto":
+            out = [x for x in out if norm(x) != norm(rest)]
+    return out
 
 
 def log(msg):
@@ -211,10 +239,13 @@ def main():
         print("corta")
         return 0
 
+    note = VAULT / "daily" / f"{today}.md"
+    pending = open_pending(note.read_text(encoding="utf-8")) if note.exists() else []
+    prompt = PROMPT + (RESOLVED.format("\n".join(pending)) if pending else "")
     convo = "\n\n".join(f"{'USUARIO' if r == 'user' else 'AGENTE'}: {t}" for _, r, t in msgs)[-MAX_CHARS:]
     claude = os.environ.get("CLAUDE_BIN") or "claude"
     # Sin hooks: que este `claude -p` no sincronice, no salude ni se resuma a si mismo, ni lo guarde claude-mem
-    p = subprocess.run([claude, "-p", PROMPT, "--model", "haiku", "--settings", '{"disableAllHooks": true}'],
+    p = subprocess.run([claude, "-p", prompt, "--model", "haiku", "--settings", '{"disableAllHooks": true}'],
                        input=convo, capture_output=True, text=True, timeout=300)
     summary = p.stdout.strip()
     if p.returncode != 0 or not summary:
@@ -231,7 +262,6 @@ def main():
     else:
         bullets = [l if l.startswith("- ") else f"- {l.lstrip('-* ')}" for l in summary.splitlines() if l.strip()]
         block = f"### {dt.datetime.now():%H:%M} · {agent} · {host}\n" + "\n".join(bullets) + "\n"
-        note = VAULT / "daily" / f"{today}.md"
         note.parent.mkdir(exist_ok=True)
         # El mismo lock que vault-sync.sh: no escribir mientras se hace pull o push
         with open(VAULT / ".git" / "vault-sync.lock", "w") as lock:

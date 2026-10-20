@@ -66,6 +66,24 @@ def sessions(text):
     return out
 
 
+def norm(s):
+    return " ".join(s.split()).rstrip(".")
+
+
+def open_pending(sess):
+    """Los "Pendiente: ..." de las sesiones que ningun "Resuelto: ..." posterior cerro (texto exacto,
+    sin contar espacios ni el punto final: si el resumen lo parafrasea, no se tacha)."""
+    out = []
+    for _, bullets in sess:
+        for b in bullets:
+            key, _, rest = b.partition(":")
+            if key.lower() == "pendiente" and rest.strip():
+                out.append(rest.strip())
+            elif key.lower() == "resuelto":
+                out = [x for x in out if norm(x) != norm(rest)]
+    return out
+
+
 def pick(secs, *names):
     for name in names:
         for title, items in secs.items():
@@ -140,9 +158,9 @@ def main():
     nxt = pick(secs, "mañana", "manana")
     pending = pick(secs, "pendiente", "problemas")
     sess = sessions(text)
-    # Lo pendiente de las sesiones de hoy (la mas reciente primero) va antes que el resto
-    pending = [b.split(":", 1)[1].strip() for _, bullets in reversed(sess)
-               for b in bullets if b.lower().startswith("pendiente:")] + pending
+    # Lo pendiente de las sesiones de hoy (la mas reciente primero) va antes que el resto, sin lo que
+    # una sesion posterior dio por resuelto con el mismo texto ("Resuelto: <pendiente>", session-log.py)
+    pending = list(reversed(open_pending(sess))) + pending
 
     # Tareas abiertas de los proyectos que no esten ya en la diaria
     seen = {plain(x).lower() for x in nxt + pending}
@@ -162,7 +180,7 @@ def main():
         for title, bullets in sess[-2:]:
             lines.append(f"  ▸ {title}")
             lines += [f"    • {plain(b)}" for b in bullets
-                      if not b.lower().startswith(("pendiente:", "decidido:"))][:3]
+                      if not b.lower().startswith(("pendiente:", "decidido:", "resuelto:"))][:3]
         if len(sess) > 2:
             lines.append(f"  … y {len(sess) - 2} {'sesiones' if len(sess) > 3 else 'sesión'} antes (daily/{last.name})")
     else:
