@@ -22,7 +22,7 @@ if [ "${1:-}" = "--drain" ] || [ "${1:-}" = "--drain-hook" ]; then
   # Un solo vaciado a la vez
   exec 8>"$QUEUE/.lock"
   flock -n 8 || exit 0
-  notes=() pending=0 limited=0
+  notes=() results=() pending=0 limited=0
   for f in "$QUEUE"/*.json; do
     [ -e "$f" ] || break
     name="$(basename "$f" .json)"   # <fecha>-<pid>-<agente>[.tryN]
@@ -32,6 +32,7 @@ if [ "${1:-}" = "--drain" ] || [ "${1:-}" = "--drain-hook" ]; then
     rc=$?
     if [ "$rc" -eq 0 ]; then
       rm -f "$f" "$STATE/vault-errors/session"
+      results+=("$result")
       case "$result" in resumen\ *) notes+=("${result#resumen }") ;; esac
     elif [ "$rc" -eq 75 ]; then
       # Claude en su limite de uso: se queda en la cola sin gastar un intento (la conversacion ya
@@ -63,7 +64,12 @@ if [ "${1:-}" = "--drain" ] || [ "${1:-}" = "--drain-hook" ]; then
     elif [ "${#notes[@]}" -gt 0 ]; then
       msg="✔ Notas guardadas: resumen de la sesión en ${notes[*]} y bóveda subida a GitHub"
     else
-      msg="✔ Bóveda al día en GitHub (sin resumen: sesión corta o agente que no entrega la conversación)"
+      case " ${results[*]} " in
+      *" nada "*) why="la sesión no dejó nada que anotar" ;;
+      *" sin-transcript "*) why="no hubo conversación (sesión vacía) o el agente no entrega su transcript" ;;
+      *) why="no hubo mensajes nuevos desde el último resumen" ;;
+      esac
+      msg="✔ Bóveda al día en GitHub (sin resumen: $why)"
     fi
     printf '%s\n%s\n' "$(date +%s%N)" "$msg" >"$STATUS.tmp" && mv "$STATUS.tmp" "$STATUS"
   fi

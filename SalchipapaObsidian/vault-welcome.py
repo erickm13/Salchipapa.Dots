@@ -17,6 +17,8 @@ from pathlib import Path
 
 VAULT = Path(os.environ.get("OBSIDIAN_VAULT", Path.home() / ".config/obsidian"))
 HERE = Path(__file__).resolve().parent
+sys.path.insert(0, str(HERE))
+import pendientes  # noqa: E402  (lista de pendientes vigente: la misma regla que session-log.py)
 ERRORS = Path.home() / ".cache/salchipapa-dots/vault-errors"
 MAX_ITEMS = 4
 MAX_LEN = 90
@@ -63,31 +65,6 @@ def sessions(text):
     for block in re.split(r"^### ", m.group(1), flags=re.M)[1:]:
         lines = block.strip().splitlines()
         out.append((lines[0].strip(), [l.strip()[2:] for l in lines[1:] if l.strip().startswith("- ")]))
-    return out
-
-
-def norm(s):
-    return " ".join(s.split()).rstrip(".")
-
-
-def tasks(text):
-    """Una viñeta puede traer varias tareas unidas con ";" (resúmenes anteriores): se separan, sin partir
-    lo que va entre `backticks`, para que cada una se pueda dar por resuelta por separado."""
-    return [t.strip() for t in re.split(r";(?=(?:[^`]*`[^`]*`)*[^`]*$)", text) if t.strip()]
-
-
-def open_pending(sess):
-    """Los "Pendiente: ..." de las sesiones que ningun "Resuelto: ..." posterior cerro (texto exacto,
-    sin contar espacios ni el punto final: si el resumen lo parafrasea, no se tacha)."""
-    out = []
-    for _, bullets in sess:
-        for b in bullets:
-            key, _, rest = b.partition(":")
-            if key.lower() == "pendiente" and rest.strip():
-                out += tasks(rest)
-            elif key.lower() == "resuelto":
-                done = {norm(x) for x in tasks(rest)}
-                out = [x for x in out if norm(x) not in done]
     return out
 
 
@@ -165,9 +142,8 @@ def main():
     nxt = pick(secs, "mañana", "manana")
     pending = pick(secs, "pendiente", "problemas")
     sess = sessions(text)
-    # Lo pendiente de las sesiones de hoy (la mas reciente primero) va antes que el resto, sin lo que
-    # una sesion posterior dio por resuelto con el mismo texto ("Resuelto: <pendiente>", session-log.py)
-    pending = list(reversed(open_pending(sess))) + pending
+    # La lista de pendientes vigente de las sesiones de hoy (la reescribe cada resumen) va antes que el resto
+    pending = pendientes.current(text) + pending
 
     # Tareas abiertas de los proyectos que no esten ya en la diaria
     seen = {plain(x).lower() for x in nxt + pending}
@@ -187,7 +163,7 @@ def main():
         for title, bullets in sess[-2:]:
             lines.append(f"  ▸ {title}")
             lines += [f"    • {plain(b)}" for b in bullets
-                      if not b.lower().startswith(("pendiente:", "decidido:", "resuelto:"))][:3]
+                      if not b.lower().startswith(("pendiente:", "decidido:", "resuelto:", pendientes.NONE))][:3]
         if len(sess) > 2:
             lines.append(f"  … y {len(sess) - 2} {'sesiones' if len(sess) > 3 else 'sesión'} antes (daily/{last.name})")
     else:

@@ -74,10 +74,10 @@ check "muestra los avisos ⚠" 'python3 "$OBS/vault-welcome.py" | grep -q "⚠ N
 rm "$HOME/.cache/salchipapa-dots/vault-errors/push"
 
 echo "vault-session-end.sh / session-log.py (sin llamar a Claude):"
-printf '{"type":"user","timestamp":"%s","message":{"content":"hola"}}\n' "$(date -u +%FT%TZ)" >"$T/t.jsonl"
+printf '{"type":"assistant","timestamp":"%s","message":{"content":"hola"}}\n' "$(date -u +%FT%TZ)" >"$T/t.jsonl"
 printf '{"session_id":"s1","transcript_path":"%s"}' "$T/t.jsonl" >"$T/hook.json"
 python3 "$OBS/session-log.py" "$T/hook.json" test >/dev/null
-check "sesion corta: no se resume" 'grep -q "sesion corta" "$HOME/.cache/salchipapa-dots/session-log.log"'
+check "sin mensajes del usuario: no se resume" 'grep -q "sin conversacion nueva" "$HOME/.cache/salchipapa-dots/session-log.log"'
 printf '{"session_id":"s2"}' | bash "$OBS/vault-session-end.sh" test
 # Se procesa en segundo plano: esperar al resultado, que se escribe al final (tras el push)
 for _ in $(seq 100); do [ -f "$HOME/.cache/salchipapa-dots/session-end.status" ] && break; sleep 0.2; done
@@ -279,6 +279,33 @@ printf '{"type":"user","timestamp":"%s","message":{"content":"hola"}}\n{"type":"
 printf '{"session_id":"res9","transcript_path":"%s"}' "$T/t9.jsonl" >"$T/hook9.json"
 CLAUDE_BIN="$T/claude-resuelto" python3 "$OBS/session-log.py" "$T/hook9.json" test >/dev/null
 check "el resumidor recibe cada tarea por separado y pide un Pendiente por tarea" 'grep -qx "revisar la semanal del lunes" "$T/prompt8" && grep -q "POR CADA tarea" "$T/prompt8"'
+
+echo "Lista de pendientes reescrita en cada sesión (pendientes.py):"
+printf '# %s\n\n## Sesiones de hoy\n\n### 09:10 · claude · pc\n- Algo\n- Pendiente: viejo uno; viejo dos\n\n### 10:20 · codex · pc\n- Otra cosa\n- Pendiente: solo este queda\n<!-- pendientes: lista completa -->\n\n### 11:00 · claude · pc\n- Más\n- Pendiente: nuevo sin marca\n' "$D" >"$OBSIDIAN_VAULT/daily/$D.md"
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "la última lista completa reemplaza a las anteriores" '! grep -q "viejo uno\|viejo dos" <<<"$msg" && grep -q "solo este queda" <<<"$msg" && grep -q "nuevo sin marca" <<<"$msg"'
+printf '#!/bin/sh\ncat >/dev/null\nprintf "%%s" "$2" >"%s"\nprintf -- "- Ejecuté el install.sh\\n- Pendiente: probar algo nuevo\\n"\n' "$T/prompt10" >"$T/claude-lista"
+chmod +x "$T/claude-lista"
+printf '{"type":"user","timestamp":"%s","message":{"content":"el install.sh ya está hecho"}}\n' "$NOW" >"$T/t10.jsonl"
+printf '{"session_id":"lst10","transcript_path":"%s"}' "$T/t10.jsonl" >"$T/hook10.json"
+CLAUDE_BIN="$T/claude-lista" python3 "$OBS/session-log.py" "$T/hook10.json" test >/dev/null
+check "un solo mensaje basta para resumir (puede cerrar un pendiente)" 'grep -q "Ejecuté el install.sh" "$OBSIDIAN_VAULT/daily/$D.md"'
+check "el resumidor recibe la lista vigente y pide la lista completa" 'grep -qx "solo este queda" "$T/prompt10" && grep -qx "nuevo sin marca" "$T/prompt10" && grep -q "LISTA COMPLETA" "$T/prompt10"'
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "tras el resumen solo queda su lista" 'grep -q "probar algo nuevo" <<<"$msg" && ! grep -q "solo este queda\|nuevo sin marca" <<<"$msg"'
+printf '#!/bin/sh\ncat >/dev/null\nprintf -- "- Hice algo\\n"\n' >"$T/claude-sinlista"
+chmod +x "$T/claude-sinlista"
+printf '{"type":"user","timestamp":"%s","message":{"content":"otra"}}\n' "$(date -u -d '+2 minutes' +%FT%TZ)" >>"$T/t10.jsonl"
+CLAUDE_BIN="$T/claude-sinlista" python3 "$OBS/session-log.py" "$T/hook10.json" test >/dev/null
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "si el resumen olvida la lista, no se borran los pendientes" 'grep -q "probar algo nuevo" <<<"$msg"'
+Y="$(date -d yesterday +%F)"
+printf '# %s\n\n## Mañana\n- tarea de ayer\n\n## Notas rápidas\n- nada\n' "$Y" >"$OBSIDIAN_VAULT/daily/$Y.md"
+mv "$OBSIDIAN_VAULT/daily/$D.md" "$T/hoy.md"
+printf '{"type":"user","timestamp":"%s","message":{"content":"primera del día"}}\n' "$NOW" >"$T/t11.jsonl"
+printf '{"session_id":"lst11","transcript_path":"%s"}' "$T/t11.jsonl" >"$T/hook11.json"
+CLAUDE_BIN="$T/claude-lista" python3 "$OBS/session-log.py" "$T/hook11.json" test >/dev/null
+check "la primera sesión del día recibe el Mañana de la diaria anterior" 'grep -qx "tarea de ayer" "$T/prompt10"'
 
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi

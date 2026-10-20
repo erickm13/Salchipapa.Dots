@@ -12,7 +12,8 @@ escapados (texto, no enlaces: Obsidian no los reescribe al renombrar una nota). 
 vuelve a tocar; si la sesion sigue (resume), lo nuevo va a otro archivo. Asi la conversacion no se
 pierde aunque el resumen falle. Lee transcripts de Claude Code, Codex, Copilot CLI y Gemini CLI.
 
-Sesiones cortas (menos de MIN_TURNS mensajes del usuario) no se guardan ni se resumen. El resumen pasa
+Las sesiones de menos de MIN_TURNS mensajes del usuario no se guardan en raw/; para el resumen basta uno.
+Cada resumen reescribe la lista completa de pendientes del dia (pendientes.py). El resumen pasa
 por el mismo filtro de secretos que la sincronizacion. Sale con 0 si no habia nada que hacer, con
 LIMIT (75) si Claude esta en su limite de uso (vault-session-end.sh no gasta un reintento) y con 1 si
 fallo otra cosa.
@@ -29,6 +30,9 @@ import subprocess
 import sys
 from pathlib import Path
 
+sys.path.insert(0, str(Path(__file__).resolve().parent))
+import pendientes  # noqa: E402  (lista de pendientes vigente: la misma regla que vault-welcome.py)
+
 VAULT = Path(os.environ.get("OBSIDIAN_VAULT", Path.home() / ".config/obsidian"))
 STATE = Path.home() / ".cache/salchipapa-dots"
 SEEN = STATE / "session-log.json"  # session_id -> ultimo mensaje resumido; "raw:"+id -> ultimo guardado en raw/
@@ -41,55 +45,35 @@ def unlink(text):
     """[[nota]] -> \\[\\[nota\\]\\]: se lee igual en Obsidian, pero no es un enlace. Asi, al renombrar una
     nota Obsidian no reescribe raw/ (inmutable) y los enlaces de una conversacion nunca quedan rotos."""
     return WIKILINK.sub(lambda m: m.group(1) + "\\[\\[" + m.group(2) + "\\]\\]", text)
-MIN_TURNS = 2
+MIN_TURNS = 2       # para guardar en raw/
+SUMMARY_TURNS = 1   # para resumir: un solo mensaje ("el install.sh ya está hecho") puede cerrar un pendiente
 MAX_CHARS = 60_000
 SECRETS = re.compile(
     r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|AIza[0-9A-Za-z_-]{35}|AQ\.[A-Za-z0-9_-]{30,}"
     r"|sk-[A-Za-z0-9_-]{20,}|oma_(live|test)_[A-Za-z0-9]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----")
 PROMPT = """Resume esta sesión de trabajo con un agente de IA para la nota diaria del usuario, para que
 al abrir un agente en otro equipo se sepa qué se hizo. Responde SOLO con viñetas en español
-(entre 3 y 7), sin títulos ni introducción:
-- primero lo que se hizo o se cambió (concreto: archivos, comandos, herramientas, versiones);
-- luego, si las hay, viñetas "Decidido: ..." y una viñeta "Pendiente: ..." POR CADA tarea pendiente
-  (nunca varias tareas en la misma viñeta ni unidas con ";").
+sin títulos ni introducción:
+- primero lo que se hizo o se cambió, entre 1 y 6 viñetas (concreto: archivos, comandos, herramientas,
+  versiones);
+- luego, si las hay, viñetas "Decidido: ...";
+- al final, la lista de pendientes como se indica abajo.
 Nunca incluyas secretos (tokens, claves, contraseñas): si aparecen, di solo que se mencionaron.
 Si en la conversación no se hizo nada de sustancia, responde exactamente: NADA"""
-# Lo que quedo pendiente en sesiones anteriores de hoy: si esta lo resolvio, el resumen lo dice con el
-# texto exacto y la bienvenida (y la diaria de la noche) dejan de mostrarlo. Parafraseado no se tacha.
-RESOLVED = """
+# La lista de pendientes se REESCRIBE completa en cada sesion (pendientes.py): no hay que tachar
+# copiando textos, y la bienvenida muestra la lista del ultimo resumen.
+LIST = """
 
-Pendientes de sesiones anteriores de hoy (uno por línea):
+Pendientes abiertos antes de esta sesión (uno por línea):
 {}
-Si en esta conversación quedó resuelto por completo alguno (el usuario dice que ya lo hizo, o se hizo
-aquí), añade una viñeta "Resuelto: " seguida del texto de ese pendiente copiado tal cual, carácter por
-carácter, sin cambiarlo ni resumirlo; una viñeta por pendiente. Si solo se resolvió una parte, no lo
-pongas. Lo que siga sin resolver no lo repitas como "Pendiente:" (ya consta)."""
 
-
-def norm(s):
-    return " ".join(s.split()).rstrip(".")
-
-
-def tasks(text):
-    """Una viñeta puede traer varias tareas unidas con ";" (resúmenes anteriores): se separan, sin partir
-    lo que va entre `backticks`, para que cada una se pueda dar por resuelta por separado."""
-    return [t.strip() for t in re.split(r";(?=(?:[^`]*`[^`]*`)*[^`]*$)", text) if t.strip()]
-
-
-def open_pending(text):
-    """Los "Pendiente: ..." de "## Sesiones de hoy" que ningun "Resuelto: ..." posterior cerro.
-    La misma regla que vault-welcome.py."""
-    m = re.search(r"^## Sesiones de hoy\s*$(.*?)(?=^## |\Z)", text, re.M | re.S)
-    out = []
-    for line in (m.group(1) if m else "").splitlines():
-        b = line.strip()[2:].strip() if line.strip().startswith("- ") else ""
-        key, _, rest = b.partition(":")
-        if key.lower() == "pendiente" and rest.strip():
-            out += tasks(rest)
-        elif key.lower() == "resuelto":
-            done = {norm(x) for x in tasks(rest)}
-            out = [x for x in out if norm(x) not in done]
-    return out
+Al final, escribe la LISTA COMPLETA de pendientes tal como queda después de esta sesión, una viñeta
+"Pendiente: ..." POR CADA tarea (nunca varias en la misma viñeta ni unidas con ";"):
+- quita los que se resolvieron en esta conversación (se hicieron aquí o el usuario dice que ya los hizo);
+- conserva los que siguen abiertos, aunque no se hablara de ellos (puedes reescribirlos más claros);
+- añade los nuevos y junta los repetidos;
+- no conviertas en pendiente una explicación o un "si pasa X, haz Y".
+Si no queda ninguno, escribe exactamente la viñeta: "Sin pendientes"."""
 
 
 def log(msg):
@@ -243,14 +227,18 @@ def main():
             continue
         if local(ts).date() == today:
             msgs.append((ts, role, text))
-    if sum(1 for m in msgs if m[1] == "user") < MIN_TURNS:
-        log(f"[{agent}] {sid[:8]}: sesion corta, sin resumen")
+    if sum(1 for m in msgs if m[1] == "user") < SUMMARY_TURNS:
+        log(f"[{agent}] {sid[:8]}: sin conversacion nueva, sin resumen")
         print("corta")
         return 0
 
     note = VAULT / "daily" / f"{today}.md"
-    pending = open_pending(note.read_text(encoding="utf-8")) if note.exists() else []
-    prompt = PROMPT + (RESOLVED.format("\n".join(pending)) if pending else "")
+    pending = pendientes.current(note.read_text(encoding="utf-8")) if note.exists() else []
+    if not pending and not (note.exists() and pendientes.blocks(note.read_text(encoding="utf-8"))):
+        # Primera sesion del dia: lo que la diaria anterior paso a "Mañana" / "Pendiente"
+        older = sorted(p for p in (VAULT / "daily").glob("*.md") if p.stem < str(today))
+        pending = pendientes.carried(older[-1].read_text(encoding="utf-8")) if older else []
+    prompt = PROMPT + LIST.format("\n".join(pending) or "(ninguno)")
     convo = "\n\n".join(f"{'USUARIO' if r == 'user' else 'AGENTE'}: {t}" for _, r, t in msgs)[-MAX_CHARS:]
     claude = os.environ.get("CLAUDE_BIN") or "claude"
     # Sin hooks: que este `claude -p` no sincronice, no salude ni se resuma a si mismo, ni lo guarde claude-mem
@@ -271,6 +259,9 @@ def main():
     else:
         bullets = [l if l.startswith("- ") else f"- {l.lstrip('-* ')}" for l in summary.splitlines() if l.strip()]
         block = f"### {dt.datetime.now():%H:%M} · {agent} · {host}\n" + "\n".join(bullets) + "\n"
+        # Solo si trae la lista completa reemplaza a las anteriores (si el modelo la olvido, se conservan)
+        if pendientes.is_list([b[2:] for b in bullets]):
+            block += pendientes.MARK + "\n"
         note.parent.mkdir(exist_ok=True)
         # El mismo lock que vault-sync.sh: no escribir mientras se hace pull o push
         with open(VAULT / ".git" / "vault-sync.lock", "w") as lock:
