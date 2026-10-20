@@ -1,0 +1,53 @@
+# Verificador de la bóveda en cada push (copiar a <bóveda>/.github/workflows/). Sin LLM ni secrets:
+# corre vault-lint.py y falla solo por algo grave (frontmatter roto, posible secreto, raw/ modificado o
+# borrado en ese push). Cubre también lo que suben Obsidian en Windows/iPhone (plugin Git), que no pasa
+# por vault-sync.sh. Los avisos quedan en el resumen del job.
+name: Verificar bóveda
+
+on:
+  push:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  lint:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Bóveda
+        uses: actions/checkout@v4
+        with:
+          path: vault
+          fetch-depth: 0
+      - name: Scripts (Salchipapa.Dots)
+        uses: actions/checkout@v4
+        with:
+          repository: ${{ vars.SALCHIPAPA_DOTS_REPO || 'erickm13/Salchipapa.Dots' }}
+          # Versión fija de los scripts: variable SALCHIPAPA_DOTS_REF (un commit o tag); sin ella, main
+          ref: ${{ vars.SALCHIPAPA_DOTS_REF || 'main' }}
+          path: dots
+      - name: vault-lint.py
+        env:
+          OBSIDIAN_VAULT: ${{ github.workspace }}/vault
+          BEFORE: ${{ github.event.before }}
+        run: |
+          since=()
+          # raw/ se compara con el commit anterior al push (si existe: no en el primer push ni tras un force-push)
+          if [ -n "${BEFORE:-}" ] && git -C vault cat-file -e "${BEFORE}^{commit}" 2>/dev/null; then
+            since=(--since "$BEFORE")
+          fi
+          set +e
+          out="$(python3 dots/SalchipapaObsidian/vault-lint.py "${since[@]}")"
+          rc=$?
+          set -e
+          echo "$out"
+          {
+            echo "## Verificador de la bóveda"
+            echo
+            echo '```'
+            echo "$out"
+            echo '```'
+          } >>"$GITHUB_STEP_SUMMARY"
+          exit "$rc"

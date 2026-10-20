@@ -20,7 +20,7 @@ caen en `inbox/`.
 | [`AGENTS.md`](AGENTS.md) | Instrucciones globales de memoria (genéricas: quién es el usuario lo leen de `me.md`): dónde está la bóveda, sincronización, bienvenida, nunca secretos, y que **antes de escribir lean el schema de la bóveda** (`<bóveda>/AGENTS.md`). Enlazado como `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md`, `~/.copilot/copilot-instructions.md` y `~/.gemini/GEMINI.md` |
 | [`vault-start.sh`](vault-start.sh) | Hook de inicio de sesión: `vault-sync.sh start` + bienvenida (+ resúmenes de sesión que quedaron en cola) |
 | [`vault-session-end.sh`](vault-session-end.sh) + [`session-log.py`](session-log.py) | Hook de fin de sesión (Claude Code, Codex, Copilot CLI y Gemini CLI; opencode solo push): en segundo plano, guarda la conversación limpia en `raw/sesiones/AAAA-MM-DD-HHMM-agente-<sesión>.md` (fuente cruda: secretos como `[SECRETO]`, nunca se reescribe; lo que siga en la sesión va a otro archivo), resume la sesión con `claude -p --model haiku` (sin hooks) y la añade a `daily/<hoy>.md` bajo `## Sesiones de hoy` (`### HH:MM · agente · equipo`), luego push. Así **cualquier otro equipo** ve lo último que hiciste al abrir un agente. Sesiones cortas (menos de 2 mensajes tuyos) no se resumen; el resumen pasa el filtro de secretos; si el equipo se apaga antes, la cola se procesa al empezar la siguiente sesión; si Claude está en su límite de uso, la entrada se queda en la cola sin gastar intentos. Al salir de `claude`, `codex` o `copilot` (funciones de fish), se espera el resultado y se muestra bajo el aviso de `--resume`: `✔ Notas guardadas: resumen de la sesión en daily/… y bóveda subida a GitHub` (Ctrl+C: que siga en segundo plano). Log: `~/.cache/salchipapa-dots/session-log.log` |
-| [`vault-welcome.py`](vault-welcome.py) | Bienvenida: lo último que hice (diaria más reciente) y lo pendiente (`Mañana`, `Pendiente`, tareas `- [ ]` de `projects/`). Lo muestra en pantalla y se lo pasa al agente para que salude |
+| [`vault-welcome.py`](vault-welcome.py) | Bienvenida: lo último que hice (diaria más reciente) y lo pendiente (`Mañana`, `Pendiente`, tareas `- [ ]` de `projects/`). Con `vault-lint.py`: ⚠ si hay algo grave, 📥 si hay fuentes de `raw/` sin ingerir desde hace más de un día (el ingest nocturno no funciona) y 🧹 con el número de avisos. Lo muestra en pantalla y se lo pasa al agente para que salude |
 | [`vault-sync.sh`](vault-sync.sh) | `start` al empezar (sube lo que quedó pendiente de una sesión cerrada de golpe + pull), `push` (commit + pull --rebase + push) al terminar. Lock entre agentes, nunca bloquea, se niega a subir secretos y cambios a archivos existentes de `raw/` (inmutable). Log: `~/.cache/salchipapa-dots/vault-sync.log` |
 | [`vault-guard-raw.py`](vault-guard-raw.py) | Hook antes de editar (Claude Code `PreToolUse`, Gemini CLI `BeforeTool`): bloquea editar un archivo existente de `raw/`; crear fuentes nuevas sí se puede |
 | [`vault-lint.py`](vault-lint.py) | Verificador de la wiki, sin LLM: frontmatter (`tipo`, `resumen`, `actualizado`), enlaces rotos (resuelve alias, ignora código), páginas que su hub no enlaza, proyectos largos, sin Estado o terminados, hubs vacíos, archivos fuera de PARA, secretos y, con `--since <rev>`, cambios en `raw/`. Sale con 1 solo si hay algo grave. `--index` regenera `index.md` desde el `resumen` de cada página (lo hace `vault-sync.sh` antes de cada commit); `--json` y `--count` para otros scripts |
@@ -61,10 +61,20 @@ En GitHub Actions corren una sola vez, a su hora, aunque todos tus equipos esté
    claude setup-token                                            # abre el navegador y muestra el token
    gh secret set CLAUDE_CODE_OAUTH_TOKEN -R <usuario>/<bóveda>   # lo pide oculto
    ```
-2. Copia [`github-actions/daily-note.yml`](github-actions/daily-note.yml) y
-   [`github-actions/weekly-review.yml`](github-actions/weekly-review.yml) a `<bóveda>/.github/workflows/`
+2. Copia [`github-actions/daily-note.yml`](github-actions/daily-note.yml),
+   [`github-actions/weekly-review.yml`](github-actions/weekly-review.yml) y
+   [`github-actions/vault-lint.yml`](github-actions/vault-lint.yml) a `<bóveda>/.github/workflows/`
    (ajusta `TZ` y el `cron` a tu zona horaria). Bajan los scripts de `erickm13/Salchipapa.Dots`; si usas
    un fork, crea en la bóveda la variable de Actions `SALCHIPAPA_DOTS_REPO` = `<usuario>/<fork>`.
+   `vault-lint.yml` corre en cada push (también lo que sube Obsidian desde Windows o el iPhone) y falla
+   solo por algo grave: frontmatter roto, un posible secreto o `raw/` modificado.
+   **Versiones fijas** (variables de Actions de la bóveda): `SALCHIPAPA_DOTS_REF` = commit o tag de los
+   scripts (sin ella, `main`: un commit roto en Dots rompería la diaria de esa noche) y
+   `CLAUDE_CODE_VERSION` (sin ella, la última). Tras actualizar Dots, sube la versión:
+   ```bash
+   gh variable set SALCHIPAPA_DOTS_REF -R <usuario>/<bóveda> -b "$(git -C "$DOTS" rev-parse HEAD)"
+   gh variable set CLAUDE_CODE_VERSION -R <usuario>/<bóveda> -b "$(claude --version | cut -d' ' -f1)"
+   ```
 3. En cada equipo: `setup-agents.py` ve los workflows y **desactiva** los timers locales.
 
 En la nube no hay claude-mem (es local): la diaria se hace con `## Sesiones de hoy` y tus commits

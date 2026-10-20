@@ -209,6 +209,15 @@ PATH="$T/bin:$PATH" bash "$OBS/weekly-review.sh" "$(date +%F)"
 check "la semanal recibe los hallazgos del verificador" 'grep -q "Hallazgos del verificador" "$PROMPTS" && grep -q "demo-b.md: falta en el frontmatter" "$PROMPTS"'
 check "la semanal lista las áreas reales y pide lint con criterio" 'grep -q "responsabilidades: trabajo" "$PROMPTS" && grep -q "LINT CON CRITERIO" "$PROMPTS"'
 
+echo "vault-welcome.py: contadores de la wiki:"
+echo "artículo" >"$OBSIDIAN_VAULT/raw/web/articulo.md"
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "🧹 cuenta los avisos del verificador" 'grep -q "🧹 [0-9]* aviso(s) del verificador" <<<"$msg"'
+check "📥 avisa de fuentes de raw/ sin ingerir" 'grep -q "📥 1 fuente(s) de raw/ sin ingerir" <<<"$msg"'
+printf '\n## [hoy] ingest | raw/web/articulo.md\n' >>"$OBSIDIAN_VAULT/log.md"
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "📥 desaparece al ingerirla" '! grep -q "📥" <<<"$msg"'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
 [ "$fails" -eq 0 ]

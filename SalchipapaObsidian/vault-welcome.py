@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 VAULT = Path(os.environ.get("OBSIDIAN_VAULT", Path.home() / ".config/obsidian"))
+HERE = Path(__file__).resolve().parent
 ERRORS = Path.home() / ".cache/salchipapa-dots/vault-errors"
 MAX_ITEMS = 4
 MAX_LEN = 90
@@ -99,15 +100,39 @@ def weekly():
             f"la bóveda. Dile a un agente \"aplica la revisión semanal\".")
 
 
+def wiki():
+    """Lineas del verificador (vault-lint.py): graves (⚠), fuentes de raw/ atascadas (📥) y avisos (🧹)."""
+    try:
+        p = subprocess.run([sys.executable, str(HERE / "vault-lint.py"), "--json"], capture_output=True,
+                           text=True, timeout=15, env={**os.environ, "OBSIDIAN_VAULT": str(VAULT)})
+        r = json.loads(p.stdout)
+    except (OSError, subprocess.SubprocessError, ValueError):
+        return [], []
+    lint = f"python3 {HERE / 'vault-lint.py'}"
+    top = [f"⚠ La bóveda tiene {len(r['graves'])} problema(s) grave(s): {r['graves'][0]} (detalle: {lint})"] if r["graves"] else []
+    bottom = []
+    # Una sesion se ingiere la noche siguiente; si lleva mas de un dia, el ingest nocturno no esta funcionando
+    limit = (dt.date.today() - dt.timedelta(days=1)).isoformat()
+    stuck = [s for s in r["pendientes"] if not s.startswith("raw/sesiones/") or s[13:23] < limit]
+    if stuck:
+        bottom.append(f"📥 {len(stuck)} fuente(s) de raw/ sin ingerir desde hace más de un día: revisa el "
+                      "ingest nocturno (GitHub Actions u OpenClaw)")
+    if r["avisos"]:
+        bottom.append(f"🧹 {len(r['avisos'])} aviso(s) del verificador de la bóveda (van a la revisión semanal; "
+                      f"detalle: {lint})")
+    return top, bottom
+
+
 def main():
     notes = sorted(p for p in (VAULT / "daily").glob("*.md")
                    if re.fullmatch(r"\d{4}-\d{2}-\d{2}", p.stem))
-    alerts = warnings()
+    top, bottom = wiki()
+    alerts = warnings() + top
     review = weekly()
-    if not notes and not alerts and not review:
+    if not notes and not alerts and not review and not bottom:
         return
     if not notes:
-        emit("\n".join(alerts + ([review] if review else [])), "")
+        emit("\n".join(alerts + ([review] if review else []) + bottom), "")
         return
     last = notes[-1]
     text = last.read_text(encoding="utf-8")
@@ -152,6 +177,7 @@ def main():
         lines += [f"  • {plain(x)}" for x in todo[:MAX_ITEMS]]
     if review:
         lines.append(review)
+    lines += bottom
     emit("\n".join(lines), last.name)
 
 

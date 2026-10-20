@@ -36,10 +36,13 @@ jobs:
         with:
           # Tu fork: variable del repo SALCHIPAPA_DOTS_REPO (Settings → Secrets and variables → Variables)
           repository: ${{ vars.SALCHIPAPA_DOTS_REPO || 'erickm13/Salchipapa.Dots' }}
+          # Versión fija de los scripts: variable SALCHIPAPA_DOTS_REF (un commit o tag); sin ella, main
+          ref: ${{ vars.SALCHIPAPA_DOTS_REF || 'main' }}
           path: dots
       - name: Claude Code
         run: |
-          curl -fsSL https://claude.ai/install.sh | bash
+          # Versión fija de Claude Code: variable CLAUDE_CODE_VERSION (p. ej. 2.1.304); sin ella, la última
+          curl -fsSL https://claude.ai/install.sh | bash -s "${{ vars.CLAUDE_CODE_VERSION || 'latest' }}"
           echo "$HOME/.local/bin" >>"$GITHUB_PATH"
       - name: Identidad de git
         working-directory: vault
