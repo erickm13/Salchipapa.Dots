@@ -20,7 +20,9 @@ Fuera de las capas: `inbox/` (captura del usuario sin clasificar), `daily/` y `w
 que escriben las automatizaciones) y `me.md`.
 
 ## Capa 1 · Fuentes crudas (`raw/`)
-- `sesiones/AAAA-MM-DD-HHMM-agente.md`: la conversación limpia de cada sesión. Solo la escribe el hook de cierre.
+- `sesiones/AAAA-MM-DD-HHMM-agente-<sesion>.md`: la conversación limpia de cada sesión (solo lo que dicen
+  el usuario y el agente; los secretos aparecen como `[SECRETO]`). Solo la escribe el hook de cierre; si
+  la sesión sigue después, lo nuevo va a otro archivo.
 - `web/`: artículos (Obsidian Web Clipper). `docs/`: PDFs, material de clase, documentación.
   `assets/`: imágenes (carpeta de adjuntos de Obsidian).
 - **Nunca** edites, renombres ni borres nada de `raw/`. Si una fuente está mal, corrígelo en la wiki.

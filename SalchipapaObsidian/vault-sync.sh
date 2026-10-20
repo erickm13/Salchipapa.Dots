@@ -7,7 +7,8 @@
 #
 # Nunca bloquea al agente: cualquier fallo se anota en el log y sale con 0. Ademas deja un aviso en
 # vault-errors/ (lo muestra la bienvenida) que se borra solo cuando ese paso vuelve a funcionar.
-# Un lock evita que dos agentes sincronicen a la vez. No sube nada que parezca un secreto.
+# Un lock evita que dos agentes sincronicen a la vez. No sube nada que parezca un secreto ni cambios
+# a archivos existentes de raw/ (fuentes crudas, inmutables).
 set -u
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/.config/obsidian}"
@@ -44,6 +45,13 @@ pull() {
 push() {
   if [ -n "$(git status --porcelain)" ]; then
     git add -A
+    # raw/ es la capa de fuentes crudas (LLM Wiki): se anaden archivos, nunca se modifican ni borran
+    touched="$(git diff --cached --name-status --diff-filter=MDR -- raw/ | grep -v '/\.gitkeep$' | cut -f2- | tr '\t\n' '  ')"
+    if [ -n "$touched" ]; then
+      git reset -q
+      fail push "No se subió la bóveda: se modificó o borró algo de raw/, que es inmutable ($touched). Restáuralo con git -C $VAULT checkout -- raw/ (o súbelo a mano si fue a propósito)."
+      return 1
+    fi
     if git diff --cached -U0 | grep -E '^\+' | grep -qE "$SECRETS"; then
       git reset -q
       fail push "No se subió la bóveda: hay algo que parece un secreto en los cambios. Revísalo a mano."

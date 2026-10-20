@@ -92,6 +92,61 @@ if command -v fish >/dev/null; then
   check "fish: sin sesion nueva no dice nada" '[ -z "$aviso" ]'
 fi
 
+echo "raw/ (fuentes crudas del LLM Wiki, sin llamar a Claude):"
+RAW="$OBSIDIAN_VAULT/raw/sesiones"
+NOW="$(date -u +%FT%TZ)"
+printf '#!/bin/sh\necho "You'"'"'ve hit your session limit · resets 5am" >&2\nexit 1\n' >"$T/claude-limit"
+printf '#!/bin/sh\ncat >/dev/null\necho "- Configuré la prueba"\n' >"$T/claude-ok"
+chmod +x "$T/claude-limit" "$T/claude-ok"
+TOKEN="ghp_$(printf 'B%.0s' {1..36})"
+{
+  printf '{"type":"user","timestamp":"%s","message":{"content":"configura algo con %s"}}\n' "$NOW" "$TOKEN"
+  printf '{"type":"assistant","timestamp":"%s","message":{"content":[{"type":"text","text":"Hecho"}]}}\n' "$NOW"
+  printf '{"type":"user","timestamp":"%s","message":{"content":"gracias"}}\n' "$NOW"
+} >"$T/t4.jsonl"
+printf '{"session_id":"s4abc","transcript_path":"%s"}' "$T/t4.jsonl" >"$T/hook4.json"
+CLAUDE_BIN="$T/claude-limit" python3 "$OBS/session-log.py" "$T/hook4.json" test >/dev/null
+rc=$?
+check "límite de uso: sale con 75 (no gasta un reintento)" '[ "$rc" -eq 75 ]'
+check "guarda la conversación en raw/sesiones/ aunque el resumen falle" '[ "$(ls "$RAW"/*-test-s4abc.md 2>/dev/null | wc -l)" -eq 1 ]'
+check "los secretos quedan como [SECRETO]" 'grep -q "\[SECRETO\]" "$RAW"/*-test-s4abc.md && ! grep -q "$TOKEN" "$RAW"/*-test-s4abc.md'
+CLAUDE_BIN="$T/claude-ok" python3 "$OBS/session-log.py" "$T/hook4.json" test >/dev/null
+check "al reintentar no duplica raw/ y escribe el resumen" '[ "$(ls "$RAW"/*-s4abc.md | wc -l)" -eq 1 ] && grep -q "Configuré la prueba" "$OBSIDIAN_VAULT/daily/$(date +%F).md"'
+printf '{"type":"user","timestamp":"%s","message":{"content":"otra cosa"}}\n{"type":"user","timestamp":"%s","message":{"content":"y otra"}}\n' \
+  "$(date -u -d '+1 minute' +%FT%TZ)" "$(date -u -d '+1 minute' +%FT%TZ)" >>"$T/t4.jsonl"
+CLAUDE_BIN="$T/claude-ok" python3 "$OBS/session-log.py" "$T/hook4.json" test >/dev/null
+check "si la sesión sigue, lo nuevo va a otro archivo sin tocar el anterior" '[ "$(ls "$RAW"/*-s4abc.md | wc -l)" -eq 2 ] && grep -q "configura algo" "$(ls "$RAW"/*-s4abc.md | head -1)"'
+mkdir -p "$HOME/.copilot/session-state/cop1"
+{
+  printf '{"type":"user.message","timestamp":"%s","data":{"content":"hola copilot"}}\n' "$NOW"
+  printf '{"type":"assistant.message","timestamp":"%s","data":{"content":"hola"}}\n' "$NOW"
+  printf '{"type":"user.message","timestamp":"%s","data":{"content":"revisa algo"}}\n' "$NOW"
+} >"$HOME/.copilot/session-state/cop1/events.jsonl"
+printf '{"sessionId":"cop1"}' >"$T/hook5.json"
+CLAUDE_BIN="$T/claude-ok" python3 "$OBS/session-log.py" "$T/hook5.json" copilot >/dev/null
+check "Copilot: lee su events.jsonl" 'grep -q "hola copilot" "$RAW"/*-copilot-cop1.md'
+{
+  printf '{"sessionId":"gem1","startTime":"%s"}\n' "$NOW"
+  printf '{"id":"1","timestamp":"%s","type":"user","content":[{"text":"hola gemini"}]}\n' "$NOW"
+  printf '{"id":"2","timestamp":"%s","type":"gemini","content":"hola"}\n' "$NOW"
+  printf '{"id":"3","timestamp":"%s","type":"user","content":"otra pregunta"}\n' "$NOW"
+} >"$T/gem.jsonl"
+printf '{"session_id":"gem1","transcript_path":"%s"}' "$T/gem.jsonl" >"$T/hook6.json"
+CLAUDE_BIN="$T/claude-ok" python3 "$OBS/session-log.py" "$T/hook6.json" gemini >/dev/null
+check "Gemini: lee su transcript JSONL" 'grep -q "hola gemini" "$RAW"/*-gemini-gem1.md'
+EXIST="$(ls "$RAW"/*-s4abc.md | head -1)"
+printf '{"tool_input":{"file_path":"%s"}}' "$EXIST" | python3 "$OBS/vault-guard-raw.py" 2>/dev/null
+check "hook: no deja editar un archivo existente de raw/" '[ $? -eq 2 ]'
+printf '{"tool_input":{"file_path":"%s"}}' "$OBSIDIAN_VAULT/raw/web/nuevo.md" | python3 "$OBS/vault-guard-raw.py"
+check "hook: sí deja crear una fuente nueva en raw/" '[ $? -eq 0 ]'
+bash "$OBS/vault-sync.sh" push test
+echo "cambiado" >>"$EXIST"
+bash "$OBS/vault-sync.sh" push test
+check "vault-sync: no sube cambios a raw/ y deja aviso" 'grep -q "raw/" "$HOME/.cache/salchipapa-dots/vault-errors/push" && ! git -C "$T/remote.git" show "main:${EXIST#$OBSIDIAN_VAULT/}" | grep -q cambiado'
+git -C "$OBSIDIAN_VAULT" checkout -q -- raw/
+bash "$OBS/vault-sync.sh" push test
+check "vault-sync: al restaurar raw/ vuelve a subir y quita el aviso" '[ ! -f "$HOME/.cache/salchipapa-dots/vault-errors/push" ]'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
 [ "$fails" -eq 0 ]

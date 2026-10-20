@@ -10,8 +10,9 @@ actualizar despues de un `git pull`:
   config de notas nuevas, diarias y plantillas). Nunca sobrescribe: el schema de la boveda es suyo.
 - Enlaza AGENTS.md como instrucciones globales de Claude Code, Codex, opencode, Copilot CLI y Gemini
   CLI (si ya hay un archivo propio, lo respalda como .bak-vault) y el plugin de opencode.
-- Anade los hooks de inicio (vault-start.sh) y fin (vault-session-end.sh: resumen de la sesion en
-  la nota de hoy + push) de cada agente,
+- Anade los hooks de inicio (vault-start.sh) y fin (vault-session-end.sh: conversacion en raw/sesiones/,
+  resumen de la sesion en la nota de hoy + push) de cada agente, y en Claude Code y Gemini CLI el que
+  impide editar archivos existentes de raw/ (vault-guard-raw.py),
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
 - Instala los timers systemd de la nota diaria y la revision semanal (los servicios con la ruta
   real del repo, @DIR@) y los activa. Si la revision semanal se desactivo a mano en este equipo
@@ -37,6 +38,8 @@ START = f"bash {HERE}/vault-start.sh"
 PULL = f"bash {HERE}/vault-sync.sh pull"
 # Fin de sesion: resumen en la nota de hoy + push, en segundo plano (el agente no espera)
 END = f"bash {HERE}/vault-session-end.sh {{}}"
+# Antes de editar un archivo: raw/ de la boveda es inmutable (fuentes crudas del LLM Wiki)
+GUARD = f"python3 {HERE}/vault-guard-raw.py"
 
 ERRORS = []
 
@@ -131,6 +134,9 @@ def claude():
                "timeout": 30, "statusMessage": "Sincronizando Obsidian..."}]})
     se = hooks["SessionEnd"] = drop_vault(hooks.get("SessionEnd"), "command")
     se.append({"hooks": [{"type": "command", "command": END.format("claude"), "timeout": 10}]})
+    pre = hooks["PreToolUse"] = drop_vault(hooks.get("PreToolUse"), "command")
+    pre.append({"matcher": "Edit|Write|MultiEdit|NotebookEdit", "hooks": [{"type": "command",
+                "command": GUARD, "timeout": 10}]})
     save(p, s)
 
 
@@ -169,6 +175,9 @@ def gemini():
     se = hooks["SessionEnd"] = drop_vault(hooks.get("SessionEnd"), "command")
     se.append({"hooks": [{"name": "vault-session-end", "type": "command",
                "command": END.format("gemini"), "timeout": 10000}]})
+    bt = hooks["BeforeTool"] = drop_vault(hooks.get("BeforeTool"), "command")
+    bt.append({"matcher": "write_file|replace", "hooks": [{"name": "vault-guard-raw", "type": "command",
+               "command": GUARD, "timeout": 10000}]})
     save(p, s)
 
 

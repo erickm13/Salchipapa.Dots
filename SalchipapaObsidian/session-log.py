@@ -6,8 +6,15 @@ conversacion (transcript_path del JSON del hook), toma solo lo nuevo desde el ul
 sesion (y como mucho lo de hoy), lo resume con `claude -p` y lo anade a daily/AAAA-MM-DD.md bajo
 "## Sesiones de hoy". Asi, al abrir un agente en otro equipo, la bienvenida ya muestra lo ultimo.
 
-Sesiones cortas (menos de MIN_TURNS mensajes del usuario) no se resumen. El resumen pasa por el
-mismo filtro de secretos que la sincronizacion. Sale con 0 si no habia nada que hacer.
+Antes de resumir guarda la conversacion limpia en raw/sesiones/ (capa de fuentes crudas del LLM Wiki):
+solo lo dicho por el usuario y el agente, con los secretos cambiados por [SECRETO]. Ese archivo no se
+vuelve a tocar; si la sesion sigue (resume), lo nuevo va a otro archivo. Asi la conversacion no se
+pierde aunque el resumen falle. Lee transcripts de Claude Code, Codex, Copilot CLI y Gemini CLI.
+
+Sesiones cortas (menos de MIN_TURNS mensajes del usuario) no se guardan ni se resumen. El resumen pasa
+por el mismo filtro de secretos que la sincronizacion. Sale con 0 si no habia nada que hacer, con
+LIMIT (75) si Claude esta en su limite de uso (vault-session-end.sh no gasta un reintento) y con 1 si
+fallo otra cosa.
 Imprime una linea con el resultado (la usa vault-session-end.sh para avisar al cerrar el agente):
 "resumen daily/AAAA-MM-DD.md", "corta", "nada" o "sin-transcript".
 """
@@ -23,7 +30,9 @@ from pathlib import Path
 
 VAULT = Path(os.environ.get("OBSIDIAN_VAULT", Path.home() / ".config/obsidian"))
 STATE = Path.home() / ".cache/salchipapa-dots"
-SEEN = STATE / "session-log.json"  # session_id -> timestamp del ultimo mensaje ya resumido
+SEEN = STATE / "session-log.json"  # session_id -> ultimo mensaje resumido; "raw:"+id -> ultimo guardado en raw/
+COPILOT = Path.home() / ".copilot/session-state"
+LIMIT = 75
 MIN_TURNS = 2
 MAX_CHARS = 60_000
 SECRETS = re.compile(
@@ -49,16 +58,47 @@ def clean(text):
     return text.strip()
 
 
-def messages(path):
-    """[(timestamp, rol, texto)] de un transcript de Claude Code o de Codex."""
+def parts_text(content):
+    """Texto de un content que puede ser str o lista de partes ({text: ...})."""
+    if isinstance(content, str):
+        return [content]
+    return [c.get("text", "") for c in content or [] if isinstance(c, dict)
+            and c.get("type", "text") in ("text", "input_text", "output_text")]
+
+
+def records(path):
+    """Objetos JSON del transcript: JSONL, o un solo JSON con una lista "messages"."""
+    text = Path(path).read_text(encoding="utf-8", errors="replace")
+    try:
+        whole = json.loads(text)
+        if isinstance(whole, dict) and isinstance(whole.get("messages"), list):
+            return whole["messages"]
+    except ValueError:
+        pass
     out = []
-    for line in open(path, encoding="utf-8", errors="replace"):
+    for line in text.splitlines():
         try:
             d = json.loads(line)
         except ValueError:
             continue
+        if isinstance(d, dict):
+            out.append(d)
+    return out
+
+
+def messages(path):
+    """[(timestamp, rol, texto)] de un transcript de Claude Code, Codex, Copilot CLI o Gemini CLI."""
+    out = []
+    for d in records(path):
         ts = d.get("timestamp", "")
-        if d.get("type") in ("user", "assistant") and not d.get("isSidechain") and not d.get("isMeta"):
+        data = d.get("data") if isinstance(d.get("data"), dict) else {}
+        if d.get("type") in ("user.message", "assistant.message"):  # Copilot CLI (events.jsonl)
+            role = "user" if d["type"] == "user.message" else "assistant"
+            parts = parts_text(data.get("content"))
+        elif d.get("type") in ("user", "gemini", "model") and "message" not in d:  # Gemini CLI
+            role = "user" if d["type"] == "user" else "assistant"
+            parts = parts_text(d.get("content"))
+        elif d.get("type") in ("user", "assistant") and not d.get("isSidechain") and not d.get("isMeta"):
             content = (d.get("message") or {}).get("content")
             parts = [content] if isinstance(content, str) else [
                 c.get("text", "") for c in content or [] if isinstance(c, dict) and c.get("type") == "text"]
@@ -73,35 +113,90 @@ def messages(path):
         else:
             continue
         text = clean("\n".join(parts))
-        # Fuera: salidas de comandos, contexto inyectado (<environment_context>, <command-...>)
-        if text and not text.startswith("<"):
+        # Fuera: salidas de comandos, contexto inyectado (<environment_context>, <command-...>, y las
+        # instrucciones AGENTS.md que Codex mete como primer mensaje del usuario)
+        if text and not text.startswith("<") and not text.startswith("# AGENTS.md instructions"):
             out.append((ts, role, text))
     return out
+
+
+def transcript_of(hook, agent):
+    """(ruta del transcript, session_id). Copilot no manda la ruta: se busca su events.jsonl."""
+    path = hook.get("transcript_path") or hook.get("transcriptPath")
+    sid = hook.get("session_id") or hook.get("sessionId") or ""
+    if not path and agent == "copilot" and COPILOT.is_dir():
+        if sid and (COPILOT / sid / "events.jsonl").is_file():
+            path = COPILOT / sid / "events.jsonl"
+        else:  # la sesion que se acaba de cerrar: el events.jsonl modificado hace menos de 10 min
+            recent = [p for p in COPILOT.glob("*/events.jsonl") if dt.datetime.now().timestamp() - p.stat().st_mtime < 600]
+            if recent:
+                path = max(recent, key=lambda p: p.stat().st_mtime)
+                sid = sid or path.parent.name
+    return path, sid or "?"
+
+
+def local(ts):
+    try:
+        return dt.datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone()
+    except (ValueError, AttributeError):
+        return dt.datetime.now().astimezone()
+
+
+def save_raw(msgs, agent, sid, host):
+    """Guarda la conversacion en un archivo nuevo de raw/sesiones/ (inmutable: nunca reescribe uno que
+    exista; si el nombre esta ocupado, anade -2, -3...). Lo ya guardado lo marca main() en SEEN."""
+    start = local(msgs[0][0])
+    tag = re.sub(r"[^A-Za-z0-9]", "", sid)[:8] or "sesion"
+    name = f"{start:%Y-%m-%d-%H%M}-{agent}-{tag}"
+    path, n = VAULT / "raw" / "sesiones" / f"{name}.md", 1
+    while path.exists():
+        n += 1
+        path = path.with_name(f"{name}-{n}.md")
+    body = [f"---\ntipo: sesion\nagente: {agent}\nequipo: {host}\nsesion: {sid}\n"
+            f"inicio: {start.isoformat(timespec='minutes')}\nfin: {local(msgs[-1][0]).isoformat(timespec='minutes')}\n---\n",
+            f"# Sesión de {agent} · {start:%Y-%m-%d %H:%M}\n"]
+    for ts, role, text in msgs:
+        body.append(f"### {'Usuario' if role == 'user' else 'Agente'} · {local(ts):%H:%M}\n{SECRETS.sub('[SECRETO]', text)}\n")
+    path.parent.mkdir(parents=True, exist_ok=True)
+    with open(VAULT / ".git" / "vault-sync.lock", "w") as lock:
+        fcntl.flock(lock, fcntl.LOCK_EX)
+        path.write_text("\n".join(body), encoding="utf-8")
+    return path
 
 
 def main():
     hook = json.loads(Path(sys.argv[1]).read_text() or "{}")
     agent = sys.argv[2] if len(sys.argv) > 2 else "agente"
-    transcript, sid = hook.get("transcript_path"), hook.get("session_id") or "?"
+    transcript, sid = transcript_of(hook, agent)
     if not transcript or not Path(transcript).is_file():
-        log(f"[{agent}] sin transcript en el hook: no hay resumen")
+        log(f"[{agent}] sin transcript en el hook (campos: {', '.join(sorted(hook)) or 'ninguno'}): no hay resumen")
         print("sin-transcript")
         return 0
     if not (VAULT / ".git").is_dir():
         return 0
 
     today = dt.date.today()
+    host = socket.gethostname() + (" (WSL)" if os.environ.get("WSL_DISTRO_NAME") else "")
     seen = json.loads(SEEN.read_text()) if SEEN.exists() else {}
+    every = messages(transcript)
+
+    # 1) Fuente cruda: lo nuevo desde lo ultimo guardado en raw/, de cualquier dia
+    raw_since = seen.get("raw:" + sid, "")
+    new = [m for m in every if not (m[0] and m[0] <= raw_since)]
+    if sum(1 for m in new if m[1] == "user") >= MIN_TURNS:
+        path = save_raw(new, agent, sid, host)
+        log(f"[{agent}] {sid[:8]}: conversacion en {path.relative_to(VAULT)}")
+        seen["raw:" + sid] = new[-1][0] or raw_since
+        STATE.mkdir(parents=True, exist_ok=True)
+        SEEN.write_text(json.dumps(seen, indent=1))
+
+    # 2) Resumen para la diaria: lo nuevo desde el ultimo resumen, solo de hoy
     since = seen.get(sid, "")
     msgs = []
-    for ts, role, text in messages(transcript):
+    for ts, role, text in every:
         if ts and ts <= since:
             continue
-        try:
-            local_day = dt.datetime.fromisoformat(ts.replace("Z", "+00:00")).astimezone().date()
-        except ValueError:
-            local_day = today
-        if local_day == today:
+        if local(ts).date() == today:
             msgs.append((ts, role, text))
     if sum(1 for m in msgs if m[1] == "user") < MIN_TURNS:
         log(f"[{agent}] {sid[:8]}: sesion corta, sin resumen")
@@ -115,8 +210,10 @@ def main():
                        input=convo, capture_output=True, text=True, timeout=300)
     summary = p.stdout.strip()
     if p.returncode != 0 or not summary:
-        log(f"[{agent}] {sid[:8]}: claude rc={p.returncode}: {(p.stderr or p.stdout)[-300:]}")
-        return 1
+        err = (p.stderr or p.stdout)[-300:]
+        log(f"[{agent}] {sid[:8]}: claude rc={p.returncode}: {err}")
+        # Limite de uso: se reintenta sin gastar intentos (la conversacion ya esta en raw/)
+        return LIMIT if re.search(r"hit your (session|usage|weekly) limit|usage limit", err, re.I) else 1
     if summary == "NADA":
         log(f"[{agent}] {sid[:8]}: sin nada de sustancia")
         print("nada")
@@ -125,7 +222,6 @@ def main():
         return 1
     else:
         bullets = [l if l.startswith("- ") else f"- {l.lstrip('-* ')}" for l in summary.splitlines() if l.strip()]
-        host = socket.gethostname() + (" (WSL)" if os.environ.get("WSL_DISTRO_NAME") else "")
         block = f"### {dt.datetime.now():%H:%M} · {agent} · {host}\n" + "\n".join(bullets) + "\n"
         note = VAULT / "daily" / f"{today}.md"
         note.parent.mkdir(exist_ok=True)

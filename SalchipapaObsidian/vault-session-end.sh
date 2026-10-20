@@ -5,7 +5,8 @@
 # Al cerrar una sesion: guarda el JSON del hook en una cola y, en segundo plano, resume la sesion en
 # la nota diaria de hoy (session-log.py) y sube la boveda (vault-sync.sh push). El agente no espera.
 # La cola sobrevive a un apagado (WSL se apaga al cerrar la ultima terminal): lo pendiente se procesa
-# al empezar la siguiente sesion. Una entrada que falla 3 veces se descarta con un aviso (vault-errors/).
+# al empezar la siguiente sesion. Una entrada que falla 3 veces se descarta con un aviso (vault-errors/);
+# si falla por el limite de uso de Claude no cuenta como intento. La conversacion ya quedo en raw/.
 #
 # El vaciado lanzado por un cierre deja el resultado en session-end.status (1a linea: marca en ns; 2a: el
 # mensaje). La funcion de fish __vault_esperar_cierre lo muestra al salir de claude/codex/copilot.
@@ -21,15 +22,21 @@ if [ "${1:-}" = "--drain" ] || [ "${1:-}" = "--drain-hook" ]; then
   # Un solo vaciado a la vez
   exec 8>"$QUEUE/.lock"
   flock -n 8 || exit 0
-  notes=() pending=0
+  notes=() pending=0 limited=0
   for f in "$QUEUE"/*.json; do
     [ -e "$f" ] || break
     name="$(basename "$f" .json)"   # <fecha>-<pid>-<agente>[.tryN]
     a="${name#*-*-}"
     a="${a%%.try*}"
-    if result="$(python3 "$HERE/session-log.py" "$f" "$a")"; then
+    result="$(python3 "$HERE/session-log.py" "$f" "$a")"
+    rc=$?
+    if [ "$rc" -eq 0 ]; then
       rm -f "$f" "$STATE/vault-errors/session"
       case "$result" in resumen\ *) notes+=("${result#resumen }") ;; esac
+    elif [ "$rc" -eq 75 ]; then
+      # Claude en su limite de uso: se queda en la cola sin gastar un intento (la conversacion ya
+      # esta en raw/); se reintenta al abrir la proxima sesion
+      pending=1 limited=1
     else
       pending=1
       tries="${name##*.try}"
@@ -49,6 +56,8 @@ if [ "${1:-}" = "--drain" ] || [ "${1:-}" = "--drain-hook" ]; then
   if [ "$mode" = "--drain-hook" ]; then
     if [ -f "$STATE/vault-errors/push" ]; then
       msg="⚠ La bóveda no se pudo subir: $(cat "$STATE/vault-errors/push") — se reintenta al abrir la próxima sesión"
+    elif [ "$limited" -eq 1 ]; then
+      msg="⚠ Claude está en su límite de uso: la conversación quedó en raw/ y el resumen se escribe al abrir la próxima sesión; bóveda subida a GitHub"
     elif [ "$pending" -eq 1 ]; then
       msg="⚠ No se pudo escribir el resumen de la sesión (se reintenta al abrir la próxima); bóveda subida a GitHub"
     elif [ "${#notes[@]}" -gt 0 ]; then
