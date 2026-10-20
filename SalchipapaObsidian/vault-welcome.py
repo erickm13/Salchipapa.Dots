@@ -70,6 +70,12 @@ def norm(s):
     return " ".join(s.split()).rstrip(".")
 
 
+def tasks(text):
+    """Una viñeta puede traer varias tareas unidas con ";" (resúmenes anteriores): se separan, sin partir
+    lo que va entre `backticks`, para que cada una se pueda dar por resuelta por separado."""
+    return [t.strip() for t in re.split(r";(?=(?:[^`]*`[^`]*`)*[^`]*$)", text) if t.strip()]
+
+
 def open_pending(sess):
     """Los "Pendiente: ..." de las sesiones que ningun "Resuelto: ..." posterior cerro (texto exacto,
     sin contar espacios ni el punto final: si el resumen lo parafrasea, no se tacha)."""
@@ -78,9 +84,10 @@ def open_pending(sess):
         for b in bullets:
             key, _, rest = b.partition(":")
             if key.lower() == "pendiente" and rest.strip():
-                out.append(rest.strip())
+                out += tasks(rest)
             elif key.lower() == "resuelto":
-                out = [x for x in out if norm(x) != norm(rest)]
+                done = {norm(x) for x in tasks(rest)}
+                out = [x for x in out if norm(x) not in done]
     return out
 
 

@@ -272,6 +272,13 @@ check "el resumidor recibe solo los pendientes abiertos de hoy" 'grep -q "probar
 msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
 check "tras su Resuelto, el pendiente ya no sale en la bienvenida" '! grep -q "probar el linter" <<<"$msg"'
 check "la diaria de la noche no pasa lo resuelto a Mañana" 'grep -q "Resuelto: X" "$OBS/daily-note.sh"'
+printf '# %s\n\n## Sesiones de hoy\n\n### 09:10 · claude · pc\n- Algo\n- Pendiente: correr `a; b` en el VPS; revisar la semanal del lunes\n\n### 10:20 · codex · pc\n- Otra cosa\n- Resuelto: correr `a; b` en el VPS\n' "$D" >"$OBSIDIAN_VAULT/daily/$D.md"
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "un pendiente compuesto (;) se tacha por partes" '! grep -q "correr a; b" <<<"$msg" && grep -q "revisar la semanal del lunes" <<<"$msg"'
+printf '{"type":"user","timestamp":"%s","message":{"content":"hola"}}\n{"type":"user","timestamp":"%s","message":{"content":"listo"}}\n' "$NOW" "$NOW" >"$T/t9.jsonl"
+printf '{"session_id":"res9","transcript_path":"%s"}' "$T/t9.jsonl" >"$T/hook9.json"
+CLAUDE_BIN="$T/claude-resuelto" python3 "$OBS/session-log.py" "$T/hook9.json" test >/dev/null
+check "el resumidor recibe cada tarea por separado y pide un Pendiente por tarea" 'grep -qx "revisar la semanal del lunes" "$T/prompt8" && grep -q "POR CADA tarea" "$T/prompt8"'
 
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi

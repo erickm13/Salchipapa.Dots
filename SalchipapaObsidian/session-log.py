@@ -50,7 +50,8 @@ PROMPT = """Resume esta sesión de trabajo con un agente de IA para la nota diar
 al abrir un agente en otro equipo se sepa qué se hizo. Responde SOLO con viñetas en español
 (entre 3 y 7), sin títulos ni introducción:
 - primero lo que se hizo o se cambió (concreto: archivos, comandos, herramientas, versiones);
-- luego, si las hay, una viñeta "Decidido: ..." y una "Pendiente: ...".
+- luego, si las hay, viñetas "Decidido: ..." y una viñeta "Pendiente: ..." POR CADA tarea pendiente
+  (nunca varias tareas en la misma viñeta ni unidas con ";").
 Nunca incluyas secretos (tokens, claves, contraseñas): si aparecen, di solo que se mencionaron.
 Si en la conversación no se hizo nada de sustancia, responde exactamente: NADA"""
 # Lo que quedo pendiente en sesiones anteriores de hoy: si esta lo resolvio, el resumen lo dice con el
@@ -61,11 +62,18 @@ Pendientes de sesiones anteriores de hoy (uno por línea):
 {}
 Si en esta conversación quedó resuelto por completo alguno (el usuario dice que ya lo hizo, o se hizo
 aquí), añade una viñeta "Resuelto: " seguida del texto de ese pendiente copiado tal cual, carácter por
-carácter, sin cambiarlo ni resumirlo; una por pendiente. Si solo se resolvió una parte, no lo pongas."""
+carácter, sin cambiarlo ni resumirlo; una viñeta por pendiente. Si solo se resolvió una parte, no lo
+pongas. Lo que siga sin resolver no lo repitas como "Pendiente:" (ya consta)."""
 
 
 def norm(s):
     return " ".join(s.split()).rstrip(".")
+
+
+def tasks(text):
+    """Una viñeta puede traer varias tareas unidas con ";" (resúmenes anteriores): se separan, sin partir
+    lo que va entre `backticks`, para que cada una se pueda dar por resuelta por separado."""
+    return [t.strip() for t in re.split(r";(?=(?:[^`]*`[^`]*`)*[^`]*$)", text) if t.strip()]
 
 
 def open_pending(text):
@@ -77,9 +85,10 @@ def open_pending(text):
         b = line.strip()[2:].strip() if line.strip().startswith("- ") else ""
         key, _, rest = b.partition(":")
         if key.lower() == "pendiente" and rest.strip():
-            out.append(rest.strip())
+            out += tasks(rest)
         elif key.lower() == "resuelto":
-            out = [x for x in out if norm(x) != norm(rest)]
+            done = {norm(x) for x in tasks(rest)}
+            out = [x for x in out if norm(x) not in done]
     return out
 
 
