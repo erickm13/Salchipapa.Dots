@@ -5,10 +5,11 @@ Idempotente: se puede correr las veces que haga falta. Lo llama install.sh, o a 
 actualizar despues de un `git pull`:
     python3 <repo>/SalchipapaObsidian/setup-agents.py   (el repo puede estar en cualquier ruta)
 
-- Si la boveda no tiene la estructura PARA, crea las carpetas y plantillas que falten
-  (vault-template/: me.md, templates/daily.md, config de notas nuevas y diarias). Nunca sobrescribe.
-- Enlaza AGENTS.md como instrucciones globales de Claude Code, Codex, opencode y Copilot CLI
-  (si ya hay un archivo propio, lo respalda como .bak-vault) y el plugin de opencode.
+- Si la boveda no tiene la estructura PARA + raw/, crea las carpetas y archivos que falten
+  (vault-template/: schema AGENTS.md con CLAUDE.md y GEMINI.md, me.md, log.md, plantillas por tipo,
+  config de notas nuevas, diarias y plantillas). Nunca sobrescribe: el schema de la boveda es suyo.
+- Enlaza AGENTS.md como instrucciones globales de Claude Code, Codex, opencode, Copilot CLI y Gemini
+  CLI (si ya hay un archivo propio, lo respalda como .bak-vault) y el plugin de opencode.
 - Anade los hooks de inicio (vault-start.sh) y fin (vault-session-end.sh: resumen de la sesion en
   la nota de hoy + push) de cada agente,
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
@@ -30,7 +31,8 @@ HOME = Path.home()
 HERE = Path(__file__).resolve().parent
 VAULT = HOME / ".config/obsidian"
 UNITS = HOME / ".config/systemd/user"
-PARA = ["projects", "areas", "resources", "archive", "inbox", "daily", "weekly", "templates"]
+PARA = ["projects", "areas", "resources", "archive", "inbox", "daily", "weekly", "templates",
+        "raw/sesiones", "raw/web", "raw/docs", "raw/assets"]
 START = f"bash {HERE}/vault-start.sh"
 PULL = f"bash {HERE}/vault-sync.sh pull"
 # Fin de sesion: resumen en la nota de hoy + push, en segundo plano (el agente no espera)
@@ -154,6 +156,22 @@ def copilot():
     save(p, s)
 
 
+def gemini():
+    p = HOME / ".gemini/settings.json"
+    s = load(p)
+    hooks = s.setdefault("hooks", {})
+    ss = hooks["SessionStart"] = drop_vault(hooks.get("SessionStart"), "command")
+    # En Gemini el matcher de los eventos de ciclo de vida es un texto exacto; timeout en ms
+    ss.append({"matcher": "startup", "hooks": [{"name": "vault-start", "type": "command",
+               "command": f"{START} gemini", "timeout": 45000}]})
+    ss.append({"matcher": "resume", "hooks": [{"name": "vault-pull", "type": "command",
+               "command": f"{PULL} gemini", "timeout": 30000}]})
+    se = hooks["SessionEnd"] = drop_vault(hooks.get("SessionEnd"), "command")
+    se.append({"hooks": [{"name": "vault-session-end", "type": "command",
+               "command": END.format("gemini"), "timeout": 10000}]})
+    save(p, s)
+
+
 def scaffold():
     """Estructura PARA y plantillas en la boveda: solo lo que falte."""
     created = []
@@ -198,8 +216,9 @@ def timers(weekly_was_installed):
     workflows = VAULT / ".github" / "workflows"
     for timer, wf in (("obsidian-daily.timer", "daily-note.yml"), ("obsidian-weekly.timer", "weekly-review.yml")):
         if (workflows / wf).exists():
-            rc, _ = systemctl("disable", "--now", timer)
-            if rc == 0:
+            rc, out = systemctl("disable", "--now", timer)
+            # El timer es un enlace: disable lo borra y el stop de --now ya no lo encuentra
+            if rc == 0 or "does not exist" in out or "not loaded" in out:
                 ok(f"{timer} desactivado: corre en GitHub Actions ({wf} en la boveda)")
             else:
                 fail(f"no se pudo desactivar {timer}")
@@ -235,14 +254,14 @@ def main():
     def instructions():
         agents = HERE / "AGENTS.md"
         for dst in [".claude/CLAUDE.md", ".codex/AGENTS.md", ".config/opencode/AGENTS.md",
-                    ".copilot/copilot-instructions.md"]:
+                    ".copilot/copilot-instructions.md", ".gemini/GEMINI.md"]:
             link(agents, HOME / dst)
         link(HERE / "opencode-vault-sync.js", HOME / ".config/opencode/plugins/vault-sync.js")
 
     step("Instrucciones de memoria y plugin de opencode:", instructions)
 
     print("Hooks de sesion:")
-    for fn in (claude, codex, copilot):
+    for fn in (claude, codex, copilot, gemini):
         try:
             fn()
         except Exception as e:

@@ -1,7 +1,13 @@
 # Obsidian como memoria compartida de los agentes
 
 La bóveda (`~/.config/obsidian`, repo privado `erickm13/SalchipapaNotes`) es la memoria a largo
-plazo de todos los agentes —Claude Code, Codex, opencode y Copilot CLI— y se sincroniza sola con GitHub.
+plazo de todos los agentes —Claude Code, Codex, opencode, Copilot CLI y Gemini CLI— y se sincroniza sola con GitHub.
+
+Es un **LLM Wiki** (Karpathy) ordenado con **PARA** (Tiago Forte), en tres capas: **fuentes crudas**
+(`raw/`, inmutables), la **wiki** (las carpetas PARA + `index.md` + `log.md`) y el **schema**
+(`AGENTS.md` en la raíz de la bóveda, que importan `CLAUDE.md` y `GEMINI.md`, y las plantillas por tipo
+de `templates/`). El schema vive **en la bóveda** y lo hacen evolucionar el usuario y los agentes;
+[`vault-template/AGENTS.md`](vault-template/AGENTS.md) solo es la semilla para una bóveda nueva.
 
 La bóveda sigue **PARA** (*Building a Second Brain*, Tiago Forte): `projects/` (con meta y final),
 `areas/` (responsabilidades: qa, universidad), `resources/` (temas de consulta), `archive/`
@@ -11,7 +17,7 @@ caen en `inbox/`.
 
 | Archivo | Qué hace |
 |---|---|
-| [`AGENTS.md`](AGENTS.md) | Instrucciones de memoria para los agentes (genéricas: quién es el usuario lo leen de `me.md` de su bóveda): dónde está la bóveda, estructura, cuándo leer y escribir, nunca secretos. Enlazado como `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md` y `~/.copilot/copilot-instructions.md` |
+| [`AGENTS.md`](AGENTS.md) | Instrucciones globales de memoria (genéricas: quién es el usuario lo leen de `me.md`): dónde está la bóveda, sincronización, bienvenida, nunca secretos, y que **antes de escribir lean el schema de la bóveda** (`<bóveda>/AGENTS.md`). Enlazado como `~/.claude/CLAUDE.md`, `~/.codex/AGENTS.md`, `~/.config/opencode/AGENTS.md`, `~/.copilot/copilot-instructions.md` y `~/.gemini/GEMINI.md` |
 | [`vault-start.sh`](vault-start.sh) | Hook de inicio de sesión: `vault-sync.sh start` + bienvenida (+ resúmenes de sesión que quedaron en cola) |
 | [`vault-session-end.sh`](vault-session-end.sh) + [`session-log.py`](session-log.py) | Hook de fin de sesión (Claude Code, Codex; en los demás solo push): en segundo plano, resume la sesión con `claude -p --model haiku` (sin hooks) y la añade a `daily/<hoy>.md` bajo `## Sesiones de hoy` (`### HH:MM · agente · equipo`), luego push. Así **cualquier otro equipo** ve lo último que hiciste al abrir un agente. Sesiones cortas (menos de 2 mensajes tuyos) no se resumen; el resumen pasa el filtro de secretos; si el equipo se apaga antes, la cola se procesa al empezar la siguiente sesión. Al salir de `claude`, `codex` o `copilot` (funciones de fish), se espera el resultado y se muestra bajo el aviso de `--resume`: `✔ Notas guardadas: resumen de la sesión en daily/… y bóveda subida a GitHub` (Ctrl+C: que siga en segundo plano). Log: `~/.cache/salchipapa-dots/session-log.log` |
 | [`vault-welcome.py`](vault-welcome.py) | Bienvenida: lo último que hice (diaria más reciente) y lo pendiente (`Mañana`, `Pendiente`, tareas `- [ ]` de `projects/`). Lo muestra en pantalla y se lo pasa al agente para que salude |
@@ -27,9 +33,10 @@ funcionar. La bienvenida también avisa (📋) si la última revisión semanal t
 
 ## Bóveda nueva
 Si la bóveda está vacía o no usa PARA, `setup-agents.py` crea lo que falte (nunca sobrescribe):
-las carpetas PARA y, desde [`vault-template/`](vault-template), `me.md` (rellénalo: los agentes lo
-leen para saber quién eres), `templates/daily.md` y la config de Obsidian (notas nuevas en `inbox/`,
-diarias en `daily/`). El nombre del saludo sale de `git config user.name` (o `OBSIDIAN_OWNER`).
+las carpetas PARA y `raw/{sesiones,web,docs,assets}` y, desde [`vault-template/`](vault-template), el
+schema (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`), `log.md`, `me.md` (rellénalo: los agentes lo leen para
+saber quién eres), las plantillas (`daily`, `proyecto`, `recurso`, `concepto`, `hub`, `fuente`) y la
+config de Obsidian (notas nuevas en `inbox/`, diarias en `daily/`, plantillas en `templates/`). El nombre del saludo sale de `git config user.name` (o `OBSIDIAN_OWNER`).
 
 ## Dónde se engancha cada agente
 | Agente | Al empezar (start + bienvenida) | Al terminar (resumen de la sesión + push) |
@@ -38,6 +45,7 @@ diarias en `daily/`). El nombre del saludo sale de `git config user.name` (o `OB
 | Codex | hook `SessionStart` en `~/.codex/hooks.json` | hook `SessionEnd` |
 | Copilot CLI | hook `SessionStart` en `~/.copilot/settings.json` | hook `SessionEnd` (solo push: no entrega la conversación) |
 | opencode | plugin, `session.created` | plugin, `session.idle` (solo push) |
+| Gemini CLI | hook `SessionStart` (`startup`; en `resume` solo pull) en `~/.gemini/settings.json` | hook `SessionEnd` (solo push por ahora: leer su transcript llega en la fase 2) |
 
 Los agentes que no muestran la salida del hook saludan igual: `AGENTS.md` les pide que, en su
 primera respuesta, recuerden lo último que hice leyendo la diaria más reciente.

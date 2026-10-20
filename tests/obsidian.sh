@@ -32,9 +32,13 @@ check "crea la estructura PARA" '[ -d "$OBSIDIAN_VAULT/projects" ] && [ -d "$OBS
 check "no sobrescribe me.md" 'grep -qx "# yo" "$OBSIDIAN_VAULT/me.md"'
 check "AGENTS.md como CLAUDE.md" '[ "$(readlink "$HOME/.claude/CLAUDE.md")" = "$OBS/AGENTS.md" ]'
 check "hooks de Claude: inicio y cierre" 'grep -q "vault-start.sh claude" "$HOME/.claude/settings.json" && grep -q "vault-session-end.sh claude" "$HOME/.claude/settings.json"'
+check "crea el schema de la bóveda (AGENTS.md, CLAUDE.md, GEMINI.md, log.md)" '[ -f "$OBSIDIAN_VAULT/AGENTS.md" ] && grep -qx "@AGENTS.md" "$OBSIDIAN_VAULT/CLAUDE.md" && [ -f "$OBSIDIAN_VAULT/GEMINI.md" ] && [ -f "$OBSIDIAN_VAULT/log.md" ]'
+check "crea raw/ y las plantillas por tipo" '[ -d "$OBSIDIAN_VAULT/raw/sesiones" ] && [ -d "$OBSIDIAN_VAULT/raw/assets" ] && [ -f "$OBSIDIAN_VAULT/templates/proyecto.md" ] && [ -f "$OBSIDIAN_VAULT/templates/fuente.md" ]'
+check "AGENTS.md como GEMINI.md global" '[ "$(readlink "$HOME/.gemini/GEMINI.md")" = "$OBS/AGENTS.md" ]'
+check "hooks de Gemini: inicio y cierre" 'grep -q "vault-start.sh gemini" "$HOME/.gemini/settings.json" && grep -q "vault-session-end.sh gemini" "$HOME/.gemini/settings.json"'
 check "servicio systemd con la ruta real" 'grep -q "ExecStart=/usr/bin/bash $OBS/daily-note.sh" "$HOME/.config/systemd/user/obsidian-daily.service"'
 python3 "$OBS/setup-agents.py" >/dev/null 2>&1
-check "idempotente: un solo hook de inicio" '[ "$(grep -c "vault-start.sh claude" "$HOME/.claude/settings.json")" -eq 1 ]'
+check "idempotente: un solo hook de inicio" '[ "$(grep -c "vault-start.sh claude" "$HOME/.claude/settings.json")" -eq 1 ] && [ "$(grep -c "vault-start.sh gemini" "$HOME/.gemini/settings.json")" -eq 1 ]'
 echo '{ roto' >"$HOME/.codex/hooks.json"
 out="$(python3 "$OBS/setup-agents.py" 2>&1)"
 rc=$?

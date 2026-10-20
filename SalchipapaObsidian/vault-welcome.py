@@ -161,7 +161,8 @@ def emit(msg, daily):
         f"actividad del usuario{f', de daily/{daily}' if daily else ''}:\n{msg}\n\n"
         "El usuario YA VIO este resumen en pantalla (es la bienvenida de la sesion): no lo repitas "
         "ni lo resumas, y no lo saludes con el; atiende directamente lo que pida. Usalo como "
-        "contexto, y si quiere detalle, lee la nota diaria completa. Si hay avisos ⚠, ofrece "
+        "contexto, y si quiere detalle, lee la nota diaria completa. Antes de escribir en la "
+        f"boveda, lee su schema: {VAULT}/AGENTS.md. Si hay avisos ⚠, ofrece "
         "ayudar a resolverlos (detalle en ~/.cache/salchipapa-dots/*.log)."
     )
     print(json.dumps({
