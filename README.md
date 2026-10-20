@@ -263,6 +263,7 @@ Salchipapa.Dots/
 ├── SalchipapaClaude/       → Claude Code hooks (validation, dangerous-command guard, secret scan)
 ├── tests/                  → check.sh (syntax/lint) and obsidian.sh (agent memory), run by the CI
 ├── SalchipapaObsidian/     → Obsidian vault as shared memory of Claude Code, Codex, opencode and Copilot CLI (auto sync, session welcome, nightly daily note)
+├── SalchipapaOpenClaw/     → OpenClaw on a VPS as the vault's manager: capture via Telegram, nightly ingest, queries (skill + install script)
 ├── SalchipapaHerdr/        → Herdr config + keybinding guide (README.md); only config.toml is linked
 ├── SalchipapaZellij/       → Zellij layouts and configuration
 ├── SalchipapaKitty/        → Kitty terminal configuration

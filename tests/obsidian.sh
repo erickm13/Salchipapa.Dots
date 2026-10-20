@@ -218,6 +218,12 @@ printf '\n## [hoy] ingest | raw/web/articulo.md\n' >>"$OBSIDIAN_VAULT/log.md"
 msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
 check "📥 desaparece al ingerirla" '! grep -q "📥" <<<"$msg"'
 
+echo "SalchipapaOpenClaw (skill boveda):"
+SKILL="$REPO/SalchipapaOpenClaw/skills/boveda/SKILL.md"
+check "frontmatter con name y description" 'sed -n "2,4p" "$SKILL" | grep -q "^name: boveda$" && sed -n "2,4p" "$SKILL" | grep -q "^description: ."'
+check "los scripts que usa existen" '(for s in $(grep -o "\$DOTS/[a-z-]*\.\(sh\|py\)" "$SKILL" | sort -u); do [ -f "$OBS/${s#\$DOTS/}" ] || exit 1; done)'
+check "vault-lint.py --json da las fuentes pendientes" 'OBSIDIAN_VAULT="$OBSIDIAN_VAULT" python3 "$OBS/vault-lint.py" --json | python3 -c "import json,sys; assert isinstance(json.load(sys.stdin)[\"pendientes\"], list)"'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
 [ "$fails" -eq 0 ]
