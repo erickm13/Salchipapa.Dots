@@ -21,7 +21,8 @@ que escriben las automatizaciones) y `me.md`.
 
 ## Capa 1 · Fuentes crudas (`raw/`)
 - `sesiones/AAAA-MM-DD-HHMM-agente-<sesion>.md`: la conversación limpia de cada sesión (solo lo que dicen
-  el usuario y el agente; los secretos aparecen como `[SECRETO]`). Solo la escribe el hook de cierre; si
+  el usuario y el agente; los secretos aparecen como `[SECRETO]` y las menciones `[[nota]]` van escapadas,
+  como texto). Solo la escribe el hook de cierre; si
   la sesión sigue después, lo nuevo va a otro archivo.
 - `web/`: artículos (Obsidian Web Clipper). `docs/`: PDFs, material de clase, documentación.
   `assets/`: imágenes (carpeta de adjuntos de Obsidian).

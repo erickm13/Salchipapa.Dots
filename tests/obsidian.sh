@@ -224,6 +224,18 @@ check "frontmatter con name y description" 'sed -n "2,4p" "$SKILL" | grep -q "^n
 check "los scripts que usa existen" '(for s in $(grep -o "\$DOTS/[a-z-]*\.\(sh\|py\)" "$SKILL" | sort -u); do [ -f "$OBS/${s#\$DOTS/}" ] || exit 1; done)'
 check "vault-lint.py --json da las fuentes pendientes" 'OBSIDIAN_VAULT="$OBSIDIAN_VAULT" python3 "$OBS/vault-lint.py" --json | python3 -c "import json,sys; assert isinstance(json.load(sys.stdin)[\"pendientes\"], list)"'
 
+echo "raw/: enlaces de las conversaciones:"
+{
+  printf '{"type":"user","timestamp":"%s","message":{"content":"mira [[nota-borrada]] y t[a[1]]"}}\n' "$NOW"
+  printf '{"type":"user","timestamp":"%s","message":{"content":"y [[otra|alias]]"}}\n' "$NOW"
+} >"$T/t7.jsonl"
+printf '{"session_id":"lnk7","transcript_path":"%s"}' "$T/t7.jsonl" >"$T/hook7.json"
+CLAUDE_BIN="$T/claude-ok" python3 "$OBS/session-log.py" "$T/hook7.json" test >/dev/null
+F7="$(ls "$RAW"/*-lnk7.md)"
+check "las menciones [[nota]] se guardan escapadas (no son enlaces)" 'grep -qF "\[\[nota-borrada\]\]" "$F7" && grep -qF "\[\[otra|alias\]\]" "$F7" && ! grep -qE "(^|[^\\])\[\[nota-borrada" "$F7" && grep -qF "t[a[1]]" "$F7"'
+printf -- '---\ntipo: sesion\n---\nenlace viejo a [[ya-no-existe]]\n' >"$OBSIDIAN_VAULT/raw/web/vieja.md"
+check "el linter no avisa de enlaces rotos dentro de raw/" '! python3 "$LINT" | grep -q "ya-no-existe"'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
 [ "$fails" -eq 0 ]

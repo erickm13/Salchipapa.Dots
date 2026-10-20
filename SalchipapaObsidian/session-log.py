@@ -7,7 +7,8 @@ sesion (y como mucho lo de hoy), lo resume con `claude -p` y lo anade a daily/AA
 "## Sesiones de hoy". Asi, al abrir un agente en otro equipo, la bienvenida ya muestra lo ultimo.
 
 Antes de resumir guarda la conversacion limpia en raw/sesiones/ (capa de fuentes crudas del LLM Wiki):
-solo lo dicho por el usuario y el agente, con los secretos cambiados por [SECRETO]. Ese archivo no se
+solo lo dicho por el usuario y el agente, con los secretos cambiados por [SECRETO] y los [[enlaces]]
+escapados (texto, no enlaces: Obsidian no los reescribe al renombrar una nota). Ese archivo no se
 vuelve a tocar; si la sesion sigue (resume), lo nuevo va a otro archivo. Asi la conversacion no se
 pierde aunque el resumen falle. Lee transcripts de Claude Code, Codex, Copilot CLI y Gemini CLI.
 
@@ -33,6 +34,13 @@ STATE = Path.home() / ".cache/salchipapa-dots"
 SEEN = STATE / "session-log.json"  # session_id -> ultimo mensaje resumido; "raw:"+id -> ultimo guardado en raw/
 COPILOT = Path.home() / ".copilot/session-state"
 LIMIT = 75
+WIKILINK = re.compile(r"(!?)\[\[([^\[\]\n]+)\]\]")
+
+
+def unlink(text):
+    """[[nota]] -> \\[\\[nota\\]\\]: se lee igual en Obsidian, pero no es un enlace. Asi, al renombrar una
+    nota Obsidian no reescribe raw/ (inmutable) y los enlaces de una conversacion nunca quedan rotos."""
+    return WIKILINK.sub(lambda m: m.group(1) + "\\[\\[" + m.group(2) + "\\]\\]", text)
 MIN_TURNS = 2
 MAX_CHARS = 60_000
 SECRETS = re.compile(
@@ -156,7 +164,7 @@ def save_raw(msgs, agent, sid, host):
             f"inicio: {start.isoformat(timespec='minutes')}\nfin: {local(msgs[-1][0]).isoformat(timespec='minutes')}\n---\n",
             f"# Sesión de {agent} · {start:%Y-%m-%d %H:%M}\n"]
     for ts, role, text in msgs:
-        body.append(f"### {'Usuario' if role == 'user' else 'Agente'} · {local(ts):%H:%M}\n{SECRETS.sub('[SECRETO]', text)}\n")
+        body.append(f"### {'Usuario' if role == 'user' else 'Agente'} · {local(ts):%H:%M}\n{unlink(SECRETS.sub('[SECRETO]', text))}\n")
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(VAULT / ".git" / "vault-sync.lock", "w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
