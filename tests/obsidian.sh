@@ -85,11 +85,21 @@ check "el hook de cierre vacia la cola y hace push" '! compgen -G "$HOME/.cache/
 check "deja el resultado para el aviso al salir" 'grep -q "^✔ Bóveda al día en GitHub" "$HOME/.cache/salchipapa-dots/session-end.status"'
 if command -v fish >/dev/null; then
   antes="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre --antes")"
-  printf '{"session_id":"s3"}' | bash "$OBS/vault-session-end.sh" test
+  printf '{"session_id":"s3"}' | VAULT_SESSION_TOKEN="$antes" bash "$OBS/vault-session-end.sh" test
   aviso="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre $antes" 2>&1)"
   check "fish: al salir del agente dice el resultado" 'grep -q "✔ Bóveda al día en GitHub" <<<"$aviso"'
   aviso="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre (__vault_esperar_cierre --antes)" 2>&1)"
-  check "fish: sin sesion nueva no dice nada" '[ -z "$aviso" ]'
+  check "fish: sin sesion nueva no dice nada" '[ -z "$aviso" ]'  # Dos ventanas cierran a la vez: una con conversación, otra vacía. Cada una ve SU resultado.
+  printf '#!/bin/sh\ncat >/dev/null\nsleep 1\nprintf -- "- Hice algo en A\\n- Sin pendientes\\n"\n' >"$T/claude-a"
+  chmod +x "$T/claude-a"
+  printf '{"type":"user","timestamp":"%s","message":{"content":"trabajo en A"}}\n' "$(date -u +%FT%TZ)" >"$T/ta.jsonl"
+  ma="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre --antes")"
+  mb="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre --antes")"
+  printf '{"session_id":"va","transcript_path":"%s"}' "$T/ta.jsonl" | CLAUDE_BIN="$T/claude-a" VAULT_SESSION_TOKEN="$ma" bash "$OBS/vault-session-end.sh" test
+  printf '{"session_id":"vb"}' | CLAUDE_BIN="$T/claude-a" VAULT_SESSION_TOKEN="$mb" bash "$OBS/vault-session-end.sh" test
+  avisoa="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre $ma" 2>&1)"
+  avisob="$(fish --no-config -c "set fish_function_path $REPO/SalchipapaFish/fish/functions \$fish_function_path; __vault_esperar_cierre $mb" 2>&1)"
+  check "dos ventanas a la vez: cada una ve el resultado de su sesión" 'grep -q "✔ Notas guardadas" <<<"$avisoa" && grep -q "no hubo conversación" <<<"$avisob"'
 fi
 
 echo "raw/ (fuentes crudas del LLM Wiki, sin llamar a Claude):"

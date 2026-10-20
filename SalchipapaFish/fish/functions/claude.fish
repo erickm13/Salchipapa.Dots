@@ -5,7 +5,9 @@ function claude --wraps claude --description 'Claude Code con el token de gh par
     if not set -q GITHUB_PERSONAL_ACCESS_TOKEN; and type -q gh
         set token (gh auth token 2>/dev/null)
     end
+    # Marca de esta ventana: el hook de cierre deja aqui el resultado de esta sesion, no el de otra
     set -l antes (__vault_esperar_cierre --antes)
+    set -lx VAULT_SESSION_TOKEN $antes
     if test -n "$token"
         GITHUB_PERSONAL_ACCESS_TOKEN=$token command claude $argv
     else

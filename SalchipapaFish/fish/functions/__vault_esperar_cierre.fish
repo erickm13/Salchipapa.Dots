@@ -1,28 +1,32 @@
-function __vault_esperar_cierre --description 'Al cerrar un agente: espera el resumen de la sesion y la subida de la boveda, y lo dice'
-    # argv[1]: el resultado que habia antes de abrir el agente (`__vault_esperar_cierre --antes`).
-    # Lo usan las funciones claude, codex y copilot.
-    # El hook de cierre (vault-session-end.sh) trabaja en segundo plano y deja el resultado en
-    # session-end.status. Si el agente no tuvo sesion (claude --version, -p…) no hay nada que esperar.
+function __vault_esperar_cierre --description 'Al cerrar un agente: espera el resumen de su sesion y la subida de la boveda, y lo dice'
+    # Lo usan las funciones claude, codex y copilot:
+    #   set -l marca (__vault_esperar_cierre --antes)   # marca unica de esta ventana
+    #   set -lx VAULT_SESSION_TOKEN $marca               # el agente (y su hook de cierre) la heredan
+    #   command claude …; __vault_esperar_cierre $marca
+    # El hook de cierre (vault-session-end.sh) trabaja en segundo plano y deja el resultado de ESTA
+    # sesion en session-end/<marca>: otras ventanas o sesiones vacias no lo tapan. Si el agente no
+    # tuvo sesion (claude --version, -p…) no hay nada que esperar.
     set -l dir ~/.cache/salchipapa-dots
-    set -l estado $dir/session-end.status
     set -l cola $dir/session-queue
     if test "$argv[1]" = --antes
-        # Marca del ultimo resultado (ns), para reconocer luego el de esta sesion
-        head -n1 $estado 2>/dev/null; or echo 0
+        echo (random)(random)-(date +%s%N)
         return 0
     end
-    set -l antes $argv[1]
-    test -d $cola; or return 0
+    set -l marca $argv[1]
+    set -l hecho $dir/session-end/$marca
+    test -n "$marca"; and test -d $cola; or return 0
 
     set -l avisado 0
     for i in (seq 240) # como mucho 2 minutos
-        if test -f $estado; and test (head -n1 $estado) != "$antes"
+        if test -f $hecho
             test $avisado = 1; and printf '\r\033[K'
-            tail -n +2 $estado
+            cat $hecho
+            rm -f $hecho
             return 0
         end
-        # Nada en cola ni procesandose: este agente no cerro una sesion (o ya se informo)
-        if test (count $cola/*.json) -eq 0; and flock -n $cola/.lock true 2>/dev/null
+        # Ni en cola ni procesandose: este agente no cerro una sesion
+        set -l marcas $cola/*.token # sin coincidencias: lista vacia (en un comando, fish daria error)
+        if begin; test (count $marcas) -eq 0; or not grep -qxF -- $marca $marcas; end; and flock -n $cola/.lock true 2>/dev/null
             test $avisado = 1; and printf '\r\033[K'
             return 0
         end
