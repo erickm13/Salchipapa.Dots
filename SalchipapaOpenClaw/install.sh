@@ -91,10 +91,11 @@ if ! grep -q "^Host $HOST_ALIAS\$" "$HOME/.ssh/config" 2>/dev/null; then
     "$HOST_ALIAS" "$KEY" >>"$HOME/.ssh/config"
   chmod 600 "$HOME/.ssh/config"
 fi
-ssh-keygen -F github.com >/dev/null || ssh-keyscan -t ed25519 github.com 2>/dev/null >>"$HOME/.ssh/known_hosts"
+ssh-keygen -F github.com >/dev/null 2>&1 || ssh-keyscan -t ed25519 github.com 2>/dev/null >>"$HOME/.ssh/known_hosts"
 if ! git ls-remote -q "git@$HOST_ALIAS:$VAULT_REPO.git" >/dev/null 2>&1; then
   warn "GitHub aún no acepta la clave. Añádela desde tu equipo (con escritura) y repite este script:"
-  echo -e "    ${BOLD}ssh <este-vps> cat $KEY.pub | gh repo deploy-key add - -R $VAULT_REPO --allow-write -t openclaw-vps${RESET}"
+  echo -e "    ${BOLD}ssh <este-vps> cat .ssh/${KEY##*/}.pub >/tmp/openclaw-vps.pub${RESET}"
+  echo -e "    ${BOLD}gh repo deploy-key add /tmp/openclaw-vps.pub -R $VAULT_REPO --allow-write -t openclaw-vps${RESET}"
   echo -e "  ${BASE01}Clave pública: $(cat "$KEY.pub")${RESET}"
   exit 2
 fi
@@ -129,10 +130,13 @@ if openclaw skills check 2>/dev/null | grep -q boveda; then ok "el agente ve el 
 if openclaw automations list --all 2>/dev/null | grep -qF "$JOB_NAME"; then
   ok "ya existe ($JOB_NAME)"
 else
-  # Antes de las 00:10, cuando GitHub Actions hace el ingest de respaldo (solo si quedó algo pendiente)
-  deliver=()
-  [ -n "${OPENCLAW_TELEGRAM_TO:-}" ] && deliver=(--announce --channel telegram --to "$OPENCLAW_TELEGRAM_TO")
-  openclaw automations add --name "$JOB_NAME" --cron "45 23 * * *" --tz "$TZ_VAULT" --session isolated \
+  # Antes de las 00:10, cuando GitHub Actions hace el ingest de respaldo (solo si quedó algo pendiente).
+  # El resultado va al DM del dueño (el primer telegram:<id> de commands.ownerAllowFrom): sin ruta
+  # explícita, OpenClaw intenta "last" y la entrega falla.
+  to="${OPENCLAW_TELEGRAM_TO:-$(grep -o '"telegram:[0-9]*"' "$HOME/.openclaw/openclaw.json" | head -1 | tr -dc 0-9)}"
+  deliver=(--no-deliver)
+  [ -n "$to" ] && deliver=(--announce --channel telegram --to "$to")
+  openclaw automations add --name "$JOB_NAME" --cron "45 23 * * *" --tz "$TZ_VAULT" --session isolated --agent main \
     --message "Usa el skill boveda: haz el ingest de las fuentes pendientes de raw/ y sube la bóveda." \
     "${deliver[@]}" >/dev/null && ok "todos los días a las 23:45 ($TZ_VAULT)" ||
     warn "no se pudo crear la automatización: créala a mano (README)"

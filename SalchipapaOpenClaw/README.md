@@ -22,15 +22,16 @@ Ubuntu, 2 GiB de RAM como mínimo (con swap), Node.js con npm.
    ```
 2. La primera vez se para y te da el comando para autorizar la deploy key. Desde tu equipo:
    ```bash
-   ssh <vps> cat ~/.ssh/salchipapanotes_deploy.pub | gh repo deploy-key add - -R erickm13/SalchipapaNotes --allow-write -t openclaw-vps
+   ssh <vps> cat .ssh/salchipapanotes_deploy.pub >/tmp/openclaw-vps.pub
+   gh repo deploy-key add /tmp/openclaw-vps.pub -R erickm13/SalchipapaNotes --allow-write -t openclaw-vps
    ```
    Al cambiar de VPS, borra la del anterior: `gh repo deploy-key list -R erickm13/SalchipapaNotes` y
    `gh repo deploy-key delete <id> -R erickm13/SalchipapaNotes`.
 3. Si OpenClaw es nuevo: `openclaw onboard --install-daemon` (login de Codex por dispositivo, Gateway
    en loopback `127.0.0.1:18789`, bot de Telegram con su token oculto) y `loginctl enable-linger $USER`.
    Después, el pairing: `openclaw pairing list telegram` y `openclaw pairing approve telegram <CODIGO>`.
-4. Repite `install.sh` (crea la automatización). Para que avise por Telegram del resultado del ingest:
-   `OPENCLAW_TELEGRAM_TO=<tu chat id> bash ~/Salchipapa.Dots/SalchipapaOpenClaw/install.sh`.
+4. Repite `install.sh` (crea la automatización). El resultado del ingest llega por DM al dueño del bot
+   (sale de `commands.ownerAllowFrom`; otro chat: `OPENCLAW_TELEGRAM_TO=<chat id>`).
 
 Actualizar el skill o Dots: repetir `install.sh` (copia el skill de nuevo; no toca lo demás).
 
@@ -38,8 +39,9 @@ Actualizar el skill o Dots: repetir `install.sh` (copia el skill de nuevo; no to
 - El Gateway escucha solo en loopback: el dashboard se abre con túnel SSH
   (`ssh -L 18789:127.0.0.1:18789 <vps>`); nunca abras el puerto 18789 en el Security Group.
 - **Rotar el token del Gateway** si se expuso (p. ej. la salida de `openclaw dashboard --json`):
-  `openclaw doctor --generate-gateway-token` (comprueba la opción en `openclaw doctor --help` de tu
-  versión), `systemctl --user restart openclaw-gateway.service` y vuelve a abrir el dashboard.
+  `openclaw doctor --generate-gateway-token` (existe en 2026.10.3), `systemctl --user restart
+  openclaw-gateway.service` y vuelve a abrir el dashboard (`openclaw gateway auth-token --show` lo
+  muestra en la terminal del VPS: no lo copies a ningún chat).
 - La deploy key solo da acceso a la bóveda; si el VPS se compromete, bórrala en GitHub y listo.
 - Ningún token entra en este repo ni en la bóveda.
 
