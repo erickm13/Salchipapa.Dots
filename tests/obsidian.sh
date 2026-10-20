@@ -210,11 +210,12 @@ check "la semanal recibe los hallazgos del verificador" 'grep -q "Hallazgos del 
 check "la semanal lista las áreas reales y pide lint con criterio" 'grep -q "responsabilidades: trabajo" "$PROMPTS" && grep -q "LINT CON CRITERIO" "$PROMPTS"'
 
 echo "vault-welcome.py: contadores de la wiki:"
-echo "artículo" >"$OBSIDIAN_VAULT/raw/web/articulo.md"
+echo "artículo" >"$OBSIDIAN_VAULT/raw/web/$(date +%F)-hoy.md"
+echo "artículo" >"$OBSIDIAN_VAULT/raw/web/2026-01-01-articulo.md"
 msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
 check "🧹 cuenta los avisos del verificador" 'grep -q "🧹 [0-9]* aviso(s) del verificador" <<<"$msg"'
-check "📥 avisa de fuentes de raw/ sin ingerir" 'grep -q "📥 1 fuente(s) de raw/ sin ingerir" <<<"$msg"'
-printf '\n## [hoy] ingest | raw/web/articulo.md\n' >>"$OBSIDIAN_VAULT/log.md"
+check "📥 avisa solo de las fuentes de más de un día (por la fecha del nombre)" 'grep -q "📥 1 fuente(s) de raw/ sin ingerir" <<<"$msg"'
+printf '\n## [hoy] ingest | raw/web/2026-01-01-articulo.md\n' >>"$OBSIDIAN_VAULT/log.md"
 msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
 check "📥 desaparece al ingerirla" '! grep -q "📥" <<<"$msg"'
 

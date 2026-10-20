@@ -100,6 +100,18 @@ def weekly():
             f"la bóveda. Dile a un agente \"aplica la revisión semanal\".")
 
 
+def source_date(rel):
+    """AAAA-MM-DD de una fuente de raw/: la de su nombre o la de su primer commit ("" si no hay)."""
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", Path(rel).name)
+    if m:
+        return m.group(1)
+    try:
+        return subprocess.run(["git", "-C", str(VAULT), "log", "--diff-filter=A", "--format=%cs", "-1", "--", rel],
+                              capture_output=True, text=True, timeout=5).stdout.strip()
+    except (OSError, subprocess.SubprocessError):
+        return ""
+
+
 def wiki():
     """Lineas del verificador (vault-lint.py): graves (⚠), fuentes de raw/ atascadas (📥) y avisos (🧹)."""
     try:
@@ -111,9 +123,11 @@ def wiki():
     lint = f"python3 {HERE / 'vault-lint.py'}"
     top = [f"⚠ La bóveda tiene {len(r['graves'])} problema(s) grave(s): {r['graves'][0]} (detalle: {lint})"] if r["graves"] else []
     bottom = []
-    # Una sesion se ingiere la noche siguiente; si lleva mas de un dia, el ingest nocturno no esta funcionando
+    # Una fuente se ingiere la noche siguiente; si lleva mas de un dia, el ingest nocturno no esta funcionando.
+    # Su fecha es la del nombre (AAAA-MM-DD-…: sesiones y capturas); sin fecha en el nombre, la de su
+    # primer commit; sin ninguna (recien creada), no esta atascada.
     limit = (dt.date.today() - dt.timedelta(days=1)).isoformat()
-    stuck = [s for s in r["pendientes"] if not s.startswith("raw/sesiones/") or s[13:23] < limit]
+    stuck = [s for s in r["pendientes"] if (source_date(s) or limit) < limit]
     if stuck:
         bottom.append(f"📥 {len(stuck)} fuente(s) de raw/ sin ingerir desde hace más de un día: revisa el "
                       "ingest nocturno (GitHub Actions u OpenClaw)")
