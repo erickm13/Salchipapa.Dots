@@ -119,7 +119,7 @@ section "Skill boveda"
 mkdir -p "$HOME/.openclaw/skills"
 rm -rf "$HOME/.openclaw/skills/boveda"
 cp -r "$DOTS/SalchipapaOpenClaw/skills/boveda" "$HOME/.openclaw/skills/boveda"
-ok "~/.openclaw/skills/boveda"
+ok "$HOME/.openclaw/skills/boveda"
 
 section "Ingest de cada noche"
 if [ "$onboarded" -eq 0 ]; then
