@@ -13,6 +13,8 @@ directorio. Para solo consultar basta con esto:
 - Busca primero en `~/.config/obsidian/index.md` (si existe) o con `rg -i "<tema>" ~/.config/obsidian`, y
   lee la nota relevante (nota del proyecto, hub del recurso o del área). Ahí están decisiones, comandos
   y problemas ya resueltos. `archive/` solo si buscas algo de un proyecto ya cerrado.
+- Si respondes algo que valga la pena conservar (comparación, análisis, decisión, solución), guárdalo
+  como página de la wiki: sección *Query* del schema.
 
 ## Sincronización: automática, no la hagas tú
 - Al **empezar** cada sesión se suben los cambios que hubieran quedado pendientes y se hace `git pull`;

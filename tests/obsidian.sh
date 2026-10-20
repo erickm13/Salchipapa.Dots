@@ -173,6 +173,42 @@ echo "x" >"$OBSIDIAN_VAULT/inbox/z.md"
 bash "$OBS/vault-sync.sh" push test
 check "vault-sync regenera index.md antes de subir" 'git -C "$T/remote.git" show main:index.md | grep -q "demo-hub"'
 
+echo "daily-note.sh: ingest nocturno de raw/ (Claude simulado):"
+mkdir -p "$T/bin"
+cat >"$T/bin/claude" <<'STUB'
+#!/usr/bin/env bash
+# Claude simulado: guarda el prompt; en el ingest registra las fuentes en log.md e intenta tocar raw/
+prompt="$2"
+printf '%s\n=====\n' "$prompt" >>"$PROMPTS"
+if grep -q "Haz el INGEST" <<<"$prompt"; then
+  grep -oE '^- raw/[^ ]+' <<<"$prompt" | sed 's/^- //' | while read -r src; do
+    printf '\n## [hoy] ingest | %s\n- Sin cambios en la wiki\n' "$src" >>log.md
+  done
+  first="$(grep -oE '^- raw/[^ ]+' <<<"$prompt" | head -1 | sed 's/^- //')"
+  echo "editado por el modelo" >>"$first"
+fi
+echo ok
+STUB
+chmod +x "$T/bin/claude"
+export PROMPTS="$T/prompts.txt"
+before="$(python3 "$LINT" --count | cut -d' ' -f3)"
+PATH="$T/bin:$PATH" bash "$OBS/daily-note.sh"
+check "manda a Claude las fuentes pendientes de raw/" 'grep -q "Haz el INGEST" "$PROMPTS" && grep -q "^- raw/sesiones/" "$PROMPTS"'
+check "después del ingest no quedan fuentes pendientes (había $before)" '[ "$(python3 "$LINT" --count | cut -d" " -f3)" -eq 0 ]'
+check "si el modelo toca raw/, se restaura antes de subir" '[ -z "$(git -C "$OBSIDIAN_VAULT" status --porcelain -- raw/)" ] && grep -q "restaurado" "$HOME/.cache/salchipapa-dots/daily-note.log"'
+check "el log de la wiki llega a GitHub" 'git -C "$T/remote.git" show main:log.md | grep -q "ingest | raw/sesiones/"'
+: >"$PROMPTS"
+printf '%s\n' "$(date -d yesterday +%F)" >>"$HOME/.cache/salchipapa-dots/daily-note.done"
+PATH="$T/bin:$PATH" bash "$OBS/daily-note.sh"
+check "sin fuentes ni días pendientes no llama a Claude" '[ ! -s "$PROMPTS" ]'
+
+echo "weekly-review.sh (Claude simulado):"
+mkdir -p "$OBSIDIAN_VAULT/areas/trabajo"
+: >"$PROMPTS"
+PATH="$T/bin:$PATH" bash "$OBS/weekly-review.sh" "$(date +%F)"
+check "la semanal recibe los hallazgos del verificador" 'grep -q "Hallazgos del verificador" "$PROMPTS" && grep -q "demo-b.md: falta en el frontmatter" "$PROMPTS"'
+check "la semanal lista las áreas reales y pide lint con criterio" 'grep -q "responsabilidades: trabajo" "$PROMPTS" && grep -q "LINT CON CRITERIO" "$PROMPTS"'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
 [ "$fails" -eq 0 ]

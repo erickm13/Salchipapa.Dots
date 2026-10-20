@@ -1,5 +1,9 @@
 #!/usr/bin/env bash
-# daily-note.sh [AAAA-MM-DD] — escribe la nota diaria de la boveda con Claude Code, sin intervencion.
+# daily-note.sh [AAAA-MM-DD] — trabajo nocturno de la boveda con Claude Code, sin intervencion:
+# 1) INGEST (LLM Wiki): integra en la wiki las fuentes de raw/ que aun no estan en log.md (como mucho
+#    INGEST_MAX por noche, las mas antiguas primero), siguiendo la seccion "Ingest" de AGENTS.md.
+#    Si OpenClaw (u otro agente) ya las ingirio, no hay nada pendiente y no se llama a Claude.
+# 2) Escribe la nota diaria.
 # Lo lanza obsidian-daily.timer cada dia a las 00:10, cuando el dia ya termino. Fuentes: las
 # "## Sesiones de hoy" que se escriben al cerrar cada sesion (en cualquier equipo), los commits del
 # dia en mis repos y claude-mem.
@@ -62,7 +66,6 @@ elif [ "$CLOUD" -eq 1 ]; then
       DATES+=("$d")
     fi
   done
-  [ "${#DATES[@]}" -eq 0 ] && { log "nada pendiente"; exit 0; }
 else
   last_done="$(sort "$DONE" 2>/dev/null | tail -1)"
   for i in 7 6 5 4 3 2 1; do
@@ -74,7 +77,6 @@ else
       DATES+=("$d")
     fi
   done
-  [ "${#DATES[@]}" -eq 0 ] && { log "nada pendiente (ultimo: $last_done)"; exit 0; }
 fi
 
 [ -d "$VAULT/.git" ] || { log "no hay boveda en $VAULT"; exit 0; }
@@ -83,6 +85,58 @@ CLAUDE="$(command -v claude || echo "$HOME/.local/bin/claude")"
 
 bash "$HERE/vault-sync.sh" pull nocturno
 failed=()
+
+# --- 1) Ingest de raw/ (fuentes sin entrada en log.md) ---
+INGEST_MAX="${INGEST_MAX:-10}"
+mapfile -t PENDING < <(OBSIDIAN_VAULT="$VAULT" python3 "$HERE/vault-lint.py" --json 2>>"$LOG" |
+  python3 -c 'import json,sys; print("\n".join(json.load(sys.stdin)["pendientes"]))' 2>>"$LOG" | sed '/^$/d' | head -n "$INGEST_MAX")
+if [ "${#DATES[@]}" -eq 0 ] && [ "${#PENDING[@]}" -eq 0 ]; then
+  log "nada pendiente${last_done:+ (ultima diaria: $last_done)}"
+  exit 0
+fi
+if [ "${#PENDING[@]}" -gt 0 ]; then
+  TODAY="$(date +%F)"
+  read -r -d '' INGEST_PROMPT <<EOF
+Haz el INGEST de estas fuentes de raw/ en la wiki de la bóveda de Obsidian (estás en ella: $VAULT).
+Lee primero AGENTS.md (el schema: sección "Ingest") e index.md (qué páginas existen).
+
+Fuentes, en orden:
+$(printf -- '- %s\n' "${PENDING[@]}")
+
+Para cada fuente:
+- raw/web/ y raw/docs/: crea su página tipo: fuente en resources/<tema>/ con lo clave y actualiza las
+  páginas que toca (proyectos, recursos, conceptos, entidades), como dice el schema.
+- raw/sesiones/ (conversaciones con agentes): NO crees página fuente. Lleva a la wiki solo lo duradero:
+  Estado y decisiones de los proyectos, bugs resueltos con su causa, comandos y configuración en su
+  recurso, conceptos nuevos. Si la sesión no deja nada duradero, no toques la wiki.
+- En cada página que cambies: añade la fuente a \`fuentes\` y pon \`actualizado: $TODAY\`. Si
+  contradice algo, anótalo con > [!warning] Contradicción. Enlaza cada página nueva desde su hub.
+- Al terminar cada fuente, añade al final de log.md exactamente:
+  ## [$TODAY] ingest | <ruta de la fuente>
+  - Páginas: [[pagina-a]], [[pagina-b]]   (o "- Sin cambios en la wiki")
+
+Reglas: nunca edites raw/, daily/ ni index.md; no ejecutes git; nunca escribas secretos; solo hechos
+de las fuentes. Responde con una línea por fuente: ruta → páginas tocadas.
+EOF
+  log "ingest: ${#PENDING[@]} fuente(s)"
+  out="$(cd "$VAULT" && "$CLAUDE" -p "$INGEST_PROMPT" --model "${INGEST_MODEL:-sonnet}" \
+    --allowedTools "Read,Write,Edit,Glob,Grep" \
+    --permission-mode acceptEdits --settings '{"disableAllHooks": true}' </dev/null 2>&1)"
+  rc=$?
+  log "ingest: claude rc=$rc: $(printf '%s' "$out" | tail -c 400 | tr '\n' ' ')"
+  # raw/ es inmutable: si el modelo toco algun archivo existente, se restaura (si no, el push se negaria)
+  if [ -n "$(git -C "$VAULT" diff --name-only -- raw/)" ]; then
+    log "ingest: el modelo modifico raw/ ($(git -C "$VAULT" diff --name-only -- raw/ | tr '\n' ' ')): restaurado"
+    git -C "$VAULT" checkout -q -- raw/
+  fi
+  left=0
+  for s in "${PENDING[@]}"; do grep -qF "ingest | $s" "$VAULT/log.md" 2>/dev/null || left=$((left + 1)); done
+  if [ "$rc" -ne 0 ]; then
+    failed+=("ingest")
+  elif [ "$left" -gt 0 ]; then
+    log "ingest: $left fuente(s) sin entrada en log.md: se reintentan la proxima noche"
+  fi
+fi
 
 for D in "${DATES[@]}"; do
   COMMITS="$(commits "$D")"
@@ -137,7 +191,7 @@ bash "$HERE/vault-sync.sh" push nocturno
 if [ "${#failed[@]}" -eq 0 ]; then
   rm -f "$STATE/vault-errors/daily"
 else
-  fail "La nota diaria de ${failed[*]} falló (claude). Se reintenta en la próxima ejecución. Detalle: $LOG"
+  fail "El trabajo nocturno falló en: ${failed[*]} (claude). Se reintenta en la próxima ejecución. Detalle: $LOG"
   [ "$CLOUD" -eq 1 ] && exit 1
 fi
 exit 0

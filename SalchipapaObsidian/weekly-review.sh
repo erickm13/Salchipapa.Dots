@@ -39,14 +39,21 @@ if [ -z "${1:-}" ] && { grep -qxF "$W" "$STATE/weekly-review.done" 2>/dev/null |
 fi
 
 bash "$HERE/vault-sync.sh" pull semanal
+# Lint mecanico (sin LLM): sus hallazgos se convierten en propuestas
+LINT="$(OBSIDIAN_VAULT="$VAULT" python3 "$HERE/vault-lint.py" 2>&1)"
+AREAS="$(cd "$VAULT/areas" 2>/dev/null && ls -d */ 2>/dev/null | tr -d / | paste -sd, -)"
 
 read -r -d '' PROMPT <<EOF
 Haz la revisión semanal $W ($MON a $SUN) de la bóveda de Obsidian (estás en ella: $VAULT),
-siguiendo Building a Second Brain / PARA (las reglas están en tus instrucciones de memoria):
-projects/ (meta y final, activos), areas/ (responsabilidades: qa, universidad), resources/<tema>/
-(consulta, cada tema con su hub), archive/ (terminado), inbox/ (captura sin clasificar).
+siguiendo su schema (léelo primero: AGENTS.md; LLM Wiki + Building a Second Brain / PARA):
+projects/ (meta y final, activos), areas/ (responsabilidades: ${AREAS:-ninguna}), resources/<tema>/
+(consulta, cada tema con su hub), archive/ (terminado), inbox/ (captura sin clasificar), raw/ (fuentes).
 
-Lee: las notas de daily/ de $MON a $SUN, todo inbox/, y los archivos de projects/ (su lista Estado).
+Lee: las notas de daily/ de $MON a $SUN, todo inbox/, los archivos de projects/ (su lista Estado),
+index.md, log.md (lo ingerido esa semana) y las páginas de la wiki con \`actualizado\` en esa semana.
+
+Hallazgos del verificador (vault-lint.py), ya comprobados:
+$LINT
 
 Escribe weekly/$W.md (crea la carpeta si no existe) con estas secciones:
 # Semana $W ($MON — $SUN)
@@ -58,6 +65,14 @@ Escribe weekly/$W.md (crea la carpeta si no existe) con estas secciones:
                      (o areas/, projects/, archive/, o "Borrar [[nota]]" si está vacía)
                    - cada proyecto con todo el Estado en [x] o sin actividad en la semana:
                      "Archivar [[proyecto]] → archive/ (porqué)"
+                   - cada hallazgo del verificador, como arreglo concreto
+                     (p. ej. "Completar el frontmatter de [[nota]]", "Enlazar [[nota]] desde [[hub]]",
+                     "Pasar la referencia de [[proyecto]] a resources/<tema>/")
+                   - LINT CON CRITERIO (lo que el verificador no ve): contradicciones entre páginas
+                     ("Resolver contradicción entre [[a]] y [[b]]: …"), datos que una nota más nueva
+                     dejó viejos, conceptos o entidades que aparecen en varias páginas sin página
+                     propia ("Crear [[concepto]] (aparece en [[a]], [[b]])"), enlaces que faltan, y
+                     huecos que una búsqueda llenaría ("Investigar …")
                    - si no hay nada que ordenar: "- Nada que ordenar esta semana"
 ## Para la semana que viene   viñetas: pendientes de Estado, "Mañana" de la última diaria
 

@@ -133,7 +133,7 @@ def lint(v, since=None):
             hit = v.resolve(target)
             if hit:
                 inbound.setdefault(hit, set()).add(p)
-            elif not v.rel(p).startswith(("daily/", "weekly/", "templates/")):
+            elif not v.rel(p).startswith(("daily/", "weekly/", "templates/")) and v.rel(p) != "index.md":
                 avisos.append(f"{v.rel(p)}: enlace roto [[{target}]]")
         if SECRETS.search(text):
             graves.append(f"{v.rel(p)}: parece contener un secreto")
