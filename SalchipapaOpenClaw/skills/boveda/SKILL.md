@@ -64,6 +64,8 @@ Solo lectura: no corrijas nada aquí; si el usuario quiere arreglar algo, hazlo 
    - `avisos`: cuántos y los 2-3 primeros.
    - `pendientes`: fuentes de `raw/` sin ingerir. Una sesión de `raw/sesiones/` se ingiere la noche
      siguiente; si alguna tiene **más de un día** (fecha del nombre), el ingest nocturno está fallando.
+     Es el **único** criterio: tener pendientes o no ver entradas `ingest` en `log.md` no es un fallo.
+     Cuenta los días en la zona del usuario, no en la del servidor (UTC): `TZ=America/Guatemala date +%F`.
    - `info`: notas en `inbox/` por clasificar.
 3. Errores de subida en este servidor: archivos de `~/.cache/salchipapa-dots/vault-errors/` (su texto).
 4. Último ingest y último lint: `grep "^## \[" ~/.config/obsidian/log.md | grep -E " (ingest|lint) " | tail -2`.
