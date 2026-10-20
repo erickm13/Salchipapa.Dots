@@ -147,6 +147,32 @@ git -C "$OBSIDIAN_VAULT" checkout -q -- raw/
 bash "$OBS/vault-sync.sh" push test
 check "vault-sync: al restaurar raw/ vuelve a subir y quita el aviso" '[ ! -f "$HOME/.cache/salchipapa-dots/vault-errors/push" ]'
 
+echo "vault-lint.py (verificador de la wiki):"
+LINT="$OBS/vault-lint.py"
+mkdir -p "$OBSIDIAN_VAULT/resources/demo"
+printf -- '---\nid: demo-hub\ntipo: hub\nresumen: Hub de prueba\nactualizado: 2026-10-20\n---\n# Demo\n- [[demo-a]]\n' >"$OBSIDIAN_VAULT/resources/demo/demo-hub.md"
+printf -- '---\nid: demo-a\naliases:\n  - Página A\ntipo: recurso\nresumen: Página A de prueba\nactualizado: 2026-10-20\n---\n# A\nVer [[no-existe]] y [[Página A]].\n`[[en-codigo]]`\n```\n[[en-bloque]]\n```\n' >"$OBSIDIAN_VAULT/resources/demo/demo-a.md"
+printf -- '---\nid: demo-b\n---\n# B\n' >"$OBSIDIAN_VAULT/resources/demo/demo-b.md"
+out="$(python3 "$LINT")"
+rc=$?
+check "detecta un enlace roto (y resuelve alias)" 'grep -q "demo-a.md: enlace roto \[\[no-existe\]\]" <<<"$out" && ! grep -q "Página A" <<<"$out"'
+check "ignora los enlaces dentro de código" '! grep -q "en-codigo\|en-bloque" <<<"$out"'
+check "avisa del frontmatter incompleto y de la página que su hub no enlaza" 'grep -q "demo-b.md: falta en el frontmatter: tipo, resumen, actualizado" <<<"$out" && grep -q "demo-b.md: su hub" <<<"$out"'
+check "los avisos no fallan (rc=0)" '[ "$rc" -eq 0 ]'
+python3 "$LINT" --index >/dev/null
+check "genera index.md con el resumen de cada página" 'grep -q "\[\[demo-a\]\] — Página A de prueba" "$OBSIDIAN_VAULT/index.md" && grep -q "no lo edites a mano" "$OBSIDIAN_VAULT/index.md"'
+check "cuenta las fuentes de raw/ sin ingerir" '[ "$(python3 "$LINT" --count | cut -d" " -f3)" -ge 1 ]'
+REV="$(git -C "$OBSIDIAN_VAULT" rev-parse HEAD)"
+git -C "$OBSIDIAN_VAULT" rm -q "$(ls "$RAW"/*-copilot-cop1.md)"
+git -C "$OBSIDIAN_VAULT" commit -qm "borra raw"
+python3 "$LINT" --since "$REV" >/dev/null
+check "--since: borrar algo de raw/ es grave (rc=1)" '[ $? -eq 1 ]'
+git -C "$OBSIDIAN_VAULT" revert --no-edit HEAD >/dev/null
+rm -f "$OBSIDIAN_VAULT/index.md"
+echo "x" >"$OBSIDIAN_VAULT/inbox/z.md"
+bash "$OBS/vault-sync.sh" push test
+check "vault-sync regenera index.md antes de subir" 'git -C "$T/remote.git" show main:index.md | grep -q "demo-hub"'
+
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
 [ "$fails" -eq 0 ]

@@ -12,6 +12,7 @@
 set -u
 
 VAULT="${OBSIDIAN_VAULT:-$HOME/.config/obsidian}"
+HERE="$(cd "$(dirname "$(readlink -f "${BASH_SOURCE[0]}")")" && pwd)"
 LOG="$HOME/.cache/salchipapa-dots/vault-sync.log"
 ERRORS="$HOME/.cache/salchipapa-dots/vault-errors"
 mode="${1:-}"
@@ -44,6 +45,8 @@ pull() {
 
 push() {
   if [ -n "$(git status --porcelain)" ]; then
+    # index.md sigue a las paginas: se regenera desde su `resumen` antes de cada commit
+    OBSIDIAN_VAULT="$VAULT" python3 "$HERE/vault-lint.py" --index >/dev/null 2>&1 || true
     git add -A
     # raw/ es la capa de fuentes crudas (LLM Wiki): se anaden archivos, nunca se modifican ni borran
     touched="$(git diff --cached --name-status --diff-filter=MDR -- raw/ | grep -v '/\.gitkeep$' | cut -f2- | tr '\t\n' '  ')"
