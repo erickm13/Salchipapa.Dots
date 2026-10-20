@@ -16,6 +16,7 @@ Scripts (`DOTS=~/Salchipapa.Dots/SalchipapaObsidian`):
   Se niega a subir secretos o cambios a archivos existentes de `raw/`; si falla, el motivo está en
   `~/.cache/salchipapa-dots/vault-errors/push`: díselo al usuario.
 - `python3 $DOTS/vault-lint.py --json`: hallazgos y fuentes `pendientes` de ingerir.
+- `python3 $DOTS/vault-lint.py --salud`: el informe de salud, ya redactado.
 
 No ejecutes otros comandos de git en la bóveda, salvo `git -C ~/.config/obsidian checkout -- raw/`
 para deshacer un cambio tuyo en `raw/`.
@@ -57,31 +58,11 @@ para deshacer un cambio tuyo en `raw/`.
 Solo hechos que estén en las fuentes; nada de conversación ni pasos intermedios.
 
 ## Salud ("salud de la bóveda", "health check", "¿cómo está mi bóveda?")
-Solo lectura: no corrijas nada aquí; si el usuario quiere arreglar algo, hazlo después, aparte.
-1. `pull`. Si falló, ese es el primer punto del informe.
-2. `python3 $DOTS/vault-lint.py --json`:
-   - `graves`: problemas que hacen fallar *Verificar bóveda* (frontmatter roto, secreto, `raw/` modificado).
-   - `avisos`: cuántos y los 2-3 primeros.
-   - `pendientes`: fuentes de `raw/` sin ingerir. Una sesión de `raw/sesiones/` se ingiere la noche
-     siguiente; si alguna tiene **más de un día** (fecha del nombre), el ingest nocturno está fallando.
-     Es el **único** criterio: tener pendientes o no ver entradas `ingest` en `log.md` no es un fallo.
-     Cuenta los días en la zona del usuario, no en la del servidor (UTC): `TZ=America/Guatemala date +%F`.
-     Pendientes de menos de un día van con ✔ (`✔ 3 fuentes esperando el ingest de esta noche`); ⚠ solo
-     las de más de un día. Si nada lleva ⚠, la última línea es `Todo en orden`.
-   - `info`: notas en `inbox/` por clasificar.
-3. Errores de subida en este servidor: archivos de `~/.cache/salchipapa-dots/vault-errors/` (su texto).
-4. Último ingest y último lint: `grep "^## \[" ~/.config/obsidian/log.md | grep -E " (ingest|lint) " | tail -2`.
-5. Revisión semanal: en la `weekly/AAAA-Wnn.md` más reciente, cuántas `- [ ]` quedan en `## Propuestas`.
-6. Responde en 5-6 líneas, una por punto, con ✔ o ⚠, y al final una línea con lo más urgente
-   (o `Todo en orden`). Ejemplo:
-   ```
-   ✔ Sincronizada con GitHub
-   ✔ Sin problemas graves · ⚠ 3 avisos (frontmatter de [[x]], …)
-   ⚠ 2 fuentes sin ingerir, 1 de hace 3 días: el ingest nocturno falla
-   ✔ inbox/ vacía · último ingest 2026-10-20
-   ⚠ Revisión semanal 2026-W43: 4 propuestas sin aplicar
-   Lo más urgente: revisar el ingest nocturno.
-   ```
+Solo lectura. El informe lo calcula y redacta un script: tú no evalúes nada.
+1. `pull`.
+2. `python3 $DOTS/vault-lint.py --salud`
+3. Envía su salida **tal cual**, sin cambiar, quitar ni añadir líneas ni marcas (✔/⚠), ni tu propia
+   conclusión. Si alguna línea lleva ⚠, después pregunta si quiere que lo arregles.
 
 ## Consulta (preguntas sobre la bóveda)
 1. `pull`. Lee `index.md` primero (una línea por página) y luego las páginas relevantes. Para lo que

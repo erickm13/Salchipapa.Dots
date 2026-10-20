@@ -6,23 +6,29 @@
     vault-lint.py --index         ademas regenera index.md (solo lo escribe si cambia)
     vault-lint.py --since <rev>   ademas comprueba que raw/ no se modifico desde <rev> (CI)
     vault-lint.py --count         una linea: "<graves> <avisos> <fuentes sin ingerir>"
+    vault-lint.py --salud         informe de salud ya redactado (5-6 lineas con ✔/⚠), para Telegram o la terminal
 
 Solo encuentra problemas; no corrige nada (eso lo hace el LLM en el ingest o la revision semanal).
 Graves (fallan): frontmatter roto, posibles secretos, archivos de raw/ modificados o borrados.
 Avisos: frontmatter incompleto, enlaces rotos, paginas que su hub no enlaza, proyectos que no
 enlaza me.md, proyectos largos o sin Estado, proyectos terminados, hubs vacios, archivos fuera de PARA.
 Info: fuentes de raw/ sin ingerir (su ruta no aparece en log.md) y notas en inbox/.
+"atrasadas": las sin ingerir de mas de un dia (fecha del nombre AAAA-MM-DD-…, o de su primer commit),
+contando el dia en VAULT_TZ (America/Guatemala por defecto, no la zona del servidor). Una fuente se
+ingiere la noche siguiente: si lleva mas de un dia, el ingest nocturno no esta funcionando.
 
 index.md se arma con el `resumen` del frontmatter de cada pagina (lo escribe el LLM); este script
 solo lo junta y lo ordena por PARA.
 """
 import argparse
+import datetime as dt
 import json
 import os
 import re
 import subprocess
 import sys
 from pathlib import Path
+from zoneinfo import ZoneInfo
 
 VAULT = Path(os.environ.get("OBSIDIAN_VAULT", Path.home() / ".config/obsidian"))
 WIKI = ["projects", "areas", "resources", "archive"]
@@ -35,6 +41,8 @@ SECRETS = re.compile(
     r"gh[pousr]_[A-Za-z0-9]{36,}|github_pat_[A-Za-z0-9_]{40,}|AIza[0-9A-Za-z_-]{35}|AQ\.[A-Za-z0-9_-]{30,}"
     r"|sk-[A-Za-z0-9_-]{20,}|oma_(live|test)_[A-Za-z0-9]{16,}|-----BEGIN [A-Z ]*PRIVATE KEY-----")
 LINK = re.compile(r"!?\[\[([^\]]+)\]\]")
+VAULT_TZ = os.environ.get("VAULT_TZ", "America/Guatemala")
+ERRORS = Path.home() / ".cache/salchipapa-dots/vault-errors"
 INDEX_HEADER = "<!-- Generado por vault-lint.py desde el `resumen` de cada página: no lo edites a mano. -->"
 
 
@@ -121,6 +129,23 @@ class Vault:
         return sorted(p for p in self.notes if p.parts[len(self.root.parts)] in WIKI)
 
 
+def today():
+    try:
+        return dt.datetime.now(ZoneInfo(VAULT_TZ)).date()
+    except Exception:  # zona desconocida: la del sistema
+        return dt.date.today()
+
+
+def source_date(root, rel):
+    """AAAA-MM-DD de una fuente de raw/: la de su nombre o la de su primer commit ("" si no hay)."""
+    m = re.match(r"(\d{4}-\d{2}-\d{2})", Path(rel).name)
+    if m:
+        return m.group(1)
+    out = subprocess.run(["git", "-C", str(root), "log", "--diff-filter=A", "--format=%cs", "-1", "--", rel],
+                         capture_output=True, text=True)
+    return out.stdout.strip()
+
+
 def is_hub(p):
     return p.stem.endswith("-hub") or p.stem == "hub"
 
@@ -198,7 +223,49 @@ def lint(v, since=None):
         for line in out.stdout.splitlines():
             if not line.endswith(".gitkeep"):
                 graves.append(f"raw/ es inmutable y cambió: {line.replace(chr(9), ' ')}")
-    return {"graves": graves, "avisos": sorted(set(avisos)), "info": info, "pendientes": sorted(pending)}
+    limit = (today() - dt.timedelta(days=1)).isoformat()
+    late = [s for s in sorted(pending) if (source_date(v.root, s) or limit) < limit]
+    return {"graves": graves, "avisos": sorted(set(avisos)), "info": info, "pendientes": sorted(pending),
+            "atrasadas": late, "inbox": len(inbox)}
+
+
+def salud(v, r):
+    """Informe de salud ya redactado: una linea por punto con ✔/⚠ y al final lo mas urgente."""
+    lines = []
+    errors = sorted(ERRORS.glob("*")) if ERRORS.is_dir() else []
+    if errors:
+        lines += [f"⚠ {e.read_text(encoding='utf-8').strip()}" for e in errors if e.is_file()]
+    else:
+        lines.append("✔ Sincronizada con GitHub")
+    if r["graves"]:
+        lines.append(f"⚠ {len(r['graves'])} problema(s) grave(s): {r['graves'][0]}")
+    elif r["avisos"]:
+        lines.append(f"✔ Sin problemas graves · ⚠ {len(r['avisos'])} aviso(s): {'; '.join(r['avisos'][:2])}")
+    else:
+        lines.append("✔ Sin problemas graves ni avisos")
+    ingests = re.findall(r"^## \[(\d{4}-\d{2}-\d{2})\] ingest ", v.notes.get(v.root / "log.md", ""), re.M)
+    last = f"último ingest {ingests[-1]}" if ingests else "todavía ningún ingest"
+    if r["atrasadas"]:
+        lines.append(f"⚠ {len(r['atrasadas'])} fuente(s) sin ingerir desde hace más de un día "
+                     f"({r['atrasadas'][0]}): el ingest nocturno falla · {last}")
+    elif r["pendientes"]:
+        lines.append(f"✔ {len(r['pendientes'])} fuente(s) esperando el ingest de esta noche · {last}")
+    else:
+        lines.append(f"✔ Nada pendiente de ingerir · {last}")
+    n = r["inbox"]
+    lines.append(f"✔ {n} nota(s) en inbox/ (se clasifican en la revisión semanal)" if n else "✔ inbox/ vacía")
+    weeklies = sorted((v.root / "weekly").glob("*-W*.md"))
+    if weeklies:
+        m = re.search(r"^## Propuestas\s*$(.*?)(?=^## |\Z)", weeklies[-1].read_text(encoding="utf-8"), re.M | re.S)
+        open_ = len(re.findall(r"^\s*- \[ \]", m.group(1), re.M)) if m else 0
+        lines.append(f"⚠ Revisión semanal {weeklies[-1].stem}: {open_} propuesta(s) sin aplicar "
+                     "(di \"aplica la revisión semanal\")" if open_ else
+                     f"✔ Revisión semanal {weeklies[-1].stem}: nada pendiente")
+    urgent = next((l[2:] for l in lines if l.startswith("⚠")), None)
+    if urgent is None:
+        urgent = next((l.split("· ⚠ ", 1)[1] for l in lines if "· ⚠ " in l), None)
+    lines.append(f"Lo más urgente: {urgent}" if urgent else "Todo en orden")
+    return "\n".join(lines)
 
 
 def summary_of(v, p):
@@ -242,6 +309,7 @@ def main():
     ap.add_argument("--json", action="store_true")
     ap.add_argument("--index", action="store_true")
     ap.add_argument("--count", action="store_true")
+    ap.add_argument("--salud", action="store_true")
     ap.add_argument("--since")
     a = ap.parse_args()
     if not VAULT.is_dir():
@@ -255,6 +323,9 @@ def main():
         old = index.read_text(encoding="utf-8") if index.exists() else ""
         if old != text:
             index.write_text(text, encoding="utf-8")
+    if a.salud:
+        print(salud(v, result))
+        return 0
     if a.count:
         print(len(result["graves"]), len(result["avisos"]), len(result["pendientes"]))
     elif a.json:

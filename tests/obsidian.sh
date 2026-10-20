@@ -223,7 +223,7 @@ echo "SalchipapaOpenClaw (skill boveda):"
 SKILL="$REPO/SalchipapaOpenClaw/skills/boveda/SKILL.md"
 check "frontmatter con name y description" 'sed -n "2,4p" "$SKILL" | grep -q "^name: boveda$" && sed -n "2,4p" "$SKILL" | grep -q "^description: ."'
 check "los scripts que usa existen" '(for s in $(grep -o "\$DOTS/[a-z-]*\.\(sh\|py\)" "$SKILL" | sort -u); do [ -f "$OBS/${s#\$DOTS/}" ] || exit 1; done)'
-check "skill: captura con estado del ingest y sección Salud" 'grep -q "⏳ pendiente de ingest" "$SKILL" && grep -q "^## Salud" "$SKILL" && grep -q "vault-lint.py --json" "$SKILL"'
+check "skill: captura con estado del ingest y salud por script" 'grep -q "⏳ pendiente de ingest" "$SKILL" && grep -q "^## Salud" "$SKILL" && grep -q "vault-lint.py --salud" "$SKILL"'
 check "vault-lint.py --json da las fuentes pendientes" 'OBSIDIAN_VAULT="$OBSIDIAN_VAULT" python3 "$OBS/vault-lint.py" --json | python3 -c "import json,sys; assert isinstance(json.load(sys.stdin)[\"pendientes\"], list)"'
 
 echo "raw/: enlaces de las conversaciones:"
@@ -237,6 +237,22 @@ F7="$(ls "$RAW"/*-lnk7.md)"
 check "las menciones [[nota]] se guardan escapadas (no son enlaces)" 'grep -qF "\[\[nota-borrada\]\]" "$F7" && grep -qF "\[\[otra|alias\]\]" "$F7" && ! grep -qE "(^|[^\\])\[\[nota-borrada" "$F7" && grep -qF "t[a[1]]" "$F7"'
 printf -- '---\ntipo: sesion\n---\nenlace viejo a [[ya-no-existe]]\n' >"$OBSIDIAN_VAULT/raw/web/vieja.md"
 check "el linter no avisa de enlaces rotos dentro de raw/" '! python3 "$LINT" | grep -q "ya-no-existe"'
+
+echo "vault-lint.py --salud (informe calculado, no por el modelo):"
+out="$(python3 "$LINT" --salud)"
+check "las fuentes de hoy van con ✔ (esperan el ingest de la noche)" 'grep -q "^✔ [0-9]* fuente(s) esperando el ingest de esta noche" <<<"$out" && ! grep -q "más de un día" <<<"$out"'
+echo "vieja" >"$OBSIDIAN_VAULT/raw/web/2026-01-02-vieja.md"
+out="$(python3 "$LINT" --salud)"
+check "una fuente de más de un día va con ⚠ y es lo más urgente" 'grep -q "^⚠ 1 fuente(s) sin ingerir desde hace más de un día (raw/web/2026-01-02-vieja.md)" <<<"$out" && grep -q "^Lo más urgente: 1 fuente(s) sin ingerir" <<<"$out"'
+check "--json da las atrasadas a la bienvenida y al skill" 'python3 "$LINT" --json | python3 -c "import json,sys; assert json.load(sys.stdin)[\"atrasadas\"] == [\"raw/web/2026-01-02-vieja.md\"]"'
+check "el día se cuenta en VAULT_TZ, no en la zona del servidor" '[ "$(VAULT_TZ=Pacific/Kiritimati python3 -c "import sys; sys.path.insert(0, \"$OBS\"); import importlib; m = importlib.import_module(\"vault-lint\"); print(m.today())")" != "$(VAULT_TZ=Pacific/Pago_Pago python3 -c "import sys; sys.path.insert(0, \"$OBS\"); import importlib; m = importlib.import_module(\"vault-lint\"); print(m.today())")" ]'
+mkdir -p "$T/limpia/.git" "$T/limpia-home"
+out="$(HOME="$T/limpia-home" OBSIDIAN_VAULT="$T/limpia" python3 "$LINT" --salud)"
+check "bóveda sin nada pendiente: Todo en orden" '[ "$(tail -1 <<<"$out")" = "Todo en orden" ] && ! grep -q "⚠" <<<"$out"'
+mkdir -p "$T/limpia-home/.cache/salchipapa-dots/vault-errors"
+echo "No se pudo bajar la bóveda (prueba)" >"$T/limpia-home/.cache/salchipapa-dots/vault-errors/pull"
+out="$(HOME="$T/limpia-home" OBSIDIAN_VAULT="$T/limpia" python3 "$LINT" --salud)"
+check "un fallo de sincronización sale con ⚠ y como lo más urgente" 'grep -q "^⚠ No se pudo bajar la bóveda (prueba)" <<<"$out" && grep -q "^Lo más urgente: No se pudo bajar" <<<"$out"'
 
 echo
 if [ "$fails" -eq 0 ]; then echo "✔ obsidian: todo bien"; else echo "✖ obsidian: $fails fallo(s)"; fi
