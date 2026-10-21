@@ -14,6 +14,9 @@ actualizar despues de un `git pull`:
   resumen de la sesion en la nota de hoy + push) de cada agente, y en Claude Code y Gemini CLI el que
   impide editar archivos existentes de raw/ (vault-guard-raw.py),
   quitando los de vault-* que hubiera antes y sin tocar el resto de la config.
+- Si esta la app de escritorio de Obsidian: enlaza obsidian-app.sh como ~/.local/bin/obsidian y crea
+  un .desktop propio, para que guarde sus datos (cache, cookies) en ~/.local/share/obsidian-app y no
+  en ~/.config/obsidian (la boveda). Si ya los dejo en la boveda, los mueve (con la app cerrada).
 - Instala los timers systemd de la nota diaria y la revision semanal (los servicios con la ruta
   real del repo, @DIR@) y los activa. Si la revision semanal se desactivo a mano en este equipo
   (para no tenerla en dos), la deja desactivada. Si la boveda trae los workflows de GitHub Actions
@@ -24,6 +27,7 @@ Cada paso informa: ✔ hecho, ✔ ... (ya estaba), ⚠ omitido, ✖ fallo. Sale 
 """
 import json
 import os
+import re
 import shutil
 import subprocess
 from pathlib import Path
@@ -40,6 +44,14 @@ PULL = f"bash {HERE}/vault-sync.sh pull"
 END = f"bash {HERE}/vault-session-end.sh {{}}"
 # Antes de editar un archivo: raw/ de la boveda es inmutable (fuentes crudas del LLM Wiki)
 GUARD = f"python3 {HERE}/vault-guard-raw.py"
+# App de escritorio: Electron guarda sus datos en ~/.config/obsidian (= la boveda); van aqui
+APP_DATA = HOME / ".local/share/obsidian-app"
+APP_FILES = ["blob_storage", "Cache", "Code Cache", "Cookies", "Cookies-journal", "Crashpad",
+             "DawnGraphiteCache", "DawnWebGPUCache", "Dictionaries", "DIPS", "DIPS-wal", "GPUCache",
+             "IndexedDB", "Local State", "Local Storage", "Network Persistent State", "Preferences",
+             "Session Storage", "Shared Dictionary", "SharedStorage", "SharedStorage-wal",
+             "TransportSecurity", "Trust Tokens", "Trust Tokens-journal", "WebStorage", "id",
+             "obsidian.json", "obsidian.log"]
 
 ERRORS = []
 
@@ -203,6 +215,49 @@ def scaffold():
         ok("estructura PARA completa (ya estaba)")
 
 
+def desktop_app():
+    """Wrapper ~/.local/bin/obsidian y .desktop propio para que la app guarde sus datos en
+    APP_DATA y no en la boveda; mueve alli los que ya hubiera (con la app cerrada)."""
+    dirs = os.environ.get("XDG_DATA_DIRS") or "/usr/local/share:/usr/share"
+    system = next((Path(d) / "applications/obsidian.desktop" for d in dirs.split(":")
+                   if (Path(d) / "applications/obsidian.desktop").is_file()), None)
+    if system is None:
+        warn("app de escritorio de Obsidian no instalada: se omite (vuelve a correr esto al instalarla)")
+        return
+    link(HERE / "obsidian-app.sh", HOME / ".local/bin/obsidian")
+    desktop = HOME / ".local/share/applications/obsidian.desktop"
+    lines = []
+    for line in system.read_text().splitlines(keepends=True):
+        if line.startswith("Exec="):
+            args = line[len("Exec="):].split(" ", 1)
+            line = f"Exec={HOME}/.local/bin/obsidian" + (f" {args[1]}" if len(args) > 1 else "\n")
+        lines.append(line)
+    text = "".join(lines)
+    if desktop.exists() and desktop.read_text() == text:
+        ok(f"{short(desktop)} (ya estaba)")
+    else:
+        desktop.parent.mkdir(parents=True, exist_ok=True)
+        desktop.write_text(text)
+        ok(f"{short(desktop)} -> {short(HOME / '.local/bin/obsidian')}")
+    found = [f for f in APP_FILES if (VAULT / f).exists()]
+    # Estado de cada boveda abierta: <id de 16 hex>.json en la raiz de los datos de app
+    found += [p.name for p in VAULT.glob("*.json") if re.fullmatch(r"[0-9a-f]{16}\.json", p.name)]
+    if not found:
+        return
+    # Electron deja SingletonLock -> "<host>-<pid>" mientras usa esa carpeta (uno viejo se ignora)
+    lock = VAULT / "SingletonLock"
+    if lock.is_symlink() and Path(f"/proc/{os.readlink(lock).rsplit('-', 1)[-1]}").exists():
+        warn("Obsidian esta abierto con sus datos en la boveda: cierralo y vuelve a correr esto")
+        return
+    APP_DATA.mkdir(parents=True, exist_ok=True)
+    for f in found:
+        if not (APP_DATA / f).exists():
+            shutil.move(VAULT / f, APP_DATA / f)
+    for lock in ("SingletonCookie", "SingletonLock", "SingletonSocket"):
+        (VAULT / lock).unlink(missing_ok=True)
+    ok(f"datos de la app movidos de la boveda a {short(APP_DATA)}")
+
+
 def systemctl(*args):
     p = subprocess.run(["systemctl", "--user", *args], capture_output=True, text=True, timeout=30)
     return p.returncode, (p.stdout + p.stderr).strip()
@@ -268,6 +323,7 @@ def main():
         link(HERE / "opencode-vault-sync.js", HOME / ".config/opencode/plugins/vault-sync.js")
 
     step("Instrucciones de memoria y plugin de opencode:", instructions)
+    step("App de escritorio (datos fuera de la boveda):", desktop_app)
 
     print("Hooks de sesion:")
     for fn in (claude, codex, copilot, gemini):

@@ -41,6 +41,15 @@ schema (`AGENTS.md`, `CLAUDE.md`, `GEMINI.md`), `log.md`, `me.md` (rellénalo: l
 saber quién eres), las plantillas (`daily`, `proyecto`, `recurso`, `concepto`, `hub`, `fuente`) y la
 config de Obsidian (notas nuevas en `inbox/`, diarias en `daily/`, plantillas en `templates/`). El nombre del saludo sale de `git config user.name` (o `OBSIDIAN_OWNER`).
 
+## App de escritorio: sus datos fuera de la bóveda
+En Linux, Obsidian (Electron) guarda sus datos de app (caché, cookies, `obsidian.json`) en
+`~/.config/obsidian`: la misma carpeta que la bóveda. Si la app de escritorio está instalada,
+`setup-agents.py` enlaza [`obsidian-app.sh`](obsidian-app.sh) como `~/.local/bin/obsidian` (abre la app
+real con `--user-data-dir=~/.local/share/obsidian-app`), crea un `.desktop` propio que lo usa y mueve
+allí los datos que la app ya hubiera dejado en la bóveda (si está abierta, avisa y no los toca). Si
+la instalas después, vuelve a correr `setup-agents.py`. El `.gitignore` de la bóveda los ignora igual,
+por si se abre sin el wrapper. En el móvil no pasa: la app guarda sus datos aparte.
+
 ## Dónde se engancha cada agente
 | Agente | Al empezar (start + bienvenida) | Al terminar (resumen de la sesión + push) |
 |---|---|---|

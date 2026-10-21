@@ -46,6 +46,19 @@ check "JSON roto: sale con 1 y lo explica" '[ "$rc" -eq 1 ] && grep -q "no es JS
 echo '{}' >"$HOME/.codex/hooks.json"
 python3 "$OBS/setup-agents.py" >/dev/null 2>&1
 
+echo "app de escritorio:"
+# App falsa: su .desktop y un binario que imprime sus argumentos
+mkdir -p "$T/share/applications" "$T/bin" "$T/cfg/obsidian"
+printf '[Desktop Entry]\nName=Obsidian\nExec=/usr/bin/obsidian %%U\n' >"$T/share/applications/obsidian.desktop"
+printf '#!/bin/sh\necho "$@"\n' >"$T/bin/obsidian" && chmod +x "$T/bin/obsidian"
+mkdir -p "$OBSIDIAN_VAULT/GPUCache" && touch "$OBSIDIAN_VAULT/Cookies" "$OBSIDIAN_VAULT/0123456789abcdef.json"
+XDG_DATA_DIRS="$T/share" python3 "$OBS/setup-agents.py" >/dev/null 2>&1
+APP="$HOME/.local/share/obsidian-app"
+check "enlaza el wrapper como ~/.local/bin/obsidian" '[ "$(readlink "$HOME/.local/bin/obsidian")" = "$OBS/obsidian-app.sh" ]'
+check ".desktop propio que usa el wrapper" 'grep -qx "Exec=$HOME/.local/bin/obsidian %U" "$HOME/.local/share/applications/obsidian.desktop"'
+check "saca los datos de la app de la bóveda" '[ -d "$APP/GPUCache" ] && [ -f "$APP/Cookies" ] && [ -f "$APP/0123456789abcdef.json" ] && [ ! -e "$OBSIDIAN_VAULT/Cookies" ]'
+check "el wrapper abre la app real con --user-data-dir" '[ "$(PATH="$HOME/.local/bin:$T/cfg:$T/bin:$PATH" "$HOME/.local/bin/obsidian" x)" = "--user-data-dir=$APP x" ]'
+
 echo "vault-sync.sh:"
 echo "nota nueva" >"$OBSIDIAN_VAULT/inbox/a.md"
 bash "$OBS/vault-sync.sh" push test

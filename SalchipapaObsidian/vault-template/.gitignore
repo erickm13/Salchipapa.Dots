@@ -1,0 +1,36 @@
+.obsidian/workspace.json
+.obsidian/workspace-mobile.json
+.obsidian/graph.json
+.obsidian/cache
+.trash/
+
+# Datos de la app de Obsidian (Electron usa ~/.config/obsidian como userData = la bóveda)
+/blob_storage/
+/Cache/
+/Code Cache/
+/Cookies
+/Cookies-journal
+/Crashpad/
+/DawnGraphiteCache/
+/DawnWebGPUCache/
+/Dictionaries/
+/DIPS
+/DIPS-wal
+/GPUCache/
+/IndexedDB/
+/Local State
+/Local Storage/
+/Network Persistent State
+/Preferences
+/Session Storage/
+/Shared Dictionary/
+/SharedStorage
+/SharedStorage-wal
+/Singleton*
+/Trust Tokens
+/Trust Tokens-journal
+/WebStorage/
+/id
+/obsidian.json
+/obsidian.log
+/user-flags.conf
