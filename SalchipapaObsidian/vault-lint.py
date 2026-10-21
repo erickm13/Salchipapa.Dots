@@ -10,8 +10,9 @@
 
 Solo encuentra problemas; no corrige nada (eso lo hace el LLM en el ingest o la revision semanal).
 Graves (fallan): frontmatter roto, posibles secretos, archivos de raw/ modificados o borrados.
-Avisos: frontmatter incompleto, enlaces rotos, paginas que su hub no enlaza, proyectos que no
-enlaza me.md, proyectos largos o sin Estado, proyectos terminados, hubs vacios, archivos fuera de PARA.
+Avisos: frontmatter incompleto, enlaces rotos o por alias ([[alias]]: Obsidian no los resuelve),
+paginas que su hub no enlaza, proyectos que no enlaza me.md, proyectos largos o sin Estado, proyectos
+terminados, hubs vacios, archivos fuera de PARA.
 Info: fuentes de raw/ sin ingerir (su ruta no aparece en log.md) y notas en inbox/.
 "atrasadas": las sin ingerir de mas de un dia (fecha del nombre AAAA-MM-DD-…, o de su primer commit),
 contando el dia en VAULT_TZ (America/Guatemala por defecto, no la zona del servidor). Una fuente se
@@ -107,10 +108,12 @@ class Vault:
         for p in self.files:
             self.names.setdefault(p.stem.lower(), p)
             self.names.setdefault(p.name.lower(), p)
+        # Obsidian no resuelve [[alias]] (solo [[archivo|alias]]): van aparte para avisarlo
+        self.aliases = {}
         for p, (fm, _) in self.meta.items():
             for alias in (fm or {}).get("aliases") or []:
                 if isinstance(alias, str) and alias:
-                    self.names.setdefault(alias.lower(), p)
+                    self.aliases.setdefault(alias.lower(), p)
 
     def rel(self, p):
         return str(p.relative_to(self.root))
@@ -123,7 +126,11 @@ class Vault:
                 if r == t or r.removesuffix(".md") == t or r.endswith("/" + t) or r.removesuffix(".md").endswith("/" + t):
                     return p
             t = t.rsplit("/", 1)[1]
-        return self.names.get(t) or self.names.get(t + ".md")
+        return self.names.get(t) or self.names.get(t + ".md") or self.aliases.get(t)
+
+    def only_alias(self, target):
+        t = target.lower().removesuffix(".md")
+        return "/" not in t and t not in self.names and t + ".md" not in self.names and t in self.aliases
 
     def wiki_pages(self):
         return sorted(p for p in self.notes if p.parts[len(self.root.parts)] in WIKI)
@@ -156,10 +163,14 @@ def lint(v, since=None):
     for p, text in v.notes.items():
         for target in links(text):
             hit = v.resolve(target)
+            # raw/, daily/ y weekly/ son registros historicos: sus enlaces pueden romperse y no se corrigen
+            checked = not v.rel(p).startswith(("raw/", "daily/", "weekly/", "templates/")) and v.rel(p) != "index.md"
             if hit:
                 inbound.setdefault(hit, set()).add(p)
-            # raw/, daily/ y weekly/ son registros historicos: sus enlaces pueden romperse y no se corrigen
-            elif not v.rel(p).startswith(("raw/", "daily/", "weekly/", "templates/")) and v.rel(p) != "index.md":
+                if checked and v.only_alias(target):
+                    avisos.append(f"{v.rel(p)}: [[{target}]] es un alias y Obsidian no lo resuelve: "
+                                  f"usa [[{hit.stem}|{target}]]")
+            elif checked:
                 avisos.append(f"{v.rel(p)}: enlace roto [[{target}]]")
         if SECRETS.search(text):
             graves.append(f"{v.rel(p)}: parece contener un secreto")

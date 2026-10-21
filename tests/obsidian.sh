@@ -174,11 +174,12 @@ echo "vault-lint.py (verificador de la wiki):"
 LINT="$OBS/vault-lint.py"
 mkdir -p "$OBSIDIAN_VAULT/resources/demo"
 printf -- '---\nid: demo-hub\ntipo: hub\nresumen: Hub de prueba\nactualizado: 2026-10-20\n---\n# Demo\n- [[demo-a]]\n' >"$OBSIDIAN_VAULT/resources/demo/demo-hub.md"
-printf -- '---\nid: demo-a\naliases:\n  - Página A\ntipo: recurso\nresumen: Página A de prueba\nactualizado: 2026-10-20\n---\n# A\nVer [[no-existe]] y [[Página A]].\n`[[en-codigo]]`\n```\n[[en-bloque]]\n```\n' >"$OBSIDIAN_VAULT/resources/demo/demo-a.md"
+printf -- '---\nid: demo-a\naliases:\n  - Página A\ntipo: recurso\nresumen: Página A de prueba\nactualizado: 2026-10-20\n---\n# A\nVer [[no-existe]], [[Página A]] y [[demo-a|Página A]].\n`[[en-codigo]]`\n```\n[[en-bloque]]\n```\n' >"$OBSIDIAN_VAULT/resources/demo/demo-a.md"
 printf -- '---\nid: demo-b\n---\n# B\n' >"$OBSIDIAN_VAULT/resources/demo/demo-b.md"
 out="$(python3 "$LINT")"
 rc=$?
-check "detecta un enlace roto (y resuelve alias)" 'grep -q "demo-a.md: enlace roto \[\[no-existe\]\]" <<<"$out" && ! grep -q "Página A" <<<"$out"'
+check "detecta un enlace roto" 'grep -q "demo-a.md: enlace roto \[\[no-existe\]\]" <<<"$out"'
+check "[[alias]]: avisa (Obsidian no lo resuelve) y da el enlace correcto" 'grep -qF "[[Página A]] es un alias y Obsidian no lo resuelve: usa [[demo-a|Página A]]" <<<"$out" && [ "$(grep -c "Página A" <<<"$out")" -eq 1 ]'
 check "ignora los enlaces dentro de código" '! grep -q "en-codigo\|en-bloque" <<<"$out"'
 check "avisa del frontmatter incompleto y de la página que su hub no enlaza" 'grep -q "demo-b.md: falta en el frontmatter: tipo, resumen, actualizado" <<<"$out" && grep -q "demo-b.md: su hub" <<<"$out"'
 check "los avisos no fallan (rc=0)" '[ "$rc" -eq 0 ]'
