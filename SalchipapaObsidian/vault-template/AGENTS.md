@@ -69,6 +69,9 @@ tags: []
 | `concepto` | Una idea que aparece en varias fuentes | `templates/concepto.md` |
 | `fuente` | Lo clave de una fuente de `raw/` | `templates/fuente.md` |
 
+Si un valor lleva `: ` o empieza por un carácter especial, va entre comillas: `resumen: "Linux: Arch y paquetes"`
+(sin ellas no es YAML válido y Obsidian muestra *Invalid properties*; `vault-lint.py` lo marca).
+
 Las páginas de más de ~150 líneas llevan un `## Resumen` al principio.
 
 ### `index.md` y `log.md`
