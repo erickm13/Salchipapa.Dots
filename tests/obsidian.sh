@@ -183,6 +183,13 @@ check "[[alias]]: avisa (Obsidian no lo resuelve) y da el enlace correcto" 'grep
 check "ignora los enlaces dentro de código" '! grep -q "en-codigo\|en-bloque" <<<"$out"'
 check "avisa del frontmatter incompleto y de la página que su hub no enlaza" 'grep -q "demo-b.md: falta en el frontmatter: tipo, resumen, actualizado" <<<"$out" && grep -q "demo-b.md: su hub" <<<"$out"'
 check "los avisos no fallan (rc=0)" '[ "$rc" -eq 0 ]'
+printf -- '---\nid: demo-c\ntipo: recurso\nresumen: Demo C: valor con dos puntos\nactualizado: 2026-10-20\n---\n# C\n' >"$OBSIDIAN_VAULT/resources/demo/demo-c.md"
+out="$(python3 "$LINT")"
+rc=$?
+check "valor con ': ' sin comillas: frontmatter mal formado (Invalid properties en Obsidian)" '[ "$rc" -eq 1 ] && grep -q "demo-c.md: frontmatter mal formado" <<<"$out"'
+sed -i 's/^resumen: \(.*\)$/resumen: "\1"/' "$OBSIDIAN_VAULT/resources/demo/demo-c.md"
+check "entre comillas es válido" '! python3 "$LINT" | grep -q "demo-c.md: frontmatter"'
+rm "$OBSIDIAN_VAULT/resources/demo/demo-c.md"
 python3 "$LINT" --index >/dev/null
 check "genera index.md con el resumen de cada página" 'grep -q "\[\[demo-a\]\] — Página A de prueba" "$OBSIDIAN_VAULT/index.md" && grep -q "no lo edites a mano" "$OBSIDIAN_VAULT/index.md"'
 check "cuenta las fuentes de raw/ sin ingerir" '[ "$(python3 "$LINT" --count | cut -d" " -f3)" -ge 1 ]'

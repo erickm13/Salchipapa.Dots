@@ -68,6 +68,9 @@ def frontmatter(text):
         if not m:
             return data, False
         key, value = m.group(1), m.group(2).strip()
+        # En YAML un valor sin comillas no puede llevar ": " (Obsidian: "Invalid properties")
+        if value[:1] not in ("\"", "'", "[", "{") and (": " in value or value.endswith(":")):
+            return data, False
         if value.startswith("[") and value.endswith("]"):
             data[key] = [v.strip().strip("\"'") for v in value[1:-1].split(",") if v.strip()]
         else:
@@ -179,7 +182,8 @@ def lint(v, since=None):
         rel = v.rel(p)
         fm, ok = v.meta[p]
         if not ok:
-            graves.append(f"{rel}: frontmatter mal formado")
+            graves.append(f"{rel}: frontmatter mal formado (en Obsidian: Invalid properties; "
+                          "un valor con ': ' va entre comillas)")
             continue
         missing = [k for k in REQUIRED if not (fm or {}).get(k)]
         if missing:
