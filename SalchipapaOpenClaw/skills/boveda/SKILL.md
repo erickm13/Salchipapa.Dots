@@ -6,8 +6,8 @@ metadata: { "openclaw": { "requires": { "bins": ["git", "python3", "flock"] } } 
 
 # Bóveda de Obsidian (LLM Wiki)
 
-La bóveda está en `~/.config/obsidian` (repo privado de GitHub, se sube con una deploy key que solo
-sirve para él). Sus reglas están en **`~/.config/obsidian/AGENTS.md`** (el schema): **léelo antes de
+La bóveda está en `~/.config/obsidian` (repo privado de GitHub, se sube con un token de Padawan-Salchipapa
+que solo sirve para él). Sus reglas están en **`~/.config/obsidian/AGENTS.md`** (el schema): **léelo antes de
 escribir**. Quién es el usuario: `me.md`. Responde en español.
 
 Scripts (`DOTS=~/Salchipapa.Dots/SalchipapaObsidian`):

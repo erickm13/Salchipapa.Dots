@@ -11,7 +11,7 @@ Cambiar de VPS = instancia nueva + `install.sh` + `openclaw onboard`.
 | Archivo | Qué hace |
 |---|---|
 | [`skills/boveda/SKILL.md`](skills/boveda/SKILL.md) | El skill: captura (enlace → `raw/web/`, archivo → `raw/docs/` o `raw/assets/`, idea → `inbox/`; responde con la ruta, `⏳ pendiente de ingest` y ofrece ingerir ya), ingest según el schema de la bóveda, consulta (`index.md` primero) y **salud** (el informe lo redacta `vault-lint.py --salud` y el agente lo envía tal cual: el modelo no evalúa fechas ni señales). Sincroniza con `vault-sync.sh pull/push openclaw`, que se niega a subir secretos o cambios en `raw/` |
-| [`install.sh`](install.sh) | En el VPS, idempotente: swap de 2 GiB, OpenClaw (`OPENCLAW_VERSION`), Dots en `~/Salchipapa.Dots` (`SALCHIPAPA_DOTS_REF`), **deploy key** con escritura solo para la bóveda (host `github-vault`), la bóveda en `~/.config/obsidian` (commits como `Padawan-Salchipapa`), el skill en `~/.openclaw/skills/` y la automatización *Ingest de la bóveda* a las 23:45 (`TZ_VAULT`) |
+| [`install.sh`](install.sh) | En el VPS, idempotente: swap de 2 GiB, OpenClaw (`OPENCLAW_VERSION`), Dots en `~/Salchipapa.Dots` (`SALCHIPAPA_DOTS_REF`), **token de Padawan-Salchipapa** con escritura solo en la bóveda y sin permiso para workflows, la bóveda en `~/.config/obsidian` (commits como `Padawan-Salchipapa`), el skill en `~/.openclaw/skills/` y la automatización *Ingest de la bóveda* a las 23:45 (`TZ_VAULT`) |
 
 ## Instalar o cambiar de VPS
 Ubuntu, 2 GiB de RAM como mínimo (con swap), Node.js con npm.
@@ -20,13 +20,14 @@ Ubuntu, 2 GiB de RAM como mínimo (con swap), Node.js con npm.
    ```bash
    curl -fsSL https://raw.githubusercontent.com/erickm13/Salchipapa.Dots/main/SalchipapaOpenClaw/install.sh | bash
    ```
-2. La primera vez se para y te da el comando para autorizar la deploy key. Desde tu equipo:
+2. La primera vez se para y pide el **token de Padawan-Salchipapa**, la cuenta máquina, colaborador con
+   escritura **solo** de la bóveda. En GitHub, con la sesión de Padawan: *Developer settings → Tokens
+   (classic)*, solo el scope **`repo`** y **sin `workflow`** (los fine-grained no sirven: no llegan a repos
+   de otra cuenta personal). Guárdalo desde tu terminal, sin pasarlo por ningún chat:
    ```bash
-   ssh <vps> cat .ssh/salchipapanotes_deploy.pub >/tmp/openclaw-vps.pub
-   gh repo deploy-key add /tmp/openclaw-vps.pub -R erickm13/SalchipapaNotes --allow-write -t openclaw-vps
+   ssh -t <vps> 'read -rsp "Token de Padawan: " T; echo; umask 077; printf "https://Padawan-Salchipapa:%s@github.com/erickm13/SalchipapaNotes.git\n" "$T" > ~/.git-credentials; unset T'
    ```
-   Al cambiar de VPS, borra la del anterior: `gh repo deploy-key list -R erickm13/SalchipapaNotes` y
-   `gh repo deploy-key delete <id> -R erickm13/SalchipapaNotes`.
+   Al cambiar de VPS, revoca el token del anterior y crea otro.
 3. Si OpenClaw es nuevo: `openclaw onboard --install-daemon` (login de Codex por dispositivo, Gateway
    en loopback `127.0.0.1:18789`, bot de Telegram con su token oculto) y `loginctl enable-linger $USER`.
    Después, el pairing: `openclaw pairing list telegram` y `openclaw pairing approve telegram <CODIGO>`.
@@ -42,7 +43,11 @@ Actualizar el skill o Dots: repetir `install.sh` (copia el skill de nuevo; no to
   `openclaw doctor --generate-gateway-token` (existe en 2026.10.3), `systemctl --user restart
   openclaw-gateway.service` y vuelve a abrir el dashboard (`openclaw gateway auth-token --show` lo
   muestra en la terminal del VPS: no lo copies a ningún chat).
-- La deploy key solo da acceso a la bóveda; si el VPS se compromete, bórrala en GitHub y listo.
+- El token solo llega a la bóveda (Padawan no es colaborador de nada más: no lo añadas a otros repos) y,
+  sin `workflow`, GitHub le rechaza cambios a `.github/workflows/`: quien entre en el VPS no puede tocar
+  las Actions ni sus secrets. Si el VPS se compromete: revoca el token o quita a Padawan de colaborador.
+- Lo que el VPS suba a lo que se ejecuta u obedece en tus equipos (`.obsidian/`, `AGENTS.md`…) no se
+  aplica sin `vault-sync.sh trust` (ver `SalchipapaObsidian/README.md`).
 - Ningún token entra en este repo ni en la bóveda.
 
 ## Operación

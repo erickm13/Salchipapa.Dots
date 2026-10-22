@@ -5,7 +5,7 @@
 #   (o, con Dots ya clonado: bash ~/Salchipapa.Dots/SalchipapaOpenClaw/install.sh)
 #
 # 1) swap de 2 GiB (con 2 GiB de RAM el Gateway moría por OOM)   2) OpenClaw (si falta)
-# 3) Salchipapa.Dots en ~/Salchipapa.Dots                         4) deploy key solo para la bóveda
+# 3) Salchipapa.Dots en ~/Salchipapa.Dots                         4) token de Padawan-Salchipapa (sin workflows)
 # 5) la bóveda en ~/.config/obsidian (commits como Padawan-Salchipapa) 6) el skill `boveda`
 # 7) el ingest de cada noche (automatización de OpenClaw, 23:45 en $TZ_VAULT)
 #
@@ -31,8 +31,8 @@ DOTS="${SALCHIPAPA_DOTS:-$HOME/Salchipapa.Dots}"
 DOTS_REF="${SALCHIPAPA_DOTS_REF:-main}"
 VAULT="${OBSIDIAN_VAULT:-$HOME/.config/obsidian}"
 VAULT_REPO="${VAULT_REPO:-erickm13/SalchipapaNotes}"
-KEY="$HOME/.ssh/salchipapanotes_deploy"
-HOST_ALIAS="github-vault"
+VAULT_URL="https://github.com/$VAULT_REPO.git"
+KEY="$HOME/.ssh/salchipapanotes_deploy" # deploy key anterior: el script la quita si sigue ahí
 OPENCLAW_VERSION="${OPENCLAW_VERSION:-2026.10.3}"
 TZ_VAULT="${TZ_VAULT:-America/Guatemala}"
 JOB_NAME="Ingest de la bóveda"
@@ -80,35 +80,38 @@ else
 fi
 ok "$DOTS en $(git -C "$DOTS" rev-parse --short HEAD) ($DOTS_REF)"
 
-section "Deploy key de la bóveda"
-mkdir -p "$HOME/.ssh" && chmod 700 "$HOME/.ssh"
-if [ ! -f "$KEY" ]; then
-  ssh-keygen -q -t ed25519 -N "" -C "openclaw-vps@$(hostname)" -f "$KEY"
-  ok "clave nueva: $KEY"
-fi
-if ! grep -q "^Host $HOST_ALIAS\$" "$HOME/.ssh/config" 2>/dev/null; then
-  printf '\nHost %s\n    HostName github.com\n    User git\n    IdentityFile %s\n    IdentitiesOnly yes\n' \
-    "$HOST_ALIAS" "$KEY" >>"$HOME/.ssh/config"
-  chmod 600 "$HOME/.ssh/config"
-fi
-ssh-keygen -F github.com >/dev/null 2>&1 || ssh-keyscan -t ed25519 github.com 2>/dev/null >>"$HOME/.ssh/known_hosts"
-if ! git ls-remote -q "git@$HOST_ALIAS:$VAULT_REPO.git" >/dev/null 2>&1; then
-  warn "GitHub aún no acepta la clave. Añádela desde tu equipo (con escritura) y repite este script:"
-  echo -e "    ${BOLD}ssh <este-vps> cat .ssh/${KEY##*/}.pub >/tmp/openclaw-vps.pub${RESET}"
-  echo -e "    ${BOLD}gh repo deploy-key add /tmp/openclaw-vps.pub -R $VAULT_REPO --allow-write -t openclaw-vps${RESET}"
-  echo -e "  ${BASE01}Clave pública: $(cat "$KEY.pub")${RESET}"
+section "Acceso a la bóveda"
+# Token clásico de Padawan-Salchipapa (colaborador con escritura solo en la bóveda), con el scope `repo`
+# y SIN `workflow`: GitHub le rechaza cambios a .github/workflows/, así que quien entre en el VPS no
+# puede alterar las Actions ni leer sus secrets. Se guarda a mano (nunca pasa por el chat ni por Dots).
+CREDS="$HOME/.git-credentials"
+GIT_CRED=(-c credential.helper=store -c credential.useHttpPath=true)
+if ! grep -q "@github.com/$VAULT_REPO.git\$" "$CREDS" 2>/dev/null ||
+  ! GIT_TERMINAL_PROMPT=0 git "${GIT_CRED[@]}" ls-remote -q "$VAULT_URL" >/dev/null 2>&1; then
+  warn "Falta el token de Padawan-Salchipapa (o ya no vale). Desde tu terminal, con el token copiado:"
+  echo -e "    ${BOLD}ssh -t <este-vps> 'read -rsp \"Token de Padawan: \" T; echo; umask 077; printf \"https://Padawan-Salchipapa:%s@github.com/$VAULT_REPO.git\\\\n\" \"\$T\" > ~/.git-credentials; unset T'${RESET}"
+  echo -e "  ${BASE01}Token (classic) de Padawan-Salchipapa, solo el scope repo (sin workflow); Padawan, colaborador con escritura de $VAULT_REPO.${RESET}"
   exit 2
 fi
-ok "acceso de escritura solo a $VAULT_REPO"
+ok "token de Padawan-Salchipapa: escritura en $VAULT_REPO, sin permiso para tocar workflows"
+# Restos de la deploy key anterior (2026-10-22): ya no se usan
+if [ -f "$KEY" ] || grep -q "^Host github-vault\$" "$HOME/.ssh/config" 2>/dev/null; then
+  rm -f "$KEY" "$KEY.pub"
+  [ -f "$HOME/.ssh/config" ] && awk '/^Host github-vault$/{skip=1; next} /^Host /{skip=0} !skip' "$HOME/.ssh/config" | cat -s >"$HOME/.ssh/config.tmp" &&
+    mv "$HOME/.ssh/config.tmp" "$HOME/.ssh/config" && chmod 600 "$HOME/.ssh/config"
+  ok "quitada la deploy key anterior del VPS (bórrala también en GitHub si sigue ahí)"
+fi
 
 section "Bóveda"
 if [ -d "$VAULT/.git" ]; then
-  git -C "$VAULT" remote set-url origin "git@$HOST_ALIAS:$VAULT_REPO.git"
-  git -C "$VAULT" pull -q --rebase --autostash || warn "no se pudo hacer pull de la bóveda"
+  git -C "$VAULT" remote set-url origin "$VAULT_URL"
 else
   mkdir -p "$(dirname "$VAULT")"
-  git clone -q "git@$HOST_ALIAS:$VAULT_REPO.git" "$VAULT" || die "No se pudo clonar la bóveda"
+  git "${GIT_CRED[@]}" clone -q "$VAULT_URL" "$VAULT" || die "No se pudo clonar la bóveda"
 fi
+git -C "$VAULT" config credential.helper store
+git -C "$VAULT" config credential.useHttpPath true
+git -C "$VAULT" pull -q --rebase --autostash || warn "no se pudo hacer pull de la bóveda"
 # Los commits del VPS son automatización: los firma el bot, no el usuario
 git -C "$VAULT" config user.name "Padawan-Salchipapa"
 git -C "$VAULT" config user.email "346263417+Padawan-Salchipapa@users.noreply.github.com"
