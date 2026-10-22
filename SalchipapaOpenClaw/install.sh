@@ -159,6 +159,19 @@ if [ "$onboarded" -eq 0 ]; then
   exit 2
 fi
 if openclaw skills check 2>/dev/null | grep -q boveda; then ok "el agente ve el skill"; else warn "revisa 'openclaw skills check': no aparece boveda"; fi
+
+section "Telegram: solo el dueño"
+# Por defecto (pairing) cualquiera que encuentre el bot recibe respuesta con un código; con allowlist
+# solo se atiende al dueño (el telegram:<id> de commands.ownerAllowFrom, que fija el primer pairing)
+owner="$(grep -o '"telegram:[0-9]*"' "$HOME/.openclaw/openclaw.json" | head -1 | tr -dc 0-9)"
+if [ -z "$owner" ]; then
+  warn "sin dueño en commands.ownerAllowFrom todavía: haz el pairing (README) y repite este script"
+elif printf '{channels:{telegram:{dmPolicy:"allowlist",allowFrom:["%s"],groupPolicy:"disabled"}}}' "$owner" |
+  openclaw config patch --stdin >/dev/null 2>&1; then
+  ok "solo atiende al usuario $owner (sin grupos)"
+else
+  warn "no se pudo limitar Telegram al dueño (openclaw config patch)"
+fi
 if openclaw automations list --all 2>/dev/null | grep -qF "$JOB_NAME"; then
   ok "ya existe ($JOB_NAME)"
 else

@@ -38,6 +38,10 @@ Ubuntu, 2 GiB de RAM como mínimo (con swap), Node.js con npm.
 Actualizar el skill o Dots: repetir `install.sh` (copia el skill de nuevo; no toca lo demás).
 
 ## Seguridad
+- **Telegram solo atiende al dueño:** `install.sh` pone `dmPolicy: "allowlist"` con su ID (el de
+  `commands.ownerAllowFrom`) y `groupPolicy: "disabled"`; con el `pairing` por defecto, cualquiera que
+  encuentre el bot recibía respuesta con un código. Para el primer pairing de un VPS nuevo se usa el de
+  por defecto: el script lo cierra al repetirse.
 - El Gateway escucha solo en loopback: el dashboard se abre con túnel SSH
   (`ssh -L 18789:127.0.0.1:18789 <vps>`); nunca abras el puerto 18789 en el Security Group.
 - **Rotar el token del Gateway** si se expuso (p. ej. la salida de `openclaw dashboard --json`):
