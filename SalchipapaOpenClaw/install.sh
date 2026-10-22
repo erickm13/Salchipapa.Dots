@@ -6,7 +6,7 @@
 #
 # 1) swap de 2 GiB (con 2 GiB de RAM el Gateway moría por OOM)   2) OpenClaw (si falta)
 # 3) Salchipapa.Dots en ~/Salchipapa.Dots                         4) token de Padawan-Salchipapa (sin workflows)
-# 5) la bóveda en ~/.config/obsidian (commits como Padawan-Salchipapa) 6) el skill `boveda`
+# 5) la bóveda en ~/.config/obsidian (commits como Padawan-Salchipapa) 6) los skills `boveda` y `github-padawan` (+ gh)
 # 7) el ingest de cada noche (automatización de OpenClaw, 23:45 en $TZ_VAULT)
 #
 # En el servidor no vive nada importante: la config sin secretos está aquí y la bóveda en GitHub.
@@ -102,6 +102,21 @@ if [ -f "$KEY" ] || grep -q "^Host github-vault\$" "$HOME/.ssh/config" 2>/dev/nu
   ok "quitada la deploy key anterior del VPS (bórrala también en GitHub si sigue ahí)"
 fi
 
+section "GitHub CLI (Padawan-Salchipapa)"
+# Para issues y PRs (skill github). Mismo token; `gh auth login` exige read:org, así que se escribe su
+# config directamente (600, como haría él)
+command -v gh >/dev/null || { sudo DEBIAN_FRONTEND=noninteractive apt-get install -y -qq gh >/dev/null 2>&1 ||
+  warn "no se pudo instalar gh (apt)"; }
+if command -v gh >/dev/null && [ "$(gh api user --jq .login 2>/dev/null)" != Padawan-Salchipapa ]; then
+  (umask 077 && mkdir -p "$HOME/.config/gh" && T="$(sed -n 's#^https://Padawan-Salchipapa:\(.*\)@github.com/.*#\1#p' "$CREDS" | head -1)" &&
+    printf 'github.com:\n    users:\n        Padawan-Salchipapa:\n            oauth_token: %s\n    oauth_token: %s\n    user: Padawan-Salchipapa\n    git_protocol: https\n' "$T" "$T" >"$HOME/.config/gh/hosts.yml")
+fi
+if [ "$(gh api user --jq .login 2>/dev/null)" = Padawan-Salchipapa ]; then
+  ok "gh como Padawan-Salchipapa (escritura solo en $VAULT_REPO; en lo demás, PRs desde su fork)"
+else
+  warn "gh no quedó con la cuenta de Padawan-Salchipapa: el skill github no podrá usarse"
+fi
+
 section "Bóveda"
 if [ -d "$VAULT/.git" ]; then
   git -C "$VAULT" remote set-url origin "$VAULT_URL"
@@ -119,12 +134,14 @@ git -C "$VAULT" config user.email "346263417+Padawan-Salchipapa@users.noreply.gi
 git -C "$VAULT" config vault.guard false
 ok "$VAULT ($(grep -c '^## \[' "$VAULT/log.md" 2>/dev/null || echo 0) entradas en log.md)"
 
-section "Skill boveda"
+section "Skills"
 # Copia, no enlace: OpenClaw no sigue symlinks fuera de sus carpetas salvo que se le autorice
 mkdir -p "$HOME/.openclaw/skills"
-rm -rf "$HOME/.openclaw/skills/boveda"
-cp -r "$DOTS/SalchipapaOpenClaw/skills/boveda" "$HOME/.openclaw/skills/boveda"
-ok "$HOME/.openclaw/skills/boveda"
+for skill in boveda github-padawan; do
+  rm -rf "$HOME/.openclaw/skills/$skill"
+  cp -r "$DOTS/SalchipapaOpenClaw/skills/$skill" "$HOME/.openclaw/skills/$skill"
+  ok "$HOME/.openclaw/skills/$skill"
+done
 
 section "Ingest de cada noche"
 if [ "$onboarded" -eq 0 ]; then
