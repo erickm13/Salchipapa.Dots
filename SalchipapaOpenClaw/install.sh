@@ -137,6 +137,13 @@ git -C "$VAULT" config user.name "$BOT_NAME" && git -C "$VAULT" config user.emai
 git -C "$VAULT" config vault.guard false
 ok "$VAULT ($(grep -c '^## \[' "$VAULT/log.md" 2>/dev/null || echo 0) entradas en log.md)"
 
+section "Workspace"
+# Los repos que clone OpenClaw van en workspace/repos/ (skill github-padawan), fuera del git del workspace
+WS="$HOME/.openclaw/workspace"
+mkdir -p "$WS/repos"
+grep -qx "repos/" "$WS/.gitignore" 2>/dev/null || printf '# Clones de repos (cada uno con su propio git)\nrepos/\n' >>"$WS/.gitignore"
+ok "$WS/repos/ para los clones"
+
 section "Skills"
 # Copia, no enlace: OpenClaw no sigue symlinks fuera de sus carpetas salvo que se le autorice
 mkdir -p "$HOME/.openclaw/skills"
