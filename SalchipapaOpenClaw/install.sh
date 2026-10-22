@@ -112,6 +112,8 @@ fi
 # Los commits del VPS son automatización: los firma el bot, no el usuario
 git -C "$VAULT" config user.name "Padawan-Salchipapa"
 git -C "$VAULT" config user.email "346263417+Padawan-Salchipapa@users.noreply.github.com"
+# El filtro de vault-sync.sh protege a los equipos del usuario de lo que suba el VPS: aquí no aplica
+git -C "$VAULT" config vault.guard false
 ok "$VAULT ($(grep -c '^## \[' "$VAULT/log.md" 2>/dev/null || echo 0) entradas en log.md)"
 
 section "Skill boveda"
