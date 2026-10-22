@@ -6,7 +6,7 @@
 #
 # 1) swap de 2 GiB (con 2 GiB de RAM el Gateway moría por OOM)   2) OpenClaw (si falta)
 # 3) Salchipapa.Dots en ~/Salchipapa.Dots                         4) deploy key solo para la bóveda
-# 5) la bóveda en ~/.config/obsidian (commits como salchipapa-bot) 6) el skill `boveda`
+# 5) la bóveda en ~/.config/obsidian (commits como Padawan-Salchipapa) 6) el skill `boveda`
 # 7) el ingest de cada noche (automatización de OpenClaw, 23:45 en $TZ_VAULT)
 #
 # En el servidor no vive nada importante: la config sin secretos está aquí y la bóveda en GitHub.
@@ -110,8 +110,8 @@ else
   git clone -q "git@$HOST_ALIAS:$VAULT_REPO.git" "$VAULT" || die "No se pudo clonar la bóveda"
 fi
 # Los commits del VPS son automatización: los firma el bot, no el usuario
-git -C "$VAULT" config user.name "salchipapa-bot"
-git -C "$VAULT" config user.email "salchipapa-bot@users.noreply.github.com"
+git -C "$VAULT" config user.name "Padawan-Salchipapa"
+git -C "$VAULT" config user.email "346263417+Padawan-Salchipapa@users.noreply.github.com"
 ok "$VAULT ($(grep -c '^## \[' "$VAULT/log.md" 2>/dev/null || echo 0) entradas en log.md)"
 
 section "Skill boveda"

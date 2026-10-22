@@ -11,7 +11,7 @@ Cambiar de VPS = instancia nueva + `install.sh` + `openclaw onboard`.
 | Archivo | Qué hace |
 |---|---|
 | [`skills/boveda/SKILL.md`](skills/boveda/SKILL.md) | El skill: captura (enlace → `raw/web/`, archivo → `raw/docs/` o `raw/assets/`, idea → `inbox/`; responde con la ruta, `⏳ pendiente de ingest` y ofrece ingerir ya), ingest según el schema de la bóveda, consulta (`index.md` primero) y **salud** (el informe lo redacta `vault-lint.py --salud` y el agente lo envía tal cual: el modelo no evalúa fechas ni señales). Sincroniza con `vault-sync.sh pull/push openclaw`, que se niega a subir secretos o cambios en `raw/` |
-| [`install.sh`](install.sh) | En el VPS, idempotente: swap de 2 GiB, OpenClaw (`OPENCLAW_VERSION`), Dots en `~/Salchipapa.Dots` (`SALCHIPAPA_DOTS_REF`), **deploy key** con escritura solo para la bóveda (host `github-vault`), la bóveda en `~/.config/obsidian` (commits como `salchipapa-bot`), el skill en `~/.openclaw/skills/` y la automatización *Ingest de la bóveda* a las 23:45 (`TZ_VAULT`) |
+| [`install.sh`](install.sh) | En el VPS, idempotente: swap de 2 GiB, OpenClaw (`OPENCLAW_VERSION`), Dots en `~/Salchipapa.Dots` (`SALCHIPAPA_DOTS_REF`), **deploy key** con escritura solo para la bóveda (host `github-vault`), la bóveda en `~/.config/obsidian` (commits como `Padawan-Salchipapa`), el skill en `~/.openclaw/skills/` y la automatización *Ingest de la bóveda* a las 23:45 (`TZ_VAULT`) |
 
 ## Instalar o cambiar de VPS
 Ubuntu, 2 GiB de RAM como mínimo (con swap), Node.js con npm.
