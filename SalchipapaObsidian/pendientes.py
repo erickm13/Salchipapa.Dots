@@ -7,11 +7,16 @@ emparejar textos para tachar: si el resumen parafrasea un pendiente, da igual.
 
 Bloques sin marca (anteriores a este cambio): un "Resuelto: X" posterior cierra el "Pendiente: X" con el
 mismo texto, y las vinetas con ";" se parten en tareas.
+
+Un pendiente de "ingerir" se descarta solo cuando el ingest ya se hizo (sin_ingeridos): el resumen no
+mira log.md, y si no, arrastra el pendiente dias despues del ingest nocturno.
 """
 import re
 
 MARK = "<!-- pendientes: lista completa -->"
 NONE = "sin pendientes"
+INGEST = re.compile(r"\bingerir\b", re.I)
+RAW_PATH = re.compile(r"raw/[^\s`'\")\]]+\.\w+")
 
 
 def norm(s):
@@ -70,4 +75,22 @@ def carried(text):
             item = re.sub(r"^\s*[-*] (\[ \] )?", "", line).strip()
             if item and item != "-":
                 out.append(item)
+    return out
+
+
+def sin_ingeridos(items, vault):
+    """Quita los pendientes de "ingerir" ya hechos: si citan rutas de raw/, cuando todas estan en log.md;
+    si no citan ninguna, cuando no queda ninguna fuente sin ingerir (la misma regla que vault-lint.py)."""
+    if not any(INGEST.search(x) for x in items):
+        return items
+    log = vault / "log.md"
+    log = log.read_text(encoding="utf-8") if log.exists() else ""
+    raw = vault / "raw"
+    left = [r for r in (p.relative_to(vault).as_posix() for p in raw.rglob("*") if p.is_file())
+            if not r.endswith("/.gitkeep") and not r.startswith("raw/assets/") and r not in log] if raw.is_dir() else []
+    out = []
+    for x in items:
+        paths = RAW_PATH.findall(x) if INGEST.search(x) else None
+        if paths is None or (any(p not in log for p in paths) if paths else left):
+            out.append(x)
     return out

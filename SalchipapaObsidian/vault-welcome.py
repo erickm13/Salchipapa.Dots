@@ -144,6 +144,8 @@ def main():
     sess = sessions(text)
     # La lista de pendientes vigente de las sesiones de hoy (la reescribe cada resumen) va antes que el resto
     pending = pendientes.current(text) + pending
+    # Lo que el ingest nocturno ya hizo despues de escribirse la diaria
+    nxt, pending = pendientes.sin_ingeridos(nxt, VAULT), pendientes.sin_ingeridos(pending, VAULT)
 
     # Tareas abiertas de los proyectos que no esten ya en la diaria
     seen = {plain(x).lower() for x in nxt + pending}

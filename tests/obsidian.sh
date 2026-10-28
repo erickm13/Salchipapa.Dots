@@ -280,6 +280,20 @@ printf '\n## [hoy] ingest | raw/web/2026-01-01-articulo.md\n' >>"$OBSIDIAN_VAULT
 msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
 check "📥 desaparece al ingerirla" '! grep -q "📥" <<<"$msg"'
 
+echo "Pendientes de ingerir ya hechos (pendientes.sin_ingeridos):"
+cp "$OBSIDIAN_VAULT/daily/$D.md" "$T/diaria-antes.md" 2>/dev/null
+printf '# %s\n\n## Sesiones de hoy\n\n### 09:10 · codex · pc\n- Algo\n- Pendiente: Ingerir `raw/web/2026-01-01-articulo.md`\n- Pendiente: ingerir la sesión de Codex de anoche\n- Pendiente: comprobar el ingest de las 23:45\n<!-- pendientes: lista completa -->\n' "$D" >"$OBSIDIAN_VAULT/daily/$D.md"
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "quita el de una ruta que ya está en log.md" '! grep -q "2026-01-01-articulo" <<<"$msg"'
+check "sin ruta, lo deja mientras quede alguna fuente sin ingerir" 'grep -q "ingerir la sesión de Codex" <<<"$msg"'
+check "no toca lo que solo menciona el ingest" 'grep -q "comprobar el ingest de las 23:45" <<<"$msg"'
+cp "$OBSIDIAN_VAULT/log.md" "$T/log-antes.md"
+printf '\n## [hoy] ingest | raw/web/%s-hoy.md\n' "$D" >>"$OBSIDIAN_VAULT/log.md"
+msg="$(python3 "$OBS/vault-welcome.py" | python3 -c 'import json,sys; print(json.load(sys.stdin)["systemMessage"])')"
+check "sin ruta, lo quita cuando ya no queda nada sin ingerir" '! grep -q "ingerir la sesión de Codex" <<<"$msg" && grep -q "comprobar el ingest" <<<"$msg"'
+cp "$T/log-antes.md" "$OBSIDIAN_VAULT/log.md"
+if [ -f "$T/diaria-antes.md" ]; then cp "$T/diaria-antes.md" "$OBSIDIAN_VAULT/daily/$D.md"; else rm -f "$OBSIDIAN_VAULT/daily/$D.md"; fi
+
 echo "SalchipapaOpenClaw (skill boveda):"
 SKILL="$REPO/SalchipapaOpenClaw/skills/boveda/SKILL.md"
 check "frontmatter con name y description" 'sed -n "2,4p" "$SKILL" | grep -q "^name: boveda$" && sed -n "2,4p" "$SKILL" | grep -q "^description: ."'

@@ -238,6 +238,7 @@ def main():
         # Primera sesion del dia: lo que la diaria anterior paso a "Mañana" / "Pendiente"
         older = sorted(p for p in (VAULT / "daily").glob("*.md") if p.stem < str(today))
         pending = pendientes.carried(older[-1].read_text(encoding="utf-8")) if older else []
+    pending = pendientes.sin_ingeridos(pending, VAULT)
     prompt = PROMPT + LIST.format("\n".join(pending) or "(ninguno)")
     convo = "\n\n".join(f"{'USUARIO' if r == 'user' else 'AGENTE'}: {t}" for _, r, t in msgs)[-MAX_CHARS:]
     claude = os.environ.get("CLAUDE_BIN") or "claude"
