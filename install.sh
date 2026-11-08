@@ -711,6 +711,20 @@ setup_ghostty() {
 setup_foot() {
   if [ "$IS_ARCH" -eq 1 ]; then
     run_silent "Installing foot..." "pkg_install foot"
+    # foot.ini uses PlemolJP Console NF (AUR), with JetBrains Mono Nerd Font as fallback
+    run_silent "JetBrains Mono Nerd Font..." "pkg_install ttf-jetbrains-mono-nerd"
+    if command -v yay >/dev/null 2>&1; then
+      # Not silent: yay may ask for the user's sudo password
+      step "PlemolJP (AUR)..."
+      if as_user yay -S --needed --noconfirm ttf-plemoljp-bin; then
+        ok "AUR: ttf-plemoljp-bin"
+      else
+        err "PlemolJP failed — install it later with: yay -S ttf-plemoljp-bin"
+        FAILED_STEPS+=("AUR: ttf-plemoljp-bin")
+      fi
+    else
+      warn "PlemolJP skipped (needs yay): foot will fall back to JetBrains Mono Nerd Font."
+    fi
   fi
   link_config "foot config" "$DOTS_DIR/SalchipapaFoot" "$HOME_DIR/.config/foot"
   skip_worktree "SalchipapaFoot/salchipapa-colors.ini"

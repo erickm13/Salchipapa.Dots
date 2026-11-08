@@ -202,6 +202,11 @@ This setup is designed for **IosevkaTerm Nerd Font**, which provides the icons a
 2. Install it on your system (on WSL2, install it on **Windows**, since that's where your terminal renders)
 3. Set it as the font in your terminal emulator (Alacritty, WezTerm, or Windows Terminal)
 
+**Foot** is the exception: its config uses **PlemolJP Console NF** (IBM Plex Mono + IBM Plex Sans JP,
+with Nerd Font icons) in the *Text* weight, falling back to **JetBrains Mono Nerd Font**. On Arch,
+choosing Foot in the installer installs both (`ttf-plemoljp-bin` from the AUR, via yay, and
+`ttf-jetbrains-mono-nerd`).
+
 ---
 
 ## AI Integrations (Optional)
