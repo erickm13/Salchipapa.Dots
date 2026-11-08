@@ -1,8 +1,8 @@
 #!/usr/bin/env bash
 # vault-sync.sh pull|push|start [agente] — sincroniza la boveda de Obsidian con GitHub.
 #
-#   pull  -> git pull --rebase --autostash
-#   push  -> commit de lo que haya cambiado + pull --rebase + push (al terminar una sesion)
+#   pull  -> fetch + rebase --rebase-merges --autostash (si choca, merge)
+#   push  -> commit de lo que haya cambiado + pull + push (al terminar una sesion)
 #   start -> push de lo que quedo pendiente (sesion cerrada de golpe) + pull (al empezar)
 #   trust <commit> -> acepta los cambios sensibles que llegaron hasta <commit> (lo corre el usuario)
 #
@@ -70,12 +70,18 @@ pull() {
   fi
   ok_step pull
   guard "$up" || return 1
-  # Se aplica justo el commit revisado, no lo que haya llegado después
-  if ! out=$(git rebase --autostash -q "$up" 2>&1); then
+  # Se aplica justo el commit revisado, no lo que haya llegado después. Rebase conservando los merges
+  # locales (un rebase plano los aplana y choca: pasó con 980cba4); si aun así hay conflicto, merge.
+  if ! out=$(git rebase --rebase-merges --autostash -q "$up" 2>&1); then
     git rebase --abort >/dev/null 2>&1
-    fail pull "No se pudo bajar la bóveda (¿conflicto?): $(printf '%s' "$out" | tail -1)"
-    return 1
+    if ! out=$(git merge --no-edit --autostash -q "$up" 2>&1); then
+      git merge --abort >/dev/null 2>&1
+      fail pull "No se pudo bajar la bóveda (¿conflicto?): $(printf '%s' "$out" | tail -1)"
+      return 1
+    fi
+    log "rebase falló; se hizo merge"
   fi
+  ok_step pull
   log "pull ok"
 }
 
