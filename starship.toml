@@ -17,7 +17,9 @@ $time\
 \n$character\
 """
 
-add_newline = true
+# El salto de linea antes del prompt lo pone fish (conf.d/salchipapa-prompt-newline.fish) solo tras
+# un comando: asi el primer prompt y el de despues de `clear` quedan pegados arriba.
+add_newline = false
 command_timeout = 5600000
 scan_timeout = 500
 palette = "salchipapa"

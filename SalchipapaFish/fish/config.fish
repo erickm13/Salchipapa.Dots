@@ -134,6 +134,7 @@ for _ in range(50):
         # La funcion fastfetch (functions/fastfetch.fish) elige el protocolo de imagen segun el
         # terminal (herdr->kitty, foot->sixel, kitty/ghostty->auto). Asi arranque y manual son iguales.
         fastfetch
+        echo # separa el fetch del primer prompt (starship ya no pone add_newline)
     end
 end
 
