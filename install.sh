@@ -897,7 +897,8 @@ accion_install() {
   mapfile -t cfg_choices < <(pick_multi "Configs to link (each one replaces the existing config):" \
     "Neovim (LazyVim + Lazy sync)" "Starship prompt" "Fastfetch" "Claude Code hooks")
   mapfile -t extra_choices < <(pick_multi "Extras:" \
-    "spotify_player (Spotify in the terminal)" "yt-x (YouTube in the terminal)")
+    "spotify_player (Spotify in the terminal)" "yt-x (YouTube in the terminal)" \
+    "typioca (typing test, like Monkeytype)")
 
   # Git & GitHub: asked before the vault, which is usually a private repo
   local git_choice git_name="" git_email="" gh_token="" spotify_id="" cur
@@ -1019,6 +1020,7 @@ accion_install() {
       # Not silent: yay may ask for the user's sudo password
       local aur=(asm-lsp)
       picked yt-x "${extra_choices[@]}" && aur+=(yt-x-git gum)
+      picked typioca "${extra_choices[@]}" && aur+=(typioca)
       step "${aur[*]} (AUR)..."
       if as_user yay -S --needed --noconfirm "${aur[@]}"; then
         ok "AUR: ${aur[*]}"
@@ -1027,7 +1029,7 @@ accion_install() {
         FAILED_STEPS+=("AUR: ${aur[*]}")
       fi
     else
-      warn "AUR packages skipped (need yay): asm-lsp$(picked yt-x "${extra_choices[@]}" && echo ", yt-x" || true)."
+      warn "AUR packages skipped (need yay): asm-lsp$(picked yt-x "${extra_choices[@]}" && echo ", yt-x" || true)$(picked typioca "${extra_choices[@]}" && echo ", typioca" || true)."
     fi
     section_result "$before" "Core tools installed."
     section_end
@@ -1073,6 +1075,8 @@ accion_install() {
       run_silent "spotify_player..." "brew install spotify_player"
     picked yt-x "${extra_choices[@]}" &&
       warn "yt-x: no package here — install it by hand (github.com/Benexl/yt-x); its config gets linked."
+    picked typioca "${extra_choices[@]}" &&
+      run_silent "typioca..." "brew install typioca"
     section_result "$before" "Core tools installed."
     section_end
   fi

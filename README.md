@@ -103,7 +103,8 @@ Optional prompts during the install:
 - **Configs to link** (pick several): Neovim (+ Lazy sync), Starship, Fastfetch, Claude Code hooks.
   Each one **replaces** the existing config, so leave out what your desktop already manages
   (e.g. caelestia's starship and fastfetch).
-- **Extras** (pick several): spotify_player and yt-x (package + config; yt-x also brings mpv and yt-dlp).
+- **Extras** (pick several): spotify_player and yt-x (package + config; yt-x also brings mpv and yt-dlp),
+  and typioca (typing test like Monkeytype; AUR on Arch, Homebrew on Debian).
 - **Git & GitHub** → log in with the GitHub CLI (browser + one-time code) or with a token
   (it goes straight to `gh`, never to the log), set your git name/email (empty = taken from your
   GitHub account) and `gh auth setup-git`. Runs before the vault clone, so a private vault works.
