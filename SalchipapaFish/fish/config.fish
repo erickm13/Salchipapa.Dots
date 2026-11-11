@@ -178,6 +178,12 @@ set -g fish_greeting ""
 # Enable vi mode
 fish_vi_key_bindings
 
+# fzf.fish: buscador de variables en Ctrl+Alt+E (por defecto usa Ctrl+V; Ctrl+Alt+V es de Hyprland). Asi Ctrl+V queda libre
+# para el pegado de fish (fish_clipboard_paste)
+if functions -q fzf_configure_bindings
+    fzf_configure_bindings --variables=ctrl-alt-e
+end
+
 # Set nvim as default editor for opencode and other tools
 set -gx EDITOR nvim
 set -gx VISUAL nvim
@@ -295,3 +301,8 @@ set -g fish_color_valid_path $blue
 
 # Fix WSL other-writable directories (Windows folders)
 set -gx LS_COLORS "di=01;34:ow=01;34:ln=01;36:ex=01;32:*.tar=01;31:*.zip=01;31"
+
+# thefuck (`fuck` corrige el último comando), solo si está instalado: el instalador no lo trae
+if type -q thefuck
+    thefuck --alias | source
+end
