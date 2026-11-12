@@ -100,7 +100,8 @@ Optional prompts during the install:
   Codex and opencode (pacman on Arch, npm elsewhere), Copilot CLI, Gemini CLI, Angular CLI.
   The npm ones are installed with **mise** (`mise use -g npm:<pkg>`), as your user and without sudo,
   so upgrading Node doesn't lose them.
-- **Configs to link** (pick several): Neovim (+ Lazy sync), Starship, Fastfetch, Claude Code hooks.
+- **Configs to link** (pick several): Neovim (+ Lazy sync), Starship, Fastfetch, Atuin (history on Ctrl+R/Up,
+  per-directory Up, secret filter), Claude Code hooks.
   Each one **replaces** the existing config, so leave out what your desktop already manages
   (e.g. caelestia's starship and fastfetch).
 - **Extras** (pick several): spotify_player and yt-x (package + config; yt-x also brings mpv and yt-dlp),
@@ -278,6 +279,7 @@ Salchipapa.Dots/
 ├── SalchipapaWezterm/      → WezTerm terminal configuration
 ├── SalchipapaTmux/         → Tmux configuration (alternative to Zellij)
 ├── SalchipapaFastfetch/    → Fastfetch settings
+├── SalchipapaAtuin/        → Atuin (shell history) configuration
 ├── SalchipapaSpotify/      → spotify_player configuration
 ├── SalchipapaYtx/          → yt-x (YouTube in the terminal) configuration
 ├── homebrew/               → Homebrew formula packaging (see homebrew-tap repo)

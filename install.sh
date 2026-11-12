@@ -895,7 +895,7 @@ accion_install() {
   # manages (e.g. caelestia ships its own starship and fastfetch)
   local -a cfg_choices extra_choices
   mapfile -t cfg_choices < <(pick_multi "Configs to link (each one replaces the existing config):" \
-    "Neovim (LazyVim + Lazy sync)" "Starship prompt" "Fastfetch" "Claude Code hooks")
+    "Neovim (LazyVim + Lazy sync)" "Starship prompt" "Fastfetch" "Atuin (shell history)" "Claude Code hooks")
   mapfile -t extra_choices < <(pick_multi "Extras:" \
     "spotify_player (Spotify in the terminal)" "yt-x (YouTube in the terminal)" \
     "typioca (typing test, like Monkeytype)")
@@ -1176,6 +1176,8 @@ accion_install() {
   picked Neovim "${cfg_choices[@]}" && link_config "Neovim" "$DOTS_DIR/SalchipapaNvim/nvim" "$HOME_DIR/.config/nvim"
   picked Starship "${cfg_choices[@]}" && link_config "Starship" "$DOTS_DIR/starship.toml" "$HOME_DIR/.config/starship.toml"
   picked Fastfetch "${cfg_choices[@]}" && link_config "Fastfetch" "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
+  # Solo el config.toml: la carpeta también guarda la clave de sincronización y la sesión de atuin
+  picked Atuin "${cfg_choices[@]}" && link_config "Atuin" "$DOTS_DIR/SalchipapaAtuin/config.toml" "$HOME_DIR/.config/atuin/config.toml"
 
   if picked spotify_player "${extra_choices[@]}"; then
     link_config "spotify_player" "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
