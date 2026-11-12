@@ -6,3 +6,12 @@ git:
   # delta toma line-numbers, syntax-theme y decoraciones de ~/.config/git/delta.gitconfig
   diffRenderers:
     - command: delta --dark --paging=never
+customCommands:
+  # C en archivos: Claude escribe el mensaje y hace commit de lo que está en stage
+  # (función de fish SalchipapaFish/fish/functions/claude_commit.fish)
+  - key: "C"
+    command: "fish -c claude_commit"
+    description: "commit con Claude Code"
+    context: "files"
+    loadingText: "Claude está haciendo el commit"
+    output: terminal
