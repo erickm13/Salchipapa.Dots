@@ -49,3 +49,17 @@ split_horizontal = ["prefix+minus", "alt+d"]
 # Cerrar panel: Alt x / cerrar pestaña: Alt Shift x (la "x" de zellij)
 close_pane = ["prefix+x", "alt+x"]
 close_tab = ["prefix+shift+x", "alt+shift+x"]
+
+# ── Ideas de craftzdog/dotfiles ──────────────────────────────────
+[terminal]
+# Paneles y pestañas nuevos abren en el directorio del panel actual
+new_cwd = "follow"
+
+# En la barra lateral, Claude muestra el resumen de su sesión (el título de su
+# terminal) en una segunda fila, en vez de solo el nombre del agente
+[ui.sidebar.agents.rows_by_agent]
+claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripped"]]
+
+# Sin sonido cuando Claude termina o pide algo (ya avisa con el toast del sistema)
+[ui.sound.agents]
+claude = "off"
