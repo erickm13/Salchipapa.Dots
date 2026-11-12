@@ -385,7 +385,7 @@ setup_fish() {
   try_step "fish is the default shell" sudo chsh -s "$brew_fish" "$TARGET_USER"
 
   link_config "fish config" "$DOTS_DIR/SalchipapaFish/fish" "$HOME_DIR/.config/fish"
-  run_silent "Fisher + plugins (fzf.fish, pj)..." "install_fisher '$brew_fish'"
+  run_silent "Fisher + plugins (fzf.fish, pj, done)..." "install_fisher '$brew_fish'"
   section_result "$before" "Fish ready."
 }
 
@@ -411,7 +411,7 @@ install_fisher() {
     # also delete the Node versions it installed (~/.local/share/nvm)
     set -U _fisher_plugins (string match -v -- jorgebucaran/nvm.fish $_fisher_plugins)
     set -e _fisher_jorgebucaran_2F_nvm_2E_fish_files
-    fisher install patrickf1/fzf.fish oh-my-fish/plugin-pj
+    fisher install patrickf1/fzf.fish oh-my-fish/plugin-pj franciscolourenco/done
   '
 }
 
