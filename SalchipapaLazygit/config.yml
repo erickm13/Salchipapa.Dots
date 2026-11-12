@@ -1,0 +1,8 @@
+# Lazygit (basado en craftzdog/dotfiles). Los colores los pone snacks.nvim al abrirlo desde nvim.
+gui:
+  scrollHeight: 30
+git:
+  autoFetch: false
+  # delta toma line-numbers, syntax-theme y decoraciones de ~/.config/git/delta.gitconfig
+  diffRenderers:
+    - command: delta --dark --paging=never
