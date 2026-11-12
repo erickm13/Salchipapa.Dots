@@ -141,7 +141,6 @@ end
 # Initialize tools
 starship init fish | source
 zoxide init fish | source
-atuin init fish | source
 fzf --fish | source
 
 set -x PATH $HOME/.cargo/bin $PATH
@@ -179,10 +178,17 @@ set -g fish_greeting ""
 fish_vi_key_bindings
 
 # fzf.fish: buscador de variables en Ctrl+Alt+E (por defecto usa Ctrl+V; Ctrl+Alt+V es de Hyprland). Asi Ctrl+V queda libre
-# para el pegado de fish (fish_clipboard_paste)
+# para el pegado de fish (fish_clipboard_paste). El historial no: lo lleva atuin. Archivos en Ctrl+T con
+# _salchipapa_fzf_directory (sustituye al Ctrl+T de `fzf --fish`, que hacia lo mismo; asi Ctrl+Alt+F queda
+# libre): inserta la ruta en el comando, o con la linea vacia entra en el directorio elegido.
 if functions -q fzf_configure_bindings
-    fzf_configure_bindings --variables=ctrl-alt-e
+    fzf_configure_bindings --variables=ctrl-alt-e --directory= --history=
+    bind ctrl-t _salchipapa_fzf_directory
+    bind -M insert ctrl-t _salchipapa_fzf_directory
 end
+
+# atuin despues de fzf y fzf.fish: si no, sus Ctrl+R le quitan el atajo. Ctrl+R y flecha arriba = atuin
+atuin init fish | source
 
 # Set nvim as default editor for opencode and other tools
 set -gx EDITOR nvim
@@ -209,8 +215,8 @@ alias lr="eza -la --icons --sort=modified --reverse"
 # for size
 alias lS="eza -la --icons --sort=size --reverse"
 
-alias fzfbat='fzf --preview="bat --theme=\"Solarized (dark)\" --color=always {}"'
-alias fzfnvim='nvim (fzf --preview="bat --theme=\"Solarized (dark)\" --color=always {}")'
+alias fzfbat='fzf --preview="$fzf_preview_file_cmd {}"'
+alias fzfnvim='nvim (fzf --preview="$fzf_preview_file_cmd {}")'
 
 # Alias to git
 alias gs="git status"
