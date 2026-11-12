@@ -4,8 +4,7 @@
 #   - archivos de texto        -> nvim (va al historial: flecha arriba lo repite)
 #   - un archivo que no es texto (PDF, imagen, vídeo…) -> su app (xdg-open, desligada de la terminal)
 #   - otra mezcla              -> se quedan las rutas escritas, como antes
-# Texto = `file` no lo da como "binary" (mira el contenido, no la extensión: Dockerfile, configs sin
-# extensión… también son texto). Los archivos vacíos salen "binary" en `file`, pero son texto.
+# Texto = _salchipapa_is_text (mira el contenido, no la extensión). El comando `ff` hace lo mismo.
 # Alt+C sigue siendo "solo directorios + cd". Ctrl+O / Ctrl+X fuerzan nvim / app desde fzf.
 function _salchipapa_fzf_directory --description "Ctrl+T: buscar archivos; con la línea vacía, abrir lo elegido"
     set -l before "$(commandline)"
@@ -30,7 +29,7 @@ function _salchipapa_fzf_directory --description "Ctrl+T: buscar archivos; con l
         if not test -f "$f"
             return # algo que no es un archivo normal (o un directorio entre varios): dejar las rutas
         end
-        if not test -s "$f"; or test (file --brief --dereference --mime-encoding -- "$f") != binary
+        if _salchipapa_is_text $f
             set -a text $f
         else
             set -a other $f
