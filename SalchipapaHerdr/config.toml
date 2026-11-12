@@ -1,13 +1,14 @@
 onboarding = false
 
 [ui]
-# Barra lateral (spaces / agents) oculta del todo al arrancar; Ctrl+g b la muestra
+# Barra lateral plegada al arrancar en modo compacto (como craftzdog): una columna fina con
+# el número de cada workspace y el estado de su agente (○ libre, ● trabajando). Ctrl+g b la abre entera
 sidebar_start_collapsed = true
-sidebar_collapsed_mode = "hidden"
+sidebar_collapsed_mode = "compact"
 
 # Barra de pestañas al estilo de mi zjstatus (Solarized Osaka)
 accent = "#268bd3"
-tab_bar_position = "top"
+tab_bar_position = "bottom"
 tab_bar_right = [
   { type = "zoom" },
   { type = "datetime", format = "%A, %d %b %Y %H:%M" },
