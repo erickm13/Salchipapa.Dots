@@ -7,6 +7,7 @@
   "catppuccin": { "branch": "main", "commit": "edefef779ab08ce1a4a404713e3012b0d202bd35" },
   "clangd_extensions.nvim": { "branch": "main", "commit": "78c2ecd659d54972be17aa6ba2deac3c53223b80" },
   "claudecode.nvim": { "branch": "main", "commit": "9bfc39c944178359b68bf410b406669dd1b68ee8" },
+  "codediff.nvim": { "branch": "main", "commit": "09d9ebef2cc5a5c04db7a349cd6c61bdf84ecc8e" },
   "conform.nvim": { "branch": "master", "commit": "016802de402556da54c36bd7359b441266b01cdd" },
   "copilot.lua": { "branch": "master", "commit": "1d674b416df08e5c54e442503b7703a0df462acf" },
   "cyberdream.nvim": { "branch": "main", "commit": "8ed987565d081a8ebeda0bac939c22a0f451d074" },
