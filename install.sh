@@ -592,6 +592,25 @@ setup_agent_memory() {
   fi
 }
 
+# setup_git_includes: delta pager and git aliases. ~/.gitconfig stays out of the repo
+# (it holds the identity), so it only gets an [include] of each file, once.
+setup_git_includes() {
+  local f path
+  for f in delta aliases; do
+    link_config "git $f" "$DOTS_DIR/SalchipapaGit/$f.gitconfig" "$HOME_DIR/.config/git/$f.gitconfig"
+    # shellcheck disable=SC2088 # git expands the ~ itself
+    path="~/.config/git/$f.gitconfig"
+    if as_user git config --global --get-all include.path 2>/dev/null | grep -qxF "$path"; then
+      ok ".gitconfig already includes $f.gitconfig"
+    elif as_user git config --global --add include.path "$path" 2>>"$LOG_FILE"; then
+      ok ".gitconfig now includes $f.gitconfig"
+    else
+      err "Could not add $f.gitconfig to .gitconfig"
+      FAILED_STEPS+=("git include $f")
+    fi
+  done
+}
+
 setup_herdr() {
   # Official installer: release binary to ~/.local/bin with SHA-256 check (updates: `herdr update`)
   if ! as_user sh -c 'command -v herdr || test -x "$HOME/.local/bin/herdr"' >/dev/null 2>&1; then
@@ -691,9 +710,32 @@ setup_wezterm_windows() {
   fi
 }
 
+# install_plemoljp: PlemolJP Console NF (AUR), the font of foot, kitty and ghostty.
+# Runs once even if several terminals are picked.
+install_plemoljp() {
+  [ "$IS_ARCH" -eq 1 ] || return 0
+  if fc-list 2>/dev/null | grep -qi 'PlemolJP Console NF'; then
+    ok "PlemolJP already installed."
+    return 0
+  fi
+  if command -v yay >/dev/null 2>&1; then
+    # Not silent: yay may ask for the user's sudo password
+    step "PlemolJP (AUR)..."
+    if as_user yay -S --needed --noconfirm ttf-plemoljp-bin; then
+      ok "AUR: ttf-plemoljp-bin"
+    else
+      err "PlemolJP failed — install it later with: yay -S ttf-plemoljp-bin"
+      FAILED_STEPS+=("AUR: ttf-plemoljp-bin")
+    fi
+  else
+    warn "PlemolJP skipped (needs yay): the terminals will fall back to another font."
+  fi
+}
+
 setup_kitty() {
   if [ "$IS_ARCH" -eq 1 ]; then
     run_silent "Installing kitty..." "pkg_install kitty"
+    install_plemoljp
   fi
   link_config "kitty config" "$DOTS_DIR/SalchipapaKitty" "$HOME_DIR/.config/kitty"
   skip_worktree "SalchipapaKitty/salchipapa-colors.conf"
@@ -702,6 +744,7 @@ setup_kitty() {
 setup_ghostty() {
   if [ "$IS_ARCH" -eq 1 ]; then
     run_silent "Installing ghostty..." "pkg_install ghostty"
+    install_plemoljp
   else
     warn "Ghostty is not in apt/Homebrew for Linux: install it by hand (ghostty.org)."
   fi
@@ -713,18 +756,7 @@ setup_foot() {
     run_silent "Installing foot..." "pkg_install foot"
     # foot.ini uses PlemolJP Console NF (AUR), with JetBrains Mono Nerd Font as fallback
     run_silent "JetBrains Mono Nerd Font..." "pkg_install ttf-jetbrains-mono-nerd"
-    if command -v yay >/dev/null 2>&1; then
-      # Not silent: yay may ask for the user's sudo password
-      step "PlemolJP (AUR)..."
-      if as_user yay -S --needed --noconfirm ttf-plemoljp-bin; then
-        ok "AUR: ttf-plemoljp-bin"
-      else
-        err "PlemolJP failed — install it later with: yay -S ttf-plemoljp-bin"
-        FAILED_STEPS+=("AUR: ttf-plemoljp-bin")
-      fi
-    else
-      warn "PlemolJP skipped (needs yay): foot will fall back to JetBrains Mono Nerd Font."
-    fi
+    install_plemoljp
   fi
   link_config "foot config" "$DOTS_DIR/SalchipapaFoot" "$HOME_DIR/.config/foot"
   skip_worktree "SalchipapaFoot/salchipapa-colors.ini"
@@ -1008,8 +1040,8 @@ accion_install() {
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
     before=${#FAILED_STEPS[@]}
-    run_silent "neovim, mise, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, fastfetch, yazi, btop, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim mise starship fzf zoxide atuin fd eza bat lazygit btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
+    run_silent "neovim, mise, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, delta, fastfetch, yazi, btop, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim mise starship fzf zoxide atuin fd eza bat lazygit git-delta btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
     run_silent "Node LTS (mise)..." "install_node_mise"
     picked spotify_player "${extra_choices[@]}" &&
       run_silent "spotify-player..." "sudo pacman -S --needed --noconfirm spotify-player"
@@ -1068,8 +1100,8 @@ accion_install() {
     # ── Core packages ────────────────────────────────────────
     section "Core Tools"
     before=${#FAILED_STEPS[@]}
-    run_silent "gcc, nvim, mise, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, fastfetch, yazi, btop..." \
-      "brew install gcc nvim mise starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi jq"
+    run_silent "gcc, nvim, mise, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, delta, fastfetch, yazi, btop..." \
+      "brew install gcc nvim mise starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit git-delta btop fastfetch yazi jq"
     run_silent "Node LTS (mise)..." "install_node_mise"
     picked spotify_player "${extra_choices[@]}" &&
       run_silent "spotify_player..." "brew install spotify_player"
@@ -1178,6 +1210,10 @@ accion_install() {
   picked Fastfetch "${cfg_choices[@]}" && link_config "Fastfetch" "$DOTS_DIR/SalchipapaFastfetch" "$HOME_DIR/.config/fastfetch"
   # Solo el config.toml: la carpeta también guarda la clave de sincronización y la sesión de atuin
   picked Atuin "${cfg_choices[@]}" && link_config "Atuin" "$DOTS_DIR/SalchipapaAtuin/config.toml" "$HOME_DIR/.config/atuin/config.toml"
+
+  # Lazygit and delta are core tools: always linked
+  link_config "lazygit config" "$DOTS_DIR/SalchipapaLazygit" "$HOME_DIR/.config/lazygit"
+  setup_git_includes
 
   if picked spotify_player "${extra_choices[@]}"; then
     link_config "spotify_player" "$DOTS_DIR/SalchipapaSpotify" "$HOME_DIR/.config/spotify-player"
@@ -1353,7 +1389,7 @@ accion_uninstall() {
     local brew_pkgs=(
       fish zsh zsh-autocomplete zsh-syntax-highlighting zsh-autosuggestions
       zellij tmux alacritty
-      gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit btop fastfetch yazi
+      gcc nvim node starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit git-delta btop fastfetch yazi
       mise nvm
     )
     step "Uninstalling brew packages..."
