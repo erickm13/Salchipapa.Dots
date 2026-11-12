@@ -228,6 +228,18 @@ abbr -a gb git branch
 abbr -a gp git push
 abbr -a gl git log --oneline --graph
 
+# Paquetes (Arch). Para buscar con fzf: fpi (instalar) y fpr (quitar). prm y no pr: pr ya es un comando.
+if type -q pacman
+    if type -q paru
+        abbr -a pi paru -S
+        abbr -a pu paru -Syu
+    else
+        abbr -a pi sudo pacman -S
+        abbr -a pu sudo pacman -Syu
+    end
+    abbr -a prm sudo pacman -Rns
+end
+
 # Claude Code con bypass permissions
 alias cl="claude --dangerously-skip-permissions"
 
