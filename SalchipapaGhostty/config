@@ -27,7 +27,10 @@ auto-update = check
 auto-update-channel = stable
 
 # extras
-shell-integration-features = no-cursor
+# ssh-env + ssh-terminfo: al entrar por ssh el servidor reconoce ghostty (sin errores de TERM)
+shell-integration-features = no-cursor,ssh-env,ssh-terminfo
+# Sin pitido del sistema
+bell-features = no-system
 copy-on-select = clipboard
 # cmd or alt c copy (not vim yank)
 
