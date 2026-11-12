@@ -218,11 +218,15 @@ alias lS="eza -la --icons --sort=size --reverse"
 alias fzfbat='fzf --preview="$fzf_preview_file_cmd {}"'
 alias fzfnvim='nvim (fzf --preview="$fzf_preview_file_cmd {}")'
 
-# Alias to git
-alias gs="git status"
-alias gp="git push"
-alias gl="git log --oneline --graph"
-alias gc="git commit -m"
+# Abreviaturas de git (abbr, no alias): al pulsar espacio se expanden al comando real, que se ve y se
+# puede editar, y el historial (atuin) guarda `git add …` y no `ga …`. gc deja el cursor entre las
+# comillas del mensaje. Para cambiar de rama: fbr (functions/fbr.fish).
+abbr -a gs git status
+abbr -a ga git add
+abbr -a gc --set-cursor 'git commit -m "%"'
+abbr -a gb git branch
+abbr -a gp git push
+abbr -a gl git log --oneline --graph
 
 # Claude Code con bypass permissions
 alias cl="claude --dangerously-skip-permissions"
