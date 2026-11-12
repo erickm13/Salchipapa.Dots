@@ -16,3 +16,18 @@ vim.api.nvim_create_autocmd("ColorScheme", {
     vim.api.nvim_set_hl(0, "SnacksNormalFloat", { bg = "none" })
   end,
 })
+
+-- Línea del cursor solo en la ventana activa (con splits o codediff se ve dónde estás)
+local cursorline = vim.api.nvim_create_augroup("salchipapa_cursorline", { clear = true })
+vim.api.nvim_create_autocmd({ "VimEnter", "WinEnter", "BufWinEnter" }, {
+  group = cursorline,
+  callback = function()
+    vim.wo.cursorline = true
+  end,
+})
+vim.api.nvim_create_autocmd("WinLeave", {
+  group = cursorline,
+  callback = function()
+    vim.wo.cursorline = false
+  end,
+})

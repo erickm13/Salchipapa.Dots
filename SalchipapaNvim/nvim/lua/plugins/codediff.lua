@@ -16,9 +16,20 @@ return {
     { "<leader>gV", ":CodeDiff history<cr>", mode = "v", desc = "CodeDiff historial de las líneas" },
   },
   opts = {
+    -- Basado en la config de craftzdog (cap. 6.3 de su video)
     explorer = {
-      -- Totales +/- por archivo y carpeta, como en la captura de craftzdog
+      width = 50,
+      view_mode = "tree",
+      -- Abrir el diff al moverte por la lista con j/k, sin pulsar Enter
+      auto_open_on_cursor = true,
+      -- Totales +/- por archivo y carpeta
       line_stats = { enabled = true },
+    },
+    diff = {
+      -- Modo compacto: pliega lo que no cambió y deja 8 líneas de contexto (gc lo alterna)
+      compact = true,
+      compact_context_lines = 8,
+      compact_sync_folds = true, -- abrir/cerrar pliegues en los dos lados a la vez
     },
   },
 }

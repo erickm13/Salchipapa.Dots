@@ -164,3 +164,14 @@ function SaveFile()
     vim.notify("Error: " .. err, vim.log.levels.ERROR) -- Show the error message if it fails
   end
 end
+
+-- Copiar rutas y código para agentes, y limpiar buffers (ver lua/config/editor_utils.lua)
+local eu = require("config.editor_utils")
+vim.keymap.set("n", "<leader>yf", eu.yank_relative_path, { desc = "Copiar ruta relativa con línea" })
+vim.keymap.set("n", "<leader>yp", eu.yank_absolute_path, { desc = "Copiar ruta absoluta con línea" })
+vim.keymap.set("x", "<leader>yc", function()
+  -- Salir de visual primero para que '< y '> apunten a esta selección
+  vim.cmd("normal! \27")
+  eu.copy_as_codeblock()
+end, { desc = "Copiar selección como bloque de código" })
+vim.keymap.set("n", "<leader>bh", eu.delete_hidden_buffers, { desc = "Cerrar buffers ocultos" })
