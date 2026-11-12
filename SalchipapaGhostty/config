@@ -3,8 +3,8 @@ config-file = themes/rosepine
 background-opacity = 0.66
 background-blur-radius = 25
 
-font-family = JetBrainsMonoNL Nerd Font
-font-size = 12
+font-family = PlemolJP Console NF
+font-size = 16
 font-feature = -liga,-calt,-dlig
 cursor-style = block
 cursor-style-blink = false
