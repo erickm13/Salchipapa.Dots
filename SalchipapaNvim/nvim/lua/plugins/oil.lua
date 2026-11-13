@@ -9,7 +9,8 @@ return {
 
   keys = {
     { "-", "<CMD>Oil<CR>", desc = "Open Oil (parent dir)" },
-    { "<leader>E", "<CMD>Oil --float<CR>", desc = "Open Oil (floating)" },
+    -- Flotante con vista previa del archivo bajo el cursor (como el sf de craftzdog)
+    { "<leader>E", function() require("oil").open_float(nil, { preview = {} }) end, desc = "Open Oil (floating + preview)" },
   },
 
   opts = {

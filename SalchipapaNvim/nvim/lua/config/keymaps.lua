@@ -10,6 +10,9 @@ discipline.cowboy()
 -- Map Ctrl+b in insert mode to delete to the end of the word without leaving insert mode
 vim.keymap.set("i", "<C-b>", "<C-o>de")
 
+-- x borra sin pisar el portapapeles ni el registro (como craftzdog)
+vim.keymap.set("n", "x", '"_x')
+
 -- Map Ctrl+c to escape from other modes
 vim.keymap.set({ "i", "n", "v" }, "<C-c>", [[<C-\><C-n>]])
 

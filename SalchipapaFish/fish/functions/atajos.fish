@@ -108,6 +108,9 @@ function atajos --description "Chuleta: comandos, abreviaturas y teclas de este 
         __atajos_row "Espacio y f / y p" "copiar ruta relativa / absoluta con la línea (para agentes)"
         __atajos_row "Espacio y c" "en visual: copiar la selección como bloque de código con archivo y línea"
         __atajos_row "Espacio b h" "cerrar los buffers que no se ven"
+        __atajos_row "Ctrl+a / Ctrl+x" "subir / bajar el número, fecha o true/false bajo el cursor"
+        __atajos_row "Espacio E" "Oil flotante con vista previa"
+        __atajos_row "x" "borra sin pisar el portapapeles"
         echo
     end
 
