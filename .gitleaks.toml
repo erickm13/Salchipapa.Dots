@@ -1,0 +1,16 @@
+# gitleaks: reglas por defecto + falsos positivos de este repo.
+# Lo usan el hook .githooks/pre-commit y el job "Secretos (gitleaks)" de .github/workflows/ci.yml.
+[extend]
+useDefault = true
+
+# El gráfico de star-history del README lleva un sealed_token público (no da acceso a nada)
+[[allowlists]]
+description = "star-history"
+regexTarget = "line"
+regexes = ['''api\.star-history\.com/chart\?''']
+
+# Atajos de herdr como key = "ctrl+shift+down" parecen claves genéricas (idea de craftzdog)
+[[allowlists]]
+description = "atajos de teclado"
+regexTarget = "line"
+regexes = ['''^\s*key\s*=\s*"[a-z]+(\+[^"\s]+)+"\s*$''']

@@ -609,6 +609,13 @@ setup_git_includes() {
       FAILED_STEPS+=("git include $f")
     fi
   done
+  # Repo hooks (.githooks/pre-commit = gitleaks before every commit, from any agent or by hand)
+  if as_user git -C "$DOTS_DIR" config core.hooksPath .githooks 2>>"$LOG_FILE"; then
+    ok "Repo hooks enabled (gitleaks on pre-commit)"
+  else
+    err "Could not enable repo hooks"
+    FAILED_STEPS+=("git hooks")
+  fi
 }
 
 setup_herdr() {
@@ -1040,8 +1047,8 @@ accion_install() {
     # ── Core packages (Arch) ─────────────────────────────────
     section "Core Tools"
     before=${#FAILED_STEPS[@]}
-    run_silent "neovim, mise, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, delta, fastfetch, yazi, btop, fonts..." \
-      "sudo pacman -S --needed --noconfirm gcc neovim mise starship fzf zoxide atuin fd eza bat lazygit git-delta btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
+    run_silent "neovim, mise, starship, fzf, zoxide, atuin, fd, eza, bat, lazygit, delta, gitleaks, fastfetch, yazi, btop, fonts..." \
+      "sudo pacman -S --needed --noconfirm gcc neovim mise starship fzf zoxide atuin fd eza bat lazygit git-delta gitleaks btop fastfetch yazi ripgrep tree-sitter-cli imagemagick chafa wl-clipboard ttf-iosevkaterm-nerd noto-fonts-emoji jq python"
     run_silent "Node LTS (mise)..." "install_node_mise"
     picked spotify_player "${extra_choices[@]}" &&
       run_silent "spotify-player..." "sudo pacman -S --needed --noconfirm spotify-player"
@@ -1101,7 +1108,7 @@ accion_install() {
     section "Core Tools"
     before=${#FAILED_STEPS[@]}
     run_silent "gcc, nvim, mise, starship, carapace, fzf, zoxide, atuin, fd, eza, bat, asm-lsp, lazygit, delta, fastfetch, yazi, btop..." \
-      "brew install gcc nvim mise starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit git-delta btop fastfetch yazi jq"
+      "brew install gcc nvim mise starship carapace fzf zoxide atuin fd eza bat asm-lsp lazygit git-delta gitleaks btop fastfetch yazi jq"
     run_silent "Node LTS (mise)..." "install_node_mise"
     picked spotify_player "${extra_choices[@]}" &&
       run_silent "spotify_player..." "brew install spotify_player"

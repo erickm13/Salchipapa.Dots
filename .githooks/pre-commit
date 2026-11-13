@@ -1,0 +1,8 @@
+#!/usr/bin/env bash
+# Busca secretos en lo que vas a commitear (gitleaks). Se activa con
+# `git config core.hooksPath .githooks` (install.sh lo hace). Saltarlo una vez: git commit --no-verify
+if ! command -v gitleaks >/dev/null 2>&1; then
+  echo "pre-commit: gitleaks no está instalado; commit sin revisar secretos (pacman -S gitleaks)" >&2
+  exit 0
+fi
+exec gitleaks git --pre-commit --staged --redact --no-banner --verbose

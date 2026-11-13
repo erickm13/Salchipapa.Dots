@@ -1,5 +1,5 @@
 # CI: en cada push y pull request, sintaxis y lint de todo el repo (tests/check.sh) y pruebas de la
-# memoria de agentes en un HOME temporal (tests/obsidian.sh).
+# memoria de agentes en un HOME temporal (tests/obsidian.sh), y secretos en todo el historial (gitleaks).
 name: CI
 
 on:
@@ -34,3 +34,25 @@ jobs:
       - uses: actions/checkout@v4
       - name: tests/obsidian.sh
         run: bash tests/obsidian.sh
+
+  gitleaks:
+    name: Secretos (gitleaks)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      GITLEAKS_VERSION: 8.30.1
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # todo el historial: un secreto en un commit viejo también cuenta
+      - name: Instalar gitleaks (binario oficial, checksum verificado)
+        run: |
+          cd "$RUNNER_TEMP"
+          base="https://github.com/gitleaks/gitleaks/releases/download/v${GITLEAKS_VERSION}"
+          tgz="gitleaks_${GITLEAKS_VERSION}_linux_x64.tar.gz"
+          curl -fsSLO "$base/$tgz"
+          curl -fsSL "$base/gitleaks_${GITLEAKS_VERSION}_checksums.txt" | grep " $tgz\$" | sha256sum -c -
+          tar xzf "$tgz" gitleaks
+          echo "$RUNNER_TEMP" >>"$GITHUB_PATH"
+      - name: gitleaks git
+        run: gitleaks git --redact --no-banner --verbose .
