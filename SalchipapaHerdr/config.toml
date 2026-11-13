@@ -25,6 +25,12 @@ delivery = "system"
 name = "terminal"
 auto_switch = false
 
+# Fondo de la barra de pestañas = el de la barra de estado de nvim (StatusLine de solarized-osaka),
+# para que las dos se vean como una sola franja, como en el setup de craftzdog. Los paneles
+# siguen transparentes: panel_bg solo pinta la barra de herdr
+[theme.custom]
+panel_bg = "#002c38"
+
 [keys]
 # Ctrl+g como en zellij (en lugar de Ctrl+b)
 prefix = "ctrl+g"
