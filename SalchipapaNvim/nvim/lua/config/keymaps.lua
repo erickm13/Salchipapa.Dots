@@ -18,9 +18,6 @@ vim.keymap.set("n", "x", '"_x')
 vim.keymap.set("n", "te", ":tabedit<CR>", { desc = "Pestaña nueva" })
 vim.keymap.set("n", "<Tab>", ":tabnext<CR>", { silent = true, desc = "Pestaña siguiente" })
 vim.keymap.set("n", "<S-Tab>", ":tabprev<CR>", { silent = true, desc = "Pestaña anterior" })
--- En muchas terminales Tab y Ctrl+i son la misma tecla: el "avanzar" de la lista de saltos
--- (Ctrl+i) pasa a Ctrl+m, como él (Ctrl+o sigue siendo retroceder)
-vim.keymap.set("n", "<C-m>", "<C-i>", { silent = true, desc = "Avanzar en la lista de saltos" })
 
 -- Map Ctrl+c to escape from other modes
 vim.keymap.set({ "i", "n", "v" }, "<C-c>", [[<C-\><C-n>]])
