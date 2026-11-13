@@ -629,6 +629,11 @@ setup_herdr() {
   # Only link config.toml: ~/.config/herdr also holds herdr's sockets, logs and session state
   as_user mkdir -p "$HOME_DIR/.config/herdr"
   link_config "herdr config" "$DOTS_DIR/SalchipapaHerdr/config.toml" "$HOME_DIR/.config/herdr/config.toml"
+  # Scripts: `ide` (layout de trabajo) y herdr-move-workspace (Ctrl+Shift+↑/↓)
+  local script
+  for script in ide herdr-move-workspace; do
+    link_config "herdr $script" "$DOTS_DIR/SalchipapaHerdr/bin/$script" "$HOME_DIR/.local/bin/$script"
+  done
   # Agent integrations: better state detection and native session restore
   local herdr_bin="$HOME_DIR/.local/bin/herdr" target done_list=()
   [ -x "$herdr_bin" ] || herdr_bin="$(command -v herdr || true)"

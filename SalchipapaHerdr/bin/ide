@@ -1,0 +1,13 @@
+#!/usr/bin/env bash
+# Layout de trabajo en herdr (de craftzdog/dotfiles): el panel actual queda arriba (80 %) y abajo
+# se abren tres paneles. Uso: escribir `ide` dentro de herdr.
+set -eu
+if [ "${HERDR_ENV:-}" != "1" ]; then
+  echo "ide: solo funciona dentro de herdr" >&2
+  exit 1
+fi
+# --ratio = parte que conserva el panel original
+pane=$(herdr pane neighbor --direction left --current | jq -r '.result.neighbor | .neighbor_pane_id // .pane_id')
+pane=$(herdr pane split "$pane" --direction down --ratio 0.8 --focus | jq -r '.result.pane.pane_id')
+pane=$(herdr pane split "$pane" --direction right --ratio 0.34 --focus | jq -r '.result.pane.pane_id')
+herdr pane split "$pane" --direction right --ratio 0.5 --focus >/dev/null

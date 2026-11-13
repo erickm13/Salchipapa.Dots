@@ -1,0 +1,31 @@
+#!/usr/bin/env bash
+# Sube o baja el workspace actual de herdr en la lista: herdr-move-workspace up|down
+# (de craftzdog/dotfiles). herdr no tiene comando para workspace.move: se llama a la API del socket.
+set -eu
+
+case "${1:-}" in
+  up) delta=-1 ;;
+  down) delta=1 ;;
+  *) echo "uso: herdr-move-workspace up|down" >&2; exit 1 ;;
+esac
+
+list=$(herdr workspace list)
+current="${HERDR_ACTIVE_WORKSPACE_ID:-$(jq -r '.result.workspaces[] | select(.focused) | .workspace_id' <<<"$list")}"
+number=$(jq -r --arg id "$current" '.result.workspaces[] | select(.workspace_id == $id) | .number' <<<"$list")
+count=$(jq -r '.result.workspaces | length' <<<"$list")
+
+# number empieza en 1; insert_index en 0 y cuenta el hueco del propio workspace,
+# así que al bajar hay que saltarlo
+target=$((number - 1 + delta))
+[ "$target" -ge 0 ] && [ "$target" -lt "$count" ] || exit 0
+index=$target
+[ "$delta" -gt 0 ] && index=$((target + 1))
+
+python3 - "$current" "$index" <<'PY'
+import json, os, socket, sys
+s = socket.socket(socket.AF_UNIX)
+s.connect(os.environ.get("HERDR_SOCKET_PATH") or os.path.expanduser("~/.config/herdr/herdr.sock"))
+s.sendall((json.dumps({"id": "herdr-move-workspace", "method": "workspace.move",
+                       "params": {"workspace_id": sys.argv[1], "insert_index": int(sys.argv[2])}}) + "\n").encode())
+s.recv(65536)
+PY

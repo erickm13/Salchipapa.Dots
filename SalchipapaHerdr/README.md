@@ -56,6 +56,7 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `Shift+e`        | Abrir el historial del panel en el editor (nvim)    |
 | `Ctrl+g` `g`              | Lazygit en un panel ampliado, en el directorio actual (se cierra al salir) |
 | `Ctrl+g` `e`              | Cerrar los demás paneles de la pestaña              |
+| `Ctrl+g` `;`              | Volver al último panel donde estabas                |
 | `Ctrl+g` `x`              | Cerrar el panel                                     |
 
 ### Pestañas
@@ -77,6 +78,10 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `Shift+g`    | Nuevo workspace en un git worktree (una rama por workspace)    |
 | `Ctrl+g` `Shift+w`    | Renombrar workspace                                            |
 | `Ctrl+g` `Shift+d`    | Cerrar workspace                                               |
+| `Ctrl+Shift+↑` / `↓`  | Subir / bajar el workspace actual en la lista                  |
+
+**`ide`** (comando, dentro de herdr): deja el panel actual arriba y abre tres paneles abajo.
+Los scripts están en `bin/` y `install.sh` los enlaza en `~/.local/bin`.
 
 ### General
 
@@ -85,7 +90,8 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `?`          | Ver todos los atajos                                        |
 | `Ctrl+g` `s`          | Ajustes                                                     |
 | `Ctrl+g` `b`          | Mostrar / ocultar la barra lateral (spaces y agents)        |
-| `Ctrl+g` `o`          | Ir a lo que señala la notificación visible (el agente que te necesita) |
+| `Ctrl+g` `o`          | Abrir la carpeta del panel en el explorador de archivos     |
+| `Ctrl+g` `Shift+o`    | Ir a lo que señala la notificación visible (el agente que te necesita) |
 | `Ctrl+g` `u`          | Navegador de sesiones (cambiar entre sesiones con nombre)   |
 | `Ctrl+g` `Shift+r`    | Recargar la configuración                                   |
 | `Ctrl+g` `q`          | Salir sin cerrar nada (todo sigue corriendo)                |

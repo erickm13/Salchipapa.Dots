@@ -59,6 +59,10 @@ swap_pane_left = "prefix+alt+h"
 swap_pane_down = "prefix+alt+j"
 swap_pane_up = "prefix+alt+k"
 swap_pane_right = "prefix+alt+l"
+# Volver al último panel donde estabas (como el prefijo+; de tmux)
+last_pane = "prefix+;"
+# prefijo+o pasa a abrir la carpeta del panel; ir a la notificación queda en prefijo+Shift+o
+open_notification_target = "prefix+shift+o"
 # Redimensionar el panel sin entrar al modo redimensionar (como tmux-pain-control);
 # el modo sigue en prefijo+r con flechas
 resize_pane_left = "prefix+shift+h"
@@ -79,6 +83,26 @@ key = "prefix+e"
 type = "shell"
 command = '''herdr pane list | jq -r --arg t "$HERDR_ACTIVE_TAB_ID" --arg p "$HERDR_ACTIVE_PANE_ID" '.result.panes[] | select(.tab_id == $t and .pane_id != $p) | .pane_id' | xargs -r -n1 herdr pane close'''
 description = "cerrar los demás paneles"
+
+# Abrir la carpeta del panel actual en el explorador de archivos
+[[keys.command]]
+key = "prefix+o"
+type = "shell"
+command = 'xdg-open "$HERDR_ACTIVE_PANE_CWD"'
+description = "abrir la carpeta en el explorador"
+
+# Subir / bajar el workspace actual en la lista (script en SalchipapaHerdr/bin)
+[[keys.command]]
+key = "ctrl+shift+up"
+type = "shell"
+command = '"$HOME/.local/bin/herdr-move-workspace" up'
+description = "subir el workspace"
+
+[[keys.command]]
+key = "ctrl+shift+down"
+type = "shell"
+command = '"$HOME/.local/bin/herdr-move-workspace" down'
+description = "bajar el workspace"
 
 # ── Ideas de craftzdog/dotfiles ──────────────────────────────────
 [terminal]
