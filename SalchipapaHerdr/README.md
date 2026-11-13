@@ -50,8 +50,12 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `Tab` / `Shift+Tab` | Panel siguiente / anterior                       |
 | `Ctrl+g` `z`              | Ampliar el panel a pantalla completa (otra vez para volver) |
 | `Ctrl+g` `r`              | Modo redimensionar (flechas para ajustar, `Esc` para salir) |
+| `Ctrl+g` `Shift+h` `j` `k` `l` | Redimensionar el panel sin entrar al modo      |
+| `Ctrl+g` `Alt+h` `j` `k` `l` | Intercambiar el panel con el vecino              |
 | `Ctrl+g` `Shift+p`        | Renombrar el panel                                  |
-| `Ctrl+g` `e`              | Abrir el historial del panel en el editor (nvim)    |
+| `Ctrl+g` `Shift+e`        | Abrir el historial del panel en el editor (nvim)    |
+| `Ctrl+g` `g`              | Lazygit en un panel ampliado, en el directorio actual (se cierra al salir) |
+| `Ctrl+g` `e`              | Cerrar los demás paneles de la pestaña              |
 | `Ctrl+g` `x`              | Cerrar el panel                                     |
 
 ### Pestañas
@@ -82,9 +86,14 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `s`          | Ajustes                                                     |
 | `Ctrl+g` `b`          | Mostrar / ocultar la barra lateral (spaces y agents)        |
 | `Ctrl+g` `o`          | Ir a lo que señala la notificación visible (el agente que te necesita) |
-| `Ctrl+g` `g`          | Navegador de sesiones (cambiar entre sesiones con nombre)   |
+| `Ctrl+g` `u`          | Navegador de sesiones (cambiar entre sesiones con nombre)   |
 | `Ctrl+g` `Shift+r`    | Recargar la configuración                                   |
 | `Ctrl+g` `q`          | Salir sin cerrar nada (todo sigue corriendo)                |
+
+---
+
+Los paneles guardan su contenido (`pane_history`): al reabrir herdr se ve lo que había.
+Lo que salió en pantalla, tokens incluidos, queda en disco en `~/.config/herdr/`.
 
 ---
 

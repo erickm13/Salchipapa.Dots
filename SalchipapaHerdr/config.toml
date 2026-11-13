@@ -50,6 +50,35 @@ split_horizontal = ["prefix+minus", "alt+d"]
 # Cerrar panel: Alt x / cerrar pestaña: Alt Shift x (la "x" de zellij)
 close_pane = ["prefix+x", "alt+x"]
 close_tab = ["prefix+shift+x", "alt+shift+x"]
+# Teclas por defecto que se mueven para dejar sitio a los comandos de craftzdog (abajo):
+# prefijo+g era el navegador de sesiones, prefijo+e el historial en el editor
+# y prefijo+Shift+h/j/k/l intercambiaban paneles
+goto = "prefix+u"
+edit_scrollback = "prefix+shift+e"
+swap_pane_left = "prefix+alt+h"
+swap_pane_down = "prefix+alt+j"
+swap_pane_up = "prefix+alt+k"
+swap_pane_right = "prefix+alt+l"
+# Redimensionar el panel sin entrar al modo redimensionar (como tmux-pain-control);
+# el modo sigue en prefijo+r con flechas
+resize_pane_left = "prefix+shift+h"
+resize_pane_down = "prefix+shift+j"
+resize_pane_up = "prefix+shift+k"
+resize_pane_right = "prefix+shift+l"
+
+# Lazygit en un panel ampliado, en el directorio del panel actual (se cierra al salir de lazygit)
+[[keys.command]]
+key = "prefix+g"
+type = "pane"
+command = 'cd "$HERDR_ACTIVE_PANE_CWD" && lazygit'
+description = "lazygit"
+
+# Cerrar los demás paneles de la pestaña
+[[keys.command]]
+key = "prefix+e"
+type = "shell"
+command = '''herdr pane list | jq -r --arg t "$HERDR_ACTIVE_TAB_ID" --arg p "$HERDR_ACTIVE_PANE_ID" '.result.panes[] | select(.tab_id == $t and .pane_id != $p) | .pane_id' | xargs -r -n1 herdr pane close'''
+description = "cerrar los demás paneles"
 
 # ── Ideas de craftzdog/dotfiles ──────────────────────────────────
 [terminal]
@@ -64,3 +93,8 @@ claude = [["state_icon", "machine", "workspace", "tab"], ["terminal_title_stripp
 # Sin sonido cuando Claude termina o pide algo (ya avisa con el toast del sistema)
 [ui.sound.agents]
 claude = "off"
+
+[experimental]
+# Guarda el contenido de los paneles en ~/.config/herdr/session-history.json para
+# recuperarlo al reabrir. Ojo: lo que se vio en pantalla (tokens incluidos) queda en disco
+pane_history = true

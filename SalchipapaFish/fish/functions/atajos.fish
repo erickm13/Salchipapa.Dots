@@ -120,6 +120,10 @@ function atajos --description "Chuleta: comandos, abreviaturas y teclas de este 
         __atajos_row "Alt+h j k l" "moverse entre paneles"
         __atajos_row "Alt+n / Alt+d" "dividir en vertical / en horizontal"
         __atajos_row "Alt+x / Alt+Shift+x" "cerrar panel / cerrar pestaña"
+        __atajos_row "Ctrl+g g" "lazygit en un panel ampliado (directorio actual)"
+        __atajos_row "Ctrl+g e" "cerrar los demás paneles de la pestaña"
+        __atajos_row "Ctrl+g Shift+h j k l" "redimensionar el panel"
+        __atajos_row "Ctrl+g u / Shift+e" "navegador de sesiones / historial del panel en nvim"
         echo
     end
 
