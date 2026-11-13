@@ -346,7 +346,7 @@ return {
     {
       "LazyVim/LazyVim",
       opts = {
-        colorscheme = "solarized-osaka",
+        colorscheme = "solarized-osaka", -- se cambia con `tema <nombre>` (fish), junto con herdr
       },
     },
   },

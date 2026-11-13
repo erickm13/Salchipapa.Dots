@@ -84,7 +84,7 @@ return {
     requires = { "nvim-tree/nvim-web-devicons", opt = true }, -- Optional dependency for icons
     opts = {
       options = {
-        theme = "solarized-osaka", -- Set the theme for lualine
+        theme = "auto", -- toma los colores del tema de nvim (colorscheme.lua)
         icons_enabled = true, -- Enable icons in the statusline
       },
       sections = {

@@ -6,8 +6,8 @@ onboarding = false
 sidebar_start_collapsed = true
 sidebar_collapsed_mode = "compact"
 
-# Barra de pestañas al estilo de mi zjstatus (Solarized Osaka)
-accent = "#268bd3"
+# Barra de pestañas al estilo de mi zjstatus. Sin `accent` propio: cada tema usa su color de
+# pestaña activa (azul en solarized, amarillo en gruvbox)
 tab_bar_position = "bottom"
 tab_bar_right = [
   { type = "zoom" },
@@ -22,8 +22,8 @@ tab_bar_right_separator = "  "
 delivery = "system"
 
 [theme]
-# Tema solarized de herdr, como craftzdog: la barra de pestañas queda del color de la barra de
-# nvim (solarized-osaka) y las pestañas inactivas en #073642. Los paneles siguen transparentes
+# Tema de herdr, a juego con el de nvim. Se cambia con `tema <nombre>` (fish): toca esta línea y la
+# de colorscheme.lua de nvim. solarized = como craftzdog; los paneles siguen transparentes
 name = "solarized"
 auto_switch = false
 
