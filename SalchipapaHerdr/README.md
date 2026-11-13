@@ -57,6 +57,7 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `g`              | Lazygit en un panel ampliado, en el directorio actual (se cierra al salir) |
 | `Ctrl+g` `e`              | Cerrar los demás paneles de la pestaña              |
 | `Ctrl+g` `;`              | Volver al último panel donde estabas                |
+| `Ctrl+g` `[`              | Modo copia: recorrer el historial del panel con el teclado y copiar |
 | `Ctrl+g` `x`              | Cerrar el panel                                     |
 
 ### Pestañas
@@ -78,7 +79,7 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `Shift+g`    | Nuevo workspace en un git worktree (una rama por workspace)    |
 | `Ctrl+g` `Shift+w`    | Renombrar workspace                                            |
 | `Ctrl+g` `Shift+d`    | Cerrar workspace                                               |
-| `Ctrl+Shift+↑` / `↓`  | Subir / bajar el workspace actual en la lista                  |
+| `Alt+Shift+k` / `j`   | Subir / bajar el workspace actual en la lista                  |
 
 **`ide`** (comando, dentro de herdr): deja el panel actual arriba y abre tres paneles abajo.
 Los scripts están en `bin/` y `install.sh` los enlaza en `~/.local/bin`.
@@ -109,6 +110,8 @@ Lo que salió en pantalla, tokens incluidos, queda en disco en `~/.config/herdr/
 - Arrastrar los bordes para cambiar el tamaño de los paneles.
 - Clic derecho para el menú (dividir, cerrar…).
 - Seleccionar arrastrando para copiar.
+- **Rueda** para subir y bajar en el historial del panel (3 líneas por paso). Las teclas de scroll
+  de foot (`Ctrl+Shift+K/J`, `PgUp/PgDn`) no sirven dentro de herdr: usa la rueda o `Ctrl+g [`.
 
 ---
 

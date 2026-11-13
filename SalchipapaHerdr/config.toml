@@ -64,6 +64,9 @@ swap_pane_up = "prefix+alt+k"
 swap_pane_right = "prefix+alt+l"
 # Volver al último panel donde estabas (como el prefijo+; de tmux)
 last_pane = "prefix+;"
+# Modo copia (como el prefijo+[ de tmux y craftzdog): recorrer el historial del panel con el teclado.
+# Las teclas de scroll de foot no sirven dentro de herdr; sin esto solo queda la rueda del ratón
+copy_mode = "prefix+["
 # prefijo+o pasa a abrir la carpeta del panel; ir a la notificación queda en prefijo+Shift+o
 open_notification_target = "prefix+shift+o"
 # Redimensionar el panel sin entrar al modo redimensionar (como tmux-pain-control);
@@ -94,15 +97,16 @@ type = "shell"
 command = 'xdg-open "$HERDR_ACTIVE_PANE_CWD"'
 description = "abrir la carpeta en el explorador"
 
-# Subir / bajar el workspace actual en la lista (script en SalchipapaHerdr/bin)
+# Subir / bajar el workspace actual en la lista (script en SalchipapaHerdr/bin). No Ctrl+Shift+↑/↓
+# como craftzdog: en foot son media página de scroll y foot se las queda
 [[keys.command]]
-key = "ctrl+shift+up"
+key = "alt+shift+k"
 type = "shell"
 command = '"$HOME/.local/bin/herdr-move-workspace" up'
 description = "subir el workspace"
 
 [[keys.command]]
-key = "ctrl+shift+down"
+key = "alt+shift+j"
 type = "shell"
 command = '"$HOME/.local/bin/herdr-move-workspace" down'
 description = "bajar el workspace"

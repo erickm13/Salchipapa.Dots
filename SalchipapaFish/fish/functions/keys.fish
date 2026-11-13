@@ -148,7 +148,8 @@ function keys --description "Chuleta: comandos, abreviaturas y teclas de este se
         __keys_row "Ctrl+g u / Shift+e" "navegador de sesiones / historial del panel en nvim"
         __keys_row "Ctrl+g ;" "volver al último panel"
         __keys_row "Ctrl+g o / Shift+o" "abrir la carpeta en el explorador / ir a la notificación"
-        __keys_row "Ctrl+Shift+↑ / ↓" "subir / bajar el workspace"
+        __keys_row "Alt+Shift+k / j" "subir / bajar el workspace"
+        __keys_row "rueda / Ctrl+g [" "subir y bajar en el historial del panel / modo copia (teclado)"
         __keys_row "ide" "layout: panel arriba y tres abajo"
         set -q __keys_tsv; or echo
     end
