@@ -18,6 +18,10 @@ vim.keymap.set("n", "x", '"_x')
 vim.keymap.set("n", "te", ":tabedit<CR>", { desc = "Pestaña nueva" })
 vim.keymap.set("n", "<Tab>", ":tabnext<CR>", { silent = true, desc = "Pestaña siguiente" })
 vim.keymap.set("n", "<S-Tab>", ":tabprev<CR>", { silent = true, desc = "Pestaña anterior" })
+-- Tab y Ctrl+i son la misma tecla: "avanzar en la lista de saltos" pasa a Ctrl+m, como él.
+-- nvim registra <C-m> también como <CR>, así que Enter en modo normal hace lo mismo (no baja de
+-- línea); Oil, quickfix y demás tienen su propio Enter y no cambian
+vim.keymap.set("n", "<C-m>", "<C-i>", { silent = true, desc = "Avanzar en la lista de saltos" })
 
 -- Map Ctrl+c to escape from other modes
 vim.keymap.set({ "i", "n", "v" }, "<C-c>", [[<C-\><C-n>]])

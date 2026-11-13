@@ -131,6 +131,7 @@ function keys --description "Chuleta: comandos, abreviaturas y teclas de este se
         __keys_row "Espacio E" "Oil flotante con vista previa"
         __keys_row "x" "borra sin pisar el portapapeles"
         __keys_row "te / Tab / Shift+Tab" "pestaña nueva / siguiente / anterior (la barra sale con 2 o más)"
+        __keys_row "Ctrl+o / Ctrl+m" "retroceder / avanzar en la lista de saltos (Enter = Ctrl+m)"
         set -q __keys_tsv; or echo
     end
 
