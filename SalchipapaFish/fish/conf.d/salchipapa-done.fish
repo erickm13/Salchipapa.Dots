@@ -8,4 +8,4 @@ set -g __done_exclude \
     '^git (?!push|pull|fetch)' \
     '^(sudo )?(vi|vim|nvim|y|yazi|lazygit|btop|htop|top|man|less|more|ssh|mosh)\b' \
     '^(claude|cl|codex|opencode|gemini|copilot|herdr|zellij|tmux)\b' \
-    '^(fzf|ff|fif|fbr|zi|fpi|fpr|atajos|typioca|smassh|spotify_player|sp|mpv|yt-x|watch)\b'
+    '^(fzf|ff|fif|fbr|zi|fpi|fpr|keys|typioca|smassh|spotify_player|sp|mpv|yt-x|watch)\b'
