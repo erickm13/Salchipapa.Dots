@@ -17,6 +17,11 @@
   },
   "display": {
     "separator": " ",
+    // Color de las claves (iconos): la casilla azul de la terminal. Salchipapa-Shell lo cambia
+    // según el tema (la función fastfetch de fish le pasa --color-keys/--color-title).
+    "color": {
+      "keys": "blue",
+    },
   },
   "modules": [
     "break",
@@ -35,64 +40,52 @@
     {
       "type": "os",
       "key": " ",
-      "keyColor": "34", // = color4
     },
     {
       "type": "kernel",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "packages",
       "format": "{all} (pacman)",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "shell",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "terminal",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "wm",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "cursor",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "terminalfont",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "uptime",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "datetime",
       "format": "{1}-{3}-{11}",
       "key": " ",
-      "keyColor": "34",
     },
     {
       "type": "media",
       "key": "󰝚 ",
-      "keyColor": "34",
     },
     {
       "type": "player",
       "key": " ",
-      "keyColor": "34",
     },
     "break",
     {
