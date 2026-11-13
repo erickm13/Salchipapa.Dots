@@ -33,7 +33,7 @@ function atajos --description "Chuleta: comandos, abreviaturas y teclas de este 
         __atajos_row "typioca" "test de mecanografía"
         __atajos_row "tldr <cmd>" "ejemplos cortos de un comando"
         __atajos_row "cpwd" "copiar el directorio actual (con ~) al portapapeles"
-        __atajos_row "tema [nombre]" "tema de nvim + herdr a la vez (sin nombre: actual y lista)"
+        __atajos_row "theme [nombre]" "tema de nvim + herdr a la vez (sin nombre: actual y lista)"
         echo
 
         echo $h"Abreviaturas"$g"  (se expanden al pulsar espacio)"$d

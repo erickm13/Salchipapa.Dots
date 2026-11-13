@@ -168,7 +168,7 @@ herdr --default-config          # ver todas las opciones de configuración
 | ---------------------------------------- | ---------------------------------------------------- |
 | `prefix = "ctrl+g"`                      | Prefijo como en zellij                               |
 | `sidebar_start_collapsed` + `sidebar_collapsed_mode = "hidden"` | Barra lateral oculta al arrancar (`Ctrl+g b`) |
-| `[theme] name = "solarized"`             | Tema como craftzdog, a juego con nvim (solarized-osaka). Se cambia con `tema <nombre>` (fish), que cambia también nvim |
+| `[theme] name = "solarized"`             | Tema como craftzdog, a juego con nvim (solarized-osaka). Se cambia con `theme <nombre>` (fish), que cambia también nvim |
 | `tab_bar_right`                          | `ZOOM` al ampliar un panel y la fecha (formato de zellij) |
 
 No se puede replicar de zjstatus: estilo de las pestañas (solo el color de acento), indicador

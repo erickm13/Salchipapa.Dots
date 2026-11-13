@@ -22,7 +22,7 @@ tab_bar_right_separator = "  "
 delivery = "system"
 
 [theme]
-# Tema de herdr, a juego con el de nvim. Se cambia con `tema <nombre>` (fish): toca esta línea y la
+# Tema de herdr, a juego con el de nvim. Se cambia con `theme <nombre>` (fish): toca esta línea y la
 # de colorscheme.lua de nvim. solarized = como craftzdog; los paneles siguen transparentes
 name = "solarized"
 auto_switch = false

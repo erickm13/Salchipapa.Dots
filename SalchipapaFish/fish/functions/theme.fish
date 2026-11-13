@@ -1,9 +1,9 @@
-# tema: cambia a la vez el tema de nvim (y su barra, lualine con theme = "auto") y el de herdr.
-#   tema               muestra el tema actual y los disponibles
-#   tema gruvbox       cambia los dos; herdr se recarga al instante, nvim al volver a abrirlo
+# theme: cambia a la vez el tema de nvim (y su barra, lualine con theme = "auto") y el de herdr.
+#   theme              muestra el tema actual y los disponibles
+#   theme gruvbox      cambia los dos; herdr se recarga al instante, nvim al volver a abrirlo
 # Edita las dos líneas del repo (colorscheme.lua y config.toml de herdr): queda como cambio sin
 # commit en Salchipapa.Dots. Para añadir un tema: una línea "nombre nvim herdr" abajo.
-function tema --description 'Cambia el tema de nvim y herdr a la vez'
+function theme --description 'Cambia el tema de nvim y herdr a la vez'
     # nombre | colorscheme de nvim | tema de herdr
     set -l temas \
         "solarized solarized-osaka solarized" \
@@ -18,7 +18,7 @@ function tema --description 'Cambia el tema de nvim y herdr a la vez'
     set -l nvim_cfg (realpath ~/.config/nvim 2>/dev/null)/lua/plugins/colorscheme.lua
     set -l herdr_cfg (realpath ~/.config/herdr/config.toml 2>/dev/null)
     if not test -f "$nvim_cfg"; or not test -f "$herdr_cfg"
-        echo "tema: no encuentro colorscheme.lua de nvim o el config.toml de herdr" >&2
+        echo "theme: no encuentro colorscheme.lua de nvim o el config.toml de herdr" >&2
         return 1
     end
 
@@ -51,6 +51,6 @@ function tema --description 'Cambia el tema de nvim y herdr a la vez'
     for t in $temas
         set -a nombres (string split ' ' $t)[1]
     end
-    echo "tema: no conozco «$argv[1]». Disponibles: $nombres" >&2
+    echo "theme: no conozco «$argv[1]». Disponibles: $nombres" >&2
     return 1
 end
