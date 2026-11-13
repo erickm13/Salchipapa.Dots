@@ -112,25 +112,11 @@ end
 
 # fastfetch al abrir la terminal. Va antes de inicializar starship/zoxide/atuin/fzf/carapace para
 # que aparezca cuanto antes (despues de brew shellenv: en Debian fastfetch viene de Homebrew).
-# zellij se abre a mano: no deja pasar las imagenes de kitty.
+# Nunca dentro de herdr ni zellij: cada panel nuevo lo repetía y en los paneles pequeños solo
+# salía la fila de círculos de colores. A mano (`fastfetch`) sigue funcionando en herdr.
 if status is-interactive
     clear
-    if not set -q ZELLIJ; and type -q fastfetch
-        # Al arrancar herdr la terminal a veces aun no sabe su tamaño en pixeles y fastfetch cae al
-        # logo ASCII. Esperamos (max 1 s) a que el pty lo tenga; se lee con ioctl, sin secuencias
-        # de escape que interfieran con las consultas de fastfetch.
-        if test "$HERDR_ENV" = 1; and type -q python3
-            python3 -Ic '
-import fcntl, struct, termios, time
-for _ in range(50):
-    try:
-        with open("/dev/tty") as t:
-            if struct.unpack("HHHH", fcntl.ioctl(t, termios.TIOCGWINSZ, b"\0" * 8))[2] > 0:
-                break
-    except OSError:
-        break
-    time.sleep(0.02)'
-        end
+    if not set -q HERDR_ENV; and not set -q ZELLIJ; and type -q fastfetch
         # La funcion fastfetch (functions/fastfetch.fish) elige el protocolo de imagen segun el
         # terminal (herdr->kitty, foot->sixel, kitty/ghostty->auto). Asi arranque y manual son iguales.
         fastfetch
