@@ -28,7 +28,7 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Alt j` / `Alt k`            | Ir al panel de abajo / arriba                  |
 | `Alt ←` `↓` `↑` `→`          | Lo mismo con flechas                           |
 | `Alt x`                      | Cerrar el panel actual                         |
-| `Alt t`                      | Nueva pestaña (con nombre aleatorio)           |
+| `Alt t`                      | Nueva pestaña (pide el nombre)                 |
 | `Alt Shift h` / `Alt Shift l`| Pestaña anterior / siguiente                   |
 | `Alt i` / `Alt o`            | Mover la pestaña actual a la izquierda / derecha (cambia el orden) |
 | `Alt Shift x`                | Cerrar la pestaña actual con todos sus paneles |
@@ -156,10 +156,11 @@ herdr --default-config          # ver todas las opciones de configuración
     al abrir kitty vuelves a todo tal cual.
   - Si herdr falla al arrancar, la ventana no se cierra y se ve el error.
 - **Nombres de pestañas.** Un workspace nuevo arranca con las pestañas `shell` y `nvim`; las
-  pestañas nuevas sin nombre reciben uno aleatorio estilo `adjetivo-animal` (`cosmic-badger`).
+  pestañas nuevas piden su nombre al crearlas (como craftzdog); si se deja en blanco reciben uno
+  aleatorio estilo `adjetivo-animal` (`cosmic-badger`).
   Herdr no tiene nombre por defecto: sin esto, las pestañas muestran su posición (1, 2, 3…).
-- **fastfetch con imagen.** Dentro de herdr, fish espera (máx. 1 s) a que el panel conozca su
-  tamaño en píxeles antes de lanzar fastfetch; si no, a veces cae al logo ASCII de Arch.
+- **Sin fastfetch.** Dentro de herdr no se lanza al abrir paneles (en los pequeños solo salían
+  los círculos de colores); escribe `fastfetch` a mano si lo quieres.
 
 ## Configuración (`config.toml`)
 
@@ -169,7 +170,6 @@ herdr --default-config          # ver todas las opciones de configuración
 | `sidebar_start_collapsed` + `sidebar_collapsed_mode = "hidden"` | Barra lateral oculta al arrancar (`Ctrl+g b`) |
 | `accent = "#268bd3"`                     | Azul Solarized Osaka (la pestaña activa de zellij)   |
 | `tab_bar_right`                          | `ZOOM` al ampliar un panel y la fecha (formato de zellij) |
-| `prompt_new_tab_name = false`            | Las pestañas se crean al instante, sin pedir nombre  |
 
 No se puede replicar de zjstatus: estilo de las pestañas (solo el color de acento), indicador
 de modo, barra de atajos inferior ni la rama de git (los comandos de la barra corren en el

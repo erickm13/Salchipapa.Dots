@@ -15,8 +15,8 @@ tab_bar_right = [
 ]
 tab_bar_right_separator = "  "
 
-# Crear pestañas al instante (sin pedir nombre); fish les pone un nombre aleatorio
-prompt_new_tab_name = false
+# Al crear una pestaña (Ctrl+g c / Alt+t) herdr pide su nombre, como craftzdog (prompt_new_tab_name
+# queda en true, el valor por defecto). Si se deja en blanco, fish le pone uno aleatorio
 
 [ui.toast]
 delivery = "system"
