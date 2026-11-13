@@ -113,7 +113,7 @@ source $ZSH/oh-my-zsh.sh
   alias gs="git status"
   alias ga="git add"
   alias gc="git commit -m"
-  alias gp="git push -u origin main"
+  alias gp="git push"
 
 export CARAPACE_BRIDGES='zsh,fish,bash,inshellisense'
 zstyle ':completion:*' format $'\e[2;37mCompleting %d\e[m'
