@@ -1,13 +1,13 @@
 # herdr: nombres de pestañas. Va al principio para que el nombre aparezca al instante.
 # herdr no tiene nombre por defecto: las pestañas sin nombre muestran su posicion.
-# Workspace nuevo: "shell" + "nvim", como mi layout de zellij.
+# Workspace nuevo: "claude" + "nvim" (antes "shell" + "nvim", como mi layout de zellij).
 # Pestañas nuevas sin nombre: adjetivo-animal aleatorio, al estilo de los nombres de zellij.
 if status is-interactive; and test "$HERDR_ENV" = 1; and set -q HERDR_TAB_ID; and type -q jq
     set -l label (herdr tab get $HERDR_TAB_ID 2>/dev/null | jq -r '.result.tab.label // empty')
     if string match -qr '^[0-9]+$' -- "$label"
         set -l n_tabs (herdr tab list --workspace $HERDR_WORKSPACE_ID 2>/dev/null | jq -r '.result.tabs | length')
         if test "$n_tabs" = 1
-            herdr tab rename $HERDR_TAB_ID shell >/dev/null 2>&1
+            herdr tab rename $HERDR_TAB_ID claude >/dev/null 2>&1
             herdr tab create --workspace $HERDR_WORKSPACE_ID --label nvim >/dev/null 2>&1
         else
             set -l adj blossoming sleepy jolly cosmic fuzzy brave quiet sunny mighty gentle \
@@ -19,7 +19,7 @@ if status is-interactive; and test "$HERDR_ENV" = 1; and set -q HERDR_TAB_ID; an
     end
 
     # `exit` en el ultimo panel: cerrar herdr del todo. Si no, herdr crea un workspace nuevo (con
-    # "shell" + "nvim" otra vez) y la terminal nunca se cierra. Solo en el fish principal del
+    # "claude" + "nvim" otra vez) y la terminal nunca se cierra. Solo en el fish principal del
     # panel (su padre es herdr), no en un fish abierto dentro de otro.
     if test (ps -o comm= -p (ps -o ppid= -p $fish_pid | string trim)) = herdr
         function __herdr_cerrar_si_ultimo_panel --on-event fish_exit
@@ -28,7 +28,7 @@ if status is-interactive; and test "$HERDR_ENV" = 1; and set -q HERDR_TAB_ID; an
             set -l panes (herdr pane list 2>/dev/null | jq -r '.result.panes[].pane_id')
             if test (count $panes) = 1; and test "$panes[1]" = "$HERDR_PANE_ID"
                 # Marca para que la fish de kitty borre la sesion guardada: si no, herdr restauraria
-                # el ultimo estado (solo la pestaña que quedaba) en vez de empezar con shell + nvim
+                # el ultimo estado (solo la pestaña que quedaba) en vez de empezar con claude + nvim
                 mkdir -p ~/.cache/herdr; and touch ~/.cache/herdr/reset-session
                 herdr server stop >/dev/null 2>&1
             end

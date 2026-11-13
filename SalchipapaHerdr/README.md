@@ -151,11 +151,11 @@ herdr --default-config          # ver todas las opciones de configuración
   ni SSH) y nunca dentro de herdr o zellij.
 - **Cerrar:**
   - `exit` en el **último panel** que queda: apaga herdr, cierra la ventana de kitty y borra la
-    sesión guardada, así que la próxima vez empieza de cero con `shell` + `nvim`.
+    sesión guardada, así que la próxima vez empieza de cero con `claude` + `nvim`.
   - `Ctrl+g q`: sale de herdr y cierra la ventana, pero herdr sigue corriendo en segundo plano;
     al abrir kitty vuelves a todo tal cual.
   - Si herdr falla al arrancar, la ventana no se cierra y se ve el error.
-- **Nombres de pestañas.** Un workspace nuevo arranca con las pestañas `shell` y `nvim`; las
+- **Nombres de pestañas.** Un workspace nuevo arranca con las pestañas `claude` y `nvim`; las
   pestañas nuevas piden su nombre al crearlas (como craftzdog); si se deja en blanco reciben uno
   aleatorio estilo `adjetivo-animal` (`cosmic-badger`).
   Herdr no tiene nombre por defecto: sin esto, las pestañas muestran su posición (1, 2, 3…).
