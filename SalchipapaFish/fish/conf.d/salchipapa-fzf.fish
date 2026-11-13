@@ -1,12 +1,20 @@
 # Aspecto de fzf (atajos de la shell, fzf.fish, fzf-lua en nvim y cualquier `fzf` a mano).
-# Colores con NOMBRES ANSI, no hex: siguen la paleta del terminal, que apply-colors.sh cambia con
-# el fondo (igual que starship y los fish_color_*). Incluye lo que fzf.fish pondría si esta variable
-# no existiera (--cycle, --layout=reverse, --border, --height, --marker). fzf-lua quita el borde solo.
+# Incluye lo que fzf.fish pondría si esta variable no existiera (--cycle, --layout=reverse, --border,
+# --height, --marker). fzf-lua quita el borde solo.
 set -gx FZF_DEFAULT_OPTS "\
 --cycle --layout=reverse --height=90% --border=rounded --info=inline-right \
---prompt='❯ ' --pointer='▌' --marker='+' --preview-window=wrap \
+--prompt='❯ ' --pointer='▌' --marker='+' --preview-window=wrap"
+# Colores: los escribe Salchipapa-Shell según el tema en un archivo que fzf lee cada vez que se
+# abre (cambian al momento con el tema). Sin él, nombres ANSI: siguen la paleta del terminal.
+# Van en el archivo o en la variable, no en los dos: la variable se lee después y ganaría.
+set -l fzf_colors ~/.local/state/salchipapa-shell/fzf-colors
+if test -f $fzf_colors
+    set -gx FZF_DEFAULT_OPTS_FILE $fzf_colors
+else
+    set -gx FZF_DEFAULT_OPTS "$FZF_DEFAULT_OPTS \
 --color=fg:-1,bg:-1,gutter:-1,hl:blue,fg+:bright-white,bg+:bright-black,hl+:bright-blue \
 --color=prompt:blue,pointer:magenta,marker:green,info:cyan,spinner:cyan,header:yellow,border:bright-black,label:cyan"
+end
 
 # Acciones dentro de los buscadores de archivos/directorios (Ctrl+T y Alt+C). No van en
 # FZF_DEFAULT_OPTS: ahí también las heredarían el historial, git log, fzf-lua… donde {} no es una ruta.
@@ -47,8 +55,14 @@ set -gx FZF_ALT_C_OPTS (printf "'%s' " $altc_opts | string trim)
 # fzf, así que va un elemento por opción y sin comillas.
 set -g fzf_directory_opts --bind=$fzf_path_binds --bind=$fzf_hidden_bind --border-label=$fzf_dir_label $fzf_label_pos
 
-# bat con la paleta del terminal en vez de un tema fijo
-set -gx BAT_THEME ansi
+# bat con la paleta del terminal en vez de un tema fijo. Si existe ~/.config/bat/config (lo escribe
+# Salchipapa-Shell con el tema de bat que corresponde al suyo), manda ese: BAT_THEME ganaría, así que
+# se quita aunque venga heredada (herdr o la terminal pueden haberse abierto con ella).
+if test -f ~/.config/bat/config
+    set -e BAT_THEME
+else
+    set -gx BAT_THEME ansi
+end
 
 # Vista previa de archivos con bat (Ctrl+T de fzf.fish y los alias fzfbat/fzfnvim): solo números de
 # línea y al ancho de la ventana de vista previa. Sin --terminal-width, bat dibuja cabecera y cuadrícula

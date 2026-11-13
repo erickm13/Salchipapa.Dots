@@ -1,3 +1,28 @@
+-- Colorscheme: el del tema de Salchipapa-Shell (Super+T escribe su nombre en
+-- ~/.local/state/salchipapa-shell/nvim-colorscheme) o, si no hay, el de siempre.
+local default_colorscheme = "solarized-osaka"
+local state_file = vim.fn.expand("~/.local/state/salchipapa-shell/nvim-colorscheme")
+
+local function themed_colorscheme()
+  local f = io.open(state_file, "r")
+  if f then
+    local name = vim.trim(f:read("*l") or "")
+    f:close()
+    if name ~= "" then
+      return name
+    end
+  end
+  return default_colorscheme
+end
+
+-- Super+T la llama en cada nvim abierto (por su socket) para cambiarlo al momento.
+function _G.SalchipapaApplyColorscheme()
+  local ok = pcall(vim.cmd.colorscheme, themed_colorscheme())
+  if not ok then
+    pcall(vim.cmd.colorscheme, default_colorscheme)
+  end
+end
+
 return {
   {
     -- {
@@ -346,7 +371,7 @@ return {
     {
       "LazyVim/LazyVim",
       opts = {
-        colorscheme = "solarized-osaka", -- se cambia con `theme <nombre>` (fish), junto con herdr
+        colorscheme = themed_colorscheme(), -- lo elige Super+T (Salchipapa-Shell); ver arriba
       },
     },
   },

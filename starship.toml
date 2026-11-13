@@ -54,6 +54,8 @@ surface2 = "black"
 base = "none"
 mantle = "black"
 crust = "black"
+directory = "blue"
+branch = "purple"
 
 [palettes.catppuccin_mocha]
 rosewater = "#f5e0dc"
@@ -82,6 +84,8 @@ surface0 = "#313244"
 base = "#1e1e2e"
 mantle = "#181825"
 crust = "#11111b"
+directory = "#89b4fa"
+branch = "#cba6f7"
 
 # [palettes.gentleman] (backup)
 # text = "#F3F6F9"
@@ -134,6 +138,8 @@ surface0 = "#001419"
 base = "none"
 mantle = "#001419"
 crust = "#001014"
+directory = "#268bd3"
+branch = "#d23681"
 
 [character]
 success_symbol = "[ 🛸](fg:green)"
@@ -152,9 +158,9 @@ show_always = true
 [directory]
 format = "[$path](bold $style)[$read_only]($read_only_style) "
 truncation_length = 2
-style = "fg:blue"
-read_only_style = "fg:blue"
-before_repo_root_style = "fg:blue"
+style = "fg:directory"
+read_only_style = "fg:directory"
+before_repo_root_style = "fg:directory"
 truncation_symbol = "…/"
 truncate_to_repo = true
 read_only = "  "
@@ -172,7 +178,7 @@ min_time = 500
 
 [git_branch]
 format = "-> [$symbol$branch]($style) "
-style = "bold fg:mauve"
+style = "bold fg:branch"
 symbol = " "
 
 [git_status]

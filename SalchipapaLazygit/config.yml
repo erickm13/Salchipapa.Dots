@@ -1,6 +1,9 @@
-# Lazygit (basado en craftzdog/dotfiles). Los colores los pone snacks.nvim al abrirlo desde nvim.
+# Lazygit (basado en craftzdog/dotfiles). Colores: el tema de Salchipapa-Shell (fish añade su
+# lazygit-theme.yml a LG_CONFIG_FILE) o, al abrirlo desde nvim, los que pone snacks.nvim.
 gui:
   scrollHeight: 30
+  # Iconos de archivos y carpetas (Nerd Font v3), como desde nvim (snacks lo pone igual)
+  nerdFontsVersion: "3"
 git:
   autoFetch: false
   # delta toma line-numbers, syntax-theme y decoraciones de ~/.config/git/delta.gitconfig

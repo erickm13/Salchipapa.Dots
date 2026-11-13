@@ -125,7 +125,16 @@ if status is-interactive
 end
 
 # Initialize tools
+# Prompt: si Salchipapa-Shell dejó su copia de starship.toml (la de los dotfiles con la paleta del
+# tema, p. ej. gruvbox), se usa esa. starship la relee en cada prompt: cambia al momento con el tema.
+set -l themed_starship ~/.local/state/salchipapa-shell/starship.toml
+test -f $themed_starship; and set -gx STARSHIP_CONFIG $themed_starship
 starship init fish | source
+
+# lazygit: colores del tema de Salchipapa-Shell encima del config.yml de los dotfiles (lazygit lee
+# los dos al abrirse; desde nvim, snacks pone su propia lista).
+set -l themed_lazygit ~/.local/state/salchipapa-shell/lazygit-theme.yml
+test -f $themed_lazygit; and set -gx LG_CONFIG_FILE ~/.config/lazygit/config.yml,$themed_lazygit
 zoxide init fish | source
 fzf --fish | source
 
@@ -269,46 +278,61 @@ alias win="z /mnt/c/Users/Salchipapa"
 # set -g fish_pager_color_completion $foreground
 # set -g fish_pager_color_description $comment
 
-# Resaltado de sintaxis con nombres ANSI -> sigue la paleta del terminal (tematizada con el
-# fondo por apply-colors.sh). Para colores fijos Solarized, volver a poner los hex.
-set -l foreground normal
-set -l selection brblack
-set -l comment brblack
-set -l red red
-set -l orange bryellow
-set -l yellow yellow
-set -l green green
-set -l blue blue
-set -l cyan cyan
-set -l magenta magenta
+# Colores del resaltado. Por defecto, nombres ANSI: siguen la paleta del terminal (tematizada con
+# el fondo por apply-colors.sh). Si Salchipapa-Shell deja un fish-colors.fish (temas hechos a mano,
+# como gruvbox), mandan los suyos. apply-colors.sh cambia la universal `salchipapa_theme` al aplicar
+# un tema: todas las fish abiertas se enteran y vuelven a cargar los colores sin reabrirlas.
+function __salchipapa_fish_colors --on-variable salchipapa_theme
+    set -l foreground normal
+    set -l selection brblack
+    set -l comment brblack
+    set -l red red
+    set -l orange bryellow
+    set -l yellow yellow
+    set -l green green
+    set -l blue blue
+    set -l cyan cyan
+    set -l magenta magenta
 
-# Syntax Highlighting Colors
-set -g fish_color_normal $foreground
-set -g fish_color_command $blue
-set -g fish_color_keyword $magenta
-set -g fish_color_quote $green
-set -g fish_color_redirection $foreground
-set -g fish_color_end $cyan
-set -g fish_color_error $red
-set -g fish_color_param $foreground
-set -g fish_color_comment $comment
-set -g fish_color_selection --background=$selection
-set -g fish_color_search_match --background=$selection
-set -g fish_color_operator $cyan
-set -g fish_color_escape $green
-set -g fish_color_autosuggestion $comment
+    # Syntax Highlighting Colors
+    set -g fish_color_normal $foreground
+    set -g fish_color_command $blue
+    set -g fish_color_keyword $magenta
+    set -g fish_color_quote $green
+    set -g fish_color_redirection $foreground
+    set -g fish_color_end $cyan
+    set -g fish_color_error $red
+    set -g fish_color_param $foreground
+    set -g fish_color_comment $comment
+    set -g fish_color_selection --background=$selection
+    set -g fish_color_search_match --background=$selection
+    set -g fish_color_operator $cyan
+    set -g fish_color_escape $green
+    set -g fish_color_autosuggestion $comment
 
-# Completion Pager Colors
-set -g fish_pager_color_progress $foreground
-set -g fish_pager_color_prefix $blue
-set -g fish_pager_color_completion $foreground
-set -g fish_pager_color_description $comment
+    # Completion Pager Colors
+    set -g fish_pager_color_progress $foreground
+    set -g fish_pager_color_prefix $blue
+    set -g fish_pager_color_completion $foreground
+    set -g fish_pager_color_description $comment
 
-# Fix valid path color (no underline)
-set -g fish_color_valid_path $blue
+    # Fix valid path color (no underline)
+    set -g fish_color_valid_path $blue
+    # Lo que un tema puede cambiar y arriba no se define: vuelve a su valor al cambiar de tema
+    set -g fish_color_option $foreground
+    set -g fish_pager_color_selected_background -r
+    set -e fish_pager_color_selected_completion fish_pager_color_selected_prefix fish_pager_color_selected_description
+
+    set -l theme_colors ~/.local/state/salchipapa-shell/fish-colors.fish
+    test -f $theme_colors; and source $theme_colors
+end
+__salchipapa_fish_colors
 
 # Fix WSL other-writable directories (Windows folders)
-set -gx LS_COLORS "di=01;34:ow=01;34:ln=01;36:ex=01;32:*.tar=01;31:*.zip=01;31"
+# Sin `di`: el color de los directorios de eza (`ls`) lo pone ~/.config/eza/theme.yml, que escribe
+# Salchipapa-Shell según el tema (eza solo lo usa si LS_COLORS no define `di`). Sin ese archivo,
+# eza y ls usan su azul en negrita de siempre.
+set -gx LS_COLORS "ow=01;34:ln=01;36:ex=01;32:*.tar=01;31:*.zip=01;31"
 
 # thefuck (`fuck` corrige el último comando), solo si está instalado: el instalador no lo trae
 if type -q thefuck
