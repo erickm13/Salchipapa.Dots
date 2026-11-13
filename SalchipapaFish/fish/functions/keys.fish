@@ -150,6 +150,7 @@ function keys --description "Chuleta: comandos, abreviaturas y teclas de este se
         __keys_row "Ctrl+g o / Shift+o" "abrir la carpeta en el explorador / ir a la notificación"
         __keys_row "Alt+Shift+k / j" "subir / bajar el workspace"
         __keys_row "rueda / Ctrl+g [" "subir y bajar en el historial del panel / modo copia (teclado)"
+        __keys_row "  j / k · q" "  en modo copia: bajar / subir · salir"
         __keys_row "ide" "layout: panel arriba y tres abajo"
         set -q __keys_tsv; or echo
     end

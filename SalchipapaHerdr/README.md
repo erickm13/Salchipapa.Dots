@@ -57,7 +57,7 @@ sesiones que siguen vivas aunque cierres la terminal, con detección de agentes 
 | `Ctrl+g` `g`              | Lazygit en un panel ampliado, en el directorio actual (se cierra al salir) |
 | `Ctrl+g` `e`              | Cerrar los demás paneles de la pestaña              |
 | `Ctrl+g` `;`              | Volver al último panel donde estabas                |
-| `Ctrl+g` `[`              | Modo copia: recorrer el historial del panel con el teclado y copiar |
+| `Ctrl+g` `[`              | Modo copia: recorrer el historial del panel con el teclado (`j`/`k` bajar/subir, `q` salir) |
 | `Ctrl+g` `x`              | Cerrar el panel                                     |
 
 ### Pestañas
