@@ -5,8 +5,8 @@
 
 local M = {}
 
-local LEFT = "" -- nf-ple-lower_right_triangle
-local RIGHT = "" -- nf-ple-lower_left_triangle
+local LEFT = "\u{e0ba}" -- nf-ple-lower_right_triangle (escrito con su código: el glifo suelto se perdía al copiar)
+local RIGHT = "\u{e0b8}" -- nf-ple-lower_left_triangle
 local MAX_NAME = 20
 local TRUNCATE_TO = 17
 
