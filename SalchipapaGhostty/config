@@ -1,6 +1,6 @@
 # By default Reload config with shft + cmd + ,
 config-file = themes/rosepine
-background-opacity = 0.66
+background-opacity = 0.80
 background-blur-radius = 25
 
 font-family = PlemolJP Console NF
