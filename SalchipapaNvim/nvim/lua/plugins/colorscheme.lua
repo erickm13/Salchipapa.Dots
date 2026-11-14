@@ -327,6 +327,8 @@ return {
       priority = 1000,
       lazy = false,
       opts = {
+        -- vivid: los colores del texto un 30 % más claros (los fondos no cambian), como craftzdog
+        style = "vivid",
         transparent = true,
         styles = {
           comments = { italic = true },
